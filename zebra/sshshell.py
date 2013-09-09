@@ -15,7 +15,7 @@ import time
 import select
 
 from nbt_exceptions import re_raise, SshError, CommandError, CommandTimeout
-from interactive_channel import InteractiveChannel
+from zebra.interactive_channel import InteractiveChannel
 
 
 class SshShell(object):
@@ -43,7 +43,7 @@ class SshShell(object):
 
         ## paramiko.Transport object, the actual SSH engine.
         # http://www.lag.net/paramiko/docs/
-        self.ssh = None
+        self.transport = None
 
         ## Logging module
         self.log = logging.getLogger(self.__class__.__name__)
@@ -66,10 +66,11 @@ class SshShell(object):
         """
         self.log.info('Connecting to "%s" as "%s"' % (self.host, self.user))
         try:
-            self.ssh = paramiko.Transport((self.host, 22))
-            self.ssh.banner_timeout = timeout
-            self.ssh.start_client()
-            self.ssh.auth_password(self.user, self.password, fallback=False)
+            self.transport = paramiko.Transport((self.host, 22))
+            self.transport.banner_timeout = timeout
+            self.transport.start_client()
+            self.transport.auth_password(self.user, self.password,
+                                         fallback=False)
         except:
             # Close the session, or the child thread apparently hangs
             self.disconnect()
@@ -79,7 +80,7 @@ class SshShell(object):
         # It's annoying.
 
         if not self.log.isEnabledFor(logging.DEBUG):
-            logger = logging.getLogger(self.ssh.get_log_channel())
+            logger = logging.getLogger(self.transport.get_log_channel())
             logger.setLevel(logging.WARNING)
 
     def disconnect(self):
@@ -87,8 +88,8 @@ class SshShell(object):
         Disconnects from the host
         """
 
-        if self.ssh:
-            self.ssh.close()
+        if self.transport:
+            self.transport.close()
 
     def exec_command(self, command, timeout=60, except_on_error=False):
         """
@@ -112,10 +113,10 @@ class SshShell(object):
         self.log.debug('Executing command "%s"' % command)
 
         # connect if ssh is not connected
-        if (not self.ssh) or (not self.ssh.is_active()):
+        if (not self.transport) or (not self.transport.is_active()):
             self.connect()
 
-        channel = self.ssh.open_session()
+        channel = self.transport.open_session()
 
         # Put stderr into the same output as stdout.
         channel.set_combine_stderr(True)
@@ -131,7 +132,7 @@ class SshShell(object):
         try:
             channel.exec_command(command)
         except paramiko.SSHException:
-            if not self.ssh.is_active():
+            if not self.transport.is_active():
                 raise
             else:
                 self.log.debug('Ignore Paramiko SSHException due to 1.7.5 bug')
@@ -195,25 +196,35 @@ class SshShell(object):
 
         return (output, exit_status)
 
-    def new_interactive_channel(self):
+    def is_connected(self):
         """
-        Returns an interactive channel that may be used to communicate with
-        the remote end in a stateful way. This should be used over exec_command
-        whenever the channel must remain open between commands for interactive
-        processing, or when a terminal/tty is necessary; eg, the CLI.
+        Check whether SSH connection is established or not.
+        @Returns True if it is connected; returns False otherwise.
+        """
+        if self.transport and self.transport.is_active():
+            return True
+        return False
 
-        The channel must be opened with start() before it can be used.
-
-        Note that the new channel is using this Shell object, and will lose
-        communications when the Shell object is disconnected.
+    def open_interactive_channel(self, term='console'):
+        """
+        Creates and starts an interactive channel that may be used to
+        communicate with the remote end in a stateful way. This should be used
+        over exec_command whenever the channel must remain open between
+        commands for interactive processing, or when a terminal/tty is
+        necessary; eg, the CLI.
 
         @exception SshError if the SSH connection has not yet been
                    established.
 
-        @return An InteractiveChannel object.
+        @return An Paramiko channel that communicate with the remote end in
+        a stateful way.
         """
 
-        if (not self.ssh) or (not self.ssh.is_active()):
+        if (not self.is_connected()):
             raise SshError('Not connected!')
 
-        return InteractiveChannel(self.ssh, self.host)
+        channel = self.transport.open_session()
+        channel.get_pty(term, 80, 24)
+        channel.invoke_shell()
+        channel.set_combine_stderr(True)
+        return channel

@@ -12,7 +12,7 @@ import logging
 import paramiko
 import re
 
-from nbt_exceptions import CommandError, CommandTimeout
+from nbt_exceptions import CommandError, CommandTimeout, NbtError
 
 
 class InteractiveChannel(object):
@@ -25,23 +25,27 @@ class InteractiveChannel(object):
     # Note that for the ^, Python won't accept [^] as a valid regex?
     bash_prompt = '(^|\n|\r)\[\S+ \S+\]#'
 
-    def __init__(self, transport, hostname):
+    def __init__(self, ssh_shell, hostname=None):
         """
         Create a new InteractiveChannel object.
 
-        @param transport - paramiko.Transport object to open a channel with.
-                           The transport must be connected
-        @param hostname - the hostname we're connecting to, for logging purpose
+        @param ssh_shell - SshShell object to open a channel with.
+        @param hostname - the hostname we're connecting to. This is optional
+                          and for logging purposes only. If not specified,
+                          it is set to ssh_shell.host
         """
 
-        if not transport:
-            raise CommandError('Transport required, but none was given!')
-
+        if not ssh_shell:
+            raise NbtError("Parameter 'ssh_shell' is required!")
         self.channel = None
-        self.transport = transport
-        self.hostname = hostname
+
+        self.ssh_shell = ssh_shell
+        if hostname:
+            self.hostname = hostname
+        else:
+            self.hostname = self.ssh_shell.host
         self.log = logging.getLogger('%s/%s' % (self.__class__.__name__,
-                                                hostname))
+                                                self.hostname))
 
     def start(self, term='console'):
         """
@@ -50,14 +54,7 @@ class InteractiveChannel(object):
         @param term - terminal emulation to use
         """
 
-        if not self.transport or not self.transport.is_active():
-            raise CommandError('Transport is not connected')
-
-        self.channel = self.transport.open_session()
-        self.channel.get_pty(term, 80, 24)
-        self.channel.invoke_shell()
-        self.channel.set_combine_stderr(True)
-
+        self.channel = self.ssh_shell.open_interactive_channel(term)
         self.log.info('Interactive channel to "%s" started' % self.hostname)
 
     def stop(self):
@@ -84,7 +81,7 @@ class InteractiveChannel(object):
         if not self.channel:
             raise CommandError('Channel has not been started')
 
-        if not self.transport or not self.transport.is_active():
+        if not self.ssh_shell.is_connected():
             raise CommandError('Host SSH shell has been disconnected')
 
     def send_and_wait(self, text_to_send, match_text, timeout=60):
@@ -180,10 +177,10 @@ class InteractiveChannel(object):
         bytes_sent = 0
 
         while bytes_sent < len(text_to_send):
-            bytes_sent += self.channel.send(text_to_send[bytes_sent:])
-
-            if bytes_sent == 0:
+            bytes_sent_this_time = self.channel.send(text_to_send[bytes_sent:])
+            if bytes_sent_this_time == 0:
                 raise CommandError('Channel is closed')
+            bytes_sent += bytes_sent_this_time
 
     def wait_for_prompt(self, match_res, timeout=60):
         """
@@ -199,7 +196,7 @@ class InteractiveChannel(object):
                            Currently cannot match multiple lines.
         @param timeout - maximum time, in seconds, to wait for a regular
                          expression match. 0 to wait forever.
-
+        @exceptions NbtError if match_res is None or empty.
         @return (output, re.MatchObject) where output is the output of the
                 command (without the matched text), and MatchObject is a Python
                 re.MatchObject containing data on what was matched.
@@ -210,6 +207,12 @@ class InteractiveChannel(object):
                 MatchObject.re.pattern will contain the pattern that matched,
                 which will be one of the elements of match_res passed in.
         """
+
+        if match_res is None:
+            raise NbtError('Parameter match_res is required!')
+
+        if not match_res:
+            raise NbtError('match_res should not be empty!')
 
         self.verify_connected()
 
