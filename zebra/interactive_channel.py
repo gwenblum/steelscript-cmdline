@@ -250,7 +250,7 @@ class InteractiveChannel(object):
                 raise CommandTimeout(
                     'Did not find "%s" after %d seconds. Received data:\n%s'
                     % (str(match_res), timeout,
-                        self.__safe_line_feeds(received_data)))
+                        repr(self.__safe_line_feeds(received_data))))
 
             new_data = None
 
