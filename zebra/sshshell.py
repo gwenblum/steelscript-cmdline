@@ -27,9 +27,9 @@ class SshShell(object):
         """
         Initializer
 
-        @param host - host/ip to ssh into
-        @param user - username to log in with
-        @param password - password to log in with
+        :param host: host/ip to ssh into
+        :param user: username to log in with
+        :param password: password to log in with
         """
 
         ## Hostname shell connects to
@@ -58,11 +58,11 @@ class SshShell(object):
         """
         Starts up paramiko and connects to the host.
 
-        @param timeout - an optional timeout (in seconds) for waiting for
-                         ssh banner coming out. Defaults to 5 seconds.
+        :param timeout: an optional timeout (in seconds) for waiting for
+                        ssh banner coming out. Defaults to 5 seconds.
 
-        @exception SshCipherError on cipher mismatch
-        @exception SshError on other error
+        :raises SshCipherError: on cipher mismatch
+        :raises SshError: on other error
         """
         self.log.info('Connecting to "%s" as "%s"' % (self.host, self.user))
         try:
@@ -97,17 +97,17 @@ class SshShell(object):
         running, so an exec_command cannot use environment variables/directory
         changes/whatever from a previous exec_command.
 
-        @param command - command to send
-        @param timeout - seconds to wait for command to finish. None to disable
-        @param except_on_error - If True, throw a CommandError exception if
-                               the command returns a non-zero return code
+        :param command: command to send
+        :param timeout: seconds to wait for command to finish. None to disable
+        :param except_on_error: If True, throw a CommandError exception if
+                                the command returns a non-zero return code
 
-        @exception SshError if not connected
-        @exception CommandError on non-zero return code from the command and
-                   except_on_error is True
-        @exception CommandTimeout on timeout
+        :raises SshError: if not connected
+        :raises CommandError: on non-zero return code from the command and
+                              except_on_error is True
+        :raises CommandTimeout: on timeout
 
-        @return (output, exit_code) for the command.
+        :return: (output, exit_code) for the command.
         """
 
         self.log.debug('Executing command "%s"' % command)
@@ -199,7 +199,7 @@ class SshShell(object):
     def is_connected(self):
         """
         Check whether SSH connection is established or not.
-        @Returns True if it is connected; returns False otherwise.
+        :return: True if it is connected; returns False otherwise.
         """
         if self.transport and self.transport.is_active():
             return True
@@ -213,11 +213,11 @@ class SshShell(object):
         commands for interactive processing, or when a terminal/tty is
         necessary; eg, the CLI.
 
-        @exception SshError if the SSH connection has not yet been
-                   established.
+        :raises SshError: if the SSH connection has not yet been
+                          established.
 
-        @return An Paramiko channel that communicate with the remote end in
-        a stateful way.
+        :return: An Paramiko channel that communicate with the remote end in
+                 a stateful way.
         """
 
         if (not self.is_connected()):

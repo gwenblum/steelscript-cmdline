@@ -29,8 +29,8 @@ class InteractiveChannel(object):
         """
         Create a new InteractiveChannel object.
 
-        @param ssh_shell - SshShell object to open a channel with.
-        @param hostname - the hostname we're connecting to. This is optional
+        :param ssh_shell: SshShell object to open a channel with.
+        :param hostname: the hostname we're connecting to. This is optional
                           and for logging purposes only. If not specified,
                           it is set to ssh_shell.host
         """
@@ -51,7 +51,7 @@ class InteractiveChannel(object):
         """
         Starts the interactive shell session.
 
-        @param term - terminal emulation to use
+        :param term: terminal emulation to use
         """
 
         self.channel = self.ssh_shell.open_interactive_channel(term)
@@ -75,7 +75,7 @@ class InteractiveChannel(object):
         (start() has been called), and that the transport object we are using
         is still connected.
 
-        @exception CommandError if we are not connected
+        :raises CommandError: if we are not connected
         """
 
         if not self.channel:
@@ -90,28 +90,28 @@ class InteractiveChannel(object):
         one or more patterns. Please note all old data in receive buff will
         be discarded.
 
-        @param text_to_send - Text to send, may be empty.  Note, you are
-                              responsible for your own \n's!
-        @param match_text - Pattern(s) to look for to be considered successful.
-                            May be a single regex string, or a list of them.
-                            Currently cannot match multiple lines.
-        @param timeout - Maximum time, in seconds, to wait for a regular
-                         expression match. 0 to wait forever.
+        :param text_to_send: Text to send, may be empty.  Note, you are
+                             responsible for your own linefeed's!
+        :param match_text: Pattern(s) to look for to be considered successful.
+                           May be a single regex string, or a list of them.
+                           Currently cannot match multiple lines.
+        :param timeout: Maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
 
-        @exception CommandError if text_to_send or match_text is empty.
+        :raises CommandError: if text_to_send or match_text is empty.
 
-        @exception CommandTimeout if no matching text was received before the
-                   timeout expired.
+        :raises CommandTimeout: if no matching text was received before the
+                                timeout expired.
 
-        @return (output, re.MatchObject) where output is the output of the
-                command (without the matched text), and MatchObject is a Python
-                re.MatchObject containing data on what was matched.
+        :return: (output, re.MatchObject) where output is the output of the
+                 command (without the matched text), and MatchObject is a Python
+                 re.MatchObject containing data on what was matched.
 
-                You may use MatchObject.string[m.start():m.end()] to recover
-                the actual matched text.
+                 You may use MatchObject.string[m.start():m.end()] to recover
+                 the actual matched text.
 
-                MatchObject.re.pattern will contain the pattern that matched,
-                which will be one of the elements of match_res passed in.
+                 MatchObject.re.pattern will contain the pattern that matched,
+                 which will be one of the elements of match_res passed in.
         """
 
         if not text_to_send:
@@ -134,7 +134,7 @@ class InteractiveChannel(object):
         Returns all text currently in the receive buffer, effectively flushing
         it.
 
-        @return the text that was present in the receive queue, if any.
+        :return: the text that was present in the receive queue, if any.
         """
 
         self.verify_connected()
@@ -166,8 +166,8 @@ class InteractiveChannel(object):
         """
         Sends text to the channel immediately.  Does not wait for any response.
 
-        @param text_to_send - Text to send, may be empty.  Note, you are
-                            responsible for your own \n's!
+        :param text_to_send: Text to send, may be empty.  Note, you are
+                             responsible for your own linefeed's!
         """
 
         self.verify_connected()
@@ -191,21 +191,21 @@ class InteractiveChannel(object):
         in the buffer; you may want to call receive_all() to flush the receive
         buffer before calling this function.
 
-        @param match_res - Pattern(s) to look for to be considered successful.
-                           May be a single regex string, or a list of them.
-                           Currently cannot match multiple lines.
-        @param timeout - maximum time, in seconds, to wait for a regular
-                         expression match. 0 to wait forever.
-        @exceptions NbtError if match_res is None or empty.
-        @return (output, re.MatchObject) where output is the output of the
-                command (without the matched text), and MatchObject is a Python
-                re.MatchObject containing data on what was matched.
+        :param match_res: Pattern(s) to look for to be considered successful.
+                          May be a single regex string, or a list of them.
+                          Currently cannot match multiple lines.
+        :param timeout: maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
+        :raises NbtError: if match_res is None or empty.
+        :return: (output, re.MatchObject) where output is the output of the
+                 command (without the matched text), and MatchObject is a Python
+                 re.MatchObject containing data on what was matched.
 
-                You may use MatchObject.string[m.start():m.end()] to recover
-                the actual matched text.
+                 You may use MatchObject.string[m.start():m.end()] to recover
+                 the actual matched text.
 
-                MatchObject.re.pattern will contain the pattern that matched,
-                which will be one of the elements of match_res passed in.
+                 MatchObject.re.pattern will contain the pattern that matched,
+                 which will be one of the elements of match_res passed in.
         """
 
         if match_res is None:
@@ -316,10 +316,10 @@ class InteractiveChannel(object):
         Given a string and a list of match strings, see if any of the text
         matches.
 
-        @param data - data to check for matches
-        @param matchList - list of match strings
+        :param data: data to check for matches
+        :param match_res: list of match strings
 
-        @returns None if no match was found, or the entry in matchList that
+        :return: None if no match was found, or the entry in matchList that
                  was found.
         """
 
@@ -333,7 +333,8 @@ class InteractiveChannel(object):
 
     def __safe_line_feeds(self, in_string):
         """
-        @return a string that has the linefeeds converted to ASCII
+        :param in_string: string to replace linefeeds
+        :return: a string that has the linefeeds converted to ASCII
                 representation for printing
         """
 
@@ -357,9 +358,9 @@ class InteractiveChannel(object):
         #4 doesn't trigger at the end of the line to cover partially received
            data; the next character that comes in may be a \n, \r, etc.
 
-        @param data - string to convert
+        :param data: string to convert
 
-        @return the string data that has the linefeeds converted into only \n's
+        :return: the string data that has the linefeeds converted into only \n's
         """
 
         # Not the fastest approach, but when the strings are short this should

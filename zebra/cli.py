@@ -51,7 +51,7 @@ class Cli(object):
         """
         Create a new Cli Channel object.
 
-        @param interactive_channel - the interactive channel used by cli
+        :param interactive_channel: the interactive channel used by cli
         """
         self.channel = interactive_channel
         self.log = logging.getLogger('%s/%s' % (self.__class__.__name__,
@@ -61,15 +61,15 @@ class Cli(object):
         """
         Starts the interactive shell session.
 
-        @param terminal - terminal emulation to use
-        @param exec_path - custom path to the CLI executable to use,
+        :param terminal:  terminal emulation to use
+        :param exec_path:  custom path to the CLI executable to use,
                            None for the default
-        @param timeout - max time, in seconds, to wait for the CLI prompt
+        :param timeout:  max time, in seconds, to wait for the CLI prompt
                          before giving up
 
-        @throws CommandTimeout if the prompt is not seen before timeout seconds
-        @throws CommandError if exec_path is set, but the channel did not start
-                at the bash prompt (ie, we do not have shell access)
+        :raises CommandTimeout: if the prompt is not seen before timeout seconds
+        :raises CommandError: if exec_path is set, but the channel did not start
+                              at the bash prompt (ie, we do not have shell access)
         """
 
         # Open up the channel
@@ -104,11 +104,11 @@ class Cli(object):
 
     def current_cli_level(self):
         """
-        Determine what level the CLI is at. This is done by sending '\n' on the
+        Determine what level the CLI is at. This is done by sending newline on the
         channel and check which prompt pattern matches.
 
-        @return current CLI level. Throws exceptions if current CLI level
-        could not be detected.
+        :return: current CLI level. Throws exceptions if current CLI level
+                 could not be detected.
         """
 
         (output, match) = self.channel.send_and_wait(
@@ -126,12 +126,12 @@ class Cli(object):
         """
         Enter mode based on mode string ('normal', 'enable', or 'configure').
 
-        @param mode: The CLI mode to enter. It must be 'normal', 'enable', or
+        :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
                    'configure'
 
-        @exception NotImplementedError if mode is not "normal", "enable", or
-                   "configure"
-        @exception CommandError if the shell is not in the CLI.
+        :raises NotImplementedError: if mode is not "normal", "enable", or
+                                     "configure"
+        :raises CommandError: if the shell is not in the CLI.
         """
         if mode == "normal":
             self.enter_level_root()
@@ -151,11 +151,11 @@ class Cli(object):
         executes), if it is not there already.  Note this will go 'backwards'
         if needed (e.g., exiting config mode)
 
-        @throws CommandError if the shell is not in the CLI; current thinking
-                             is this indicates the CLI has crashed/exited, and
-                             it is better to open a new CliChannel than have
-                             this one log back in and potentially hide an
-                             error.
+        :raises CommandError: if the shell is not in the CLI; current thinking
+                              is this indicates the CLI has crashed/exited, and
+                              it is better to open a new CliChannel than have
+                              this one log back in and potentially hide an
+                              error.
         """
 
         self.log.info('Going to root level')
@@ -185,11 +185,11 @@ class Cli(object):
         Puts the CLI into enable mode, if it is not there already.  Note this
         will go 'backwards' if needed (e.g., exiting config mode)
 
-        @exception CommandError if the shell is not in the CLI; current
-                                thinking is this indicates the CLI has
-                                crashed/exited, and it is better to open a
-                                new CliChannel than have this one log back in
-                                and potentially hide an error.
+        :raises CommandError: if the shell is not in the CLI; current
+                              thinking is this indicates the CLI has
+                              crashed/exited, and it is better to open a
+                              new CliChannel than have this one log back in
+                              and potentially hide an error.
         """
 
         self.log.info('Going to Enable level')
@@ -217,11 +217,11 @@ class Cli(object):
         """
         Puts the CLI into config mode, if it is not there already.
 
-        @throws CommandError if the shell is not in the CLI; current thinking
-                             is this indicates the CLI has crashed/exited, and
-                             it is better to open a new CliChannel than have
-                             this one log back in and potentially hide an
-                             error.
+        :raises CommandError: if the shell is not in the CLI; current thinking
+                              is this indicates the CLI has crashed/exited, and
+                              it is better to open a new CliChannel than have
+                              this one log back in and potentially hide an
+                              error.
         """
 
         self.log.info('Going to Config level')
@@ -251,22 +251,22 @@ class Cli(object):
     def run_command(self, command, except_on_error=True, timeout=60,
                     quiet=False):
         """
-        Runs the given command - '\n' is appended automatically
+        Runs the given command - newline is appended automatically
 
-        @param command - command to execute, \n appended automatically
-        @param except_on_error - if True, CommandError will be raised if the
+        :param command:  command to execute, newline appended automatically
+        :param except_on_error:  if True, CommandError will be raised if the
                                  CLI returns a string starting with %.
-        @param timeout - maximum time, in seconds, to wait for the command to
+        :param timeout:  maximum time, in seconds, to wait for the command to
                          finish. 0 to wait forever.
 
-        @param quiet - don't log the command executed.
+        :param quiet:  don't log the command executed.
 
-        @throws CommandTimeout if the command did not complete before the
-                               timeout expired.
-        @throws CommandError if the CLI returns a string starting with % and
-                             except_on_error is True
+        :raises CommandTimeout: if the command did not complete before the
+                                timeout expired.
+        :raises CommandError: if the CLI returns a string starting with % and
+                              except_on_error is True
 
-        @returns the output of the command, minus the command itself.
+        :return: the output of the command, minus the command itself.
         """
 
         if not quiet:
@@ -288,23 +288,23 @@ class Cli(object):
 
     def run_and_validate(self, command, expected_output, timeout=60):
         """
-        Runs the given command ('\n' is appended automatically), verifying that
+        Runs the given command (newline is appended automatically), verifying that
         expected_output is present in the output returned by the CLI.
 
-        @param command - command to execute, \n appended automatically
-        @param expected_output - a string, interpreted as a regex. If it is
+        :param command: command to execute, newline appended automatically
+        :param expected_output:  a string, interpreted as a regex. If it is
                                  None or empty, we expect the output returned
                                  for the command to be empty too. Otherwise,
                                  we expect a subset of the output matches the
                                  expected_output.
-        @param timeout - maximum time, in seconds, to wait for the command to
+        :param timeout:  maximum time, in seconds, to wait for the command to
                          finish. 0 to wait forever.
 
-        @throws CommandError if the expected output is not present
-        @throws CommandTimeout if the command did not complete before the
-                               timeout expired.
+        :raises CommandError: if the expected output is not present
+        :raises CommandTimeout: if the command did not complete before the
+                                timeout expired.
 
-        @returns the output of the command, minus the command itself.
+        :return: the output of the command, minus the command itself.
         """
 
         # Don't throw an exception on error here, since we're looking for a
