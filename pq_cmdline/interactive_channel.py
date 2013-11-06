@@ -12,7 +12,7 @@ import logging
 import paramiko
 import re
 
-from nbt_exceptions import CommandError, CommandTimeout, NbtError
+from pq_runtime.exceptions import CommandError, CommandTimeout, NbtError
 
 
 class InteractiveChannel(object):

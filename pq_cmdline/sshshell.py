@@ -7,6 +7,8 @@
 # Basic SSH shell, wrapped around Paramiko
 # Modified based on codes from mgmt-fwk
 
+from __future__ import absolute_import
+
 import sys
 import os
 import paramiko
@@ -14,8 +16,9 @@ import logging
 import time
 import select
 
-from nbt_exceptions import re_raise, SshError, CommandError, CommandTimeout
-from zebra.interactive_channel import InteractiveChannel
+from pq_runtime.exceptions import (re_raise, SshError,
+    CommandError, CommandTimeout)
+from pq_cmdline.interactive_channel import InteractiveChannel
 
 
 class SshShell(object):

@@ -3,11 +3,13 @@
 # Copyright 2013 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
+from __future__ import absolute_import
+
 import logging
 import re
 
-from nbt_exceptions import CommandError, CommandTimeout
-from interactive_channel import InteractiveChannel
+from pq_runtime.exceptions import CommandError, CommandTimeout
+from pq_cmdline.interactive_channel import InteractiveChannel
 
 
 class CLILevel(object):
