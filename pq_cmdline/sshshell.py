@@ -15,9 +15,10 @@ import paramiko
 import logging
 import time
 import select
+import scp
 
 from pq_runtime.exceptions import (re_raise, SshError,
-    CommandError, CommandTimeout)
+    CommandError, CommandTimeout, NbtError)
 from pq_cmdline.interactive_channel import InteractiveChannel
 
 
@@ -50,6 +51,9 @@ class SshShell(object):
 
         ## Logging module
         self.log = logging.getLogger(self.__class__.__name__)
+
+        ## For scp-ing files from the peer
+        self._scpc = None
 
     def __del__(self):
         """
@@ -231,3 +235,10 @@ class SshShell(object):
         channel.invoke_shell()
         channel.set_combine_stderr(True)
         return channel
+
+    @property
+    def scp_client(self):
+        if self._scpc is None:
+            self._scpc = scp.SCPClient(self.transport)
+
+        return self._scpc
