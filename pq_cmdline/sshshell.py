@@ -239,6 +239,9 @@ class SshShell(object):
     @property
     def scp_client(self):
         if self._scpc is None:
+            if not self.transport:
+                raise SshError('Transport not available for SCP')
+
             self._scpc = scp.SCPClient(self.transport)
 
         return self._scpc
