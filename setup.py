@@ -6,6 +6,7 @@ import os
 import sys
 
 from setuptools.command.test import test as TestCommand
+from pip.req import parse_requirements
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -22,6 +23,9 @@ try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
+    
+def requirements():
+    return [str(ir.req) for ir in parse_requirements('requirements.txt')]
 
 readme = open('README.rst').read()
 
@@ -37,8 +41,7 @@ setup(
     ],
     package_dir={'pq_cmdline': 'pq_cmdline'},
     include_package_data=True,
-    install_requires=[
-    ],
+    install_requires=requirements(),
     keywords='pq_cmdline',
     tests_require=["pytest"],
     cmdclass = {'test': PyTest},

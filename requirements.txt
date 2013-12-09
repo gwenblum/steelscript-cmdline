@@ -1,0 +1,9 @@
+-i http://pypibox/pq/development/
+
+# External dependencies
+paramiko
+pytest
+scp
+
+# Quicksilver dependencies
+pq-runtime

@@ -6,9 +6,9 @@
 import pytest
 import logging
 
-from zebra.sshshell import SshShell
-from zebra.cli import Cli
-from zebra.interactive_channel import InteractiveChannel
+from pq_cmdline.sshshell import SshShell
+from pq_cmdline.cli import Cli
+from pq_cmdline.interactive_channel import InteractiveChannel
 
 logging.basicConfig(level=logging.DEBUG)
 
