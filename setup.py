@@ -3,10 +3,17 @@
 from __future__ import print_function, division
 
 import os
+import pip
 import sys
 
 from setuptools.command.test import test as TestCommand
+from setuptools import find_packages
 from pip.req import parse_requirements
+
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -18,20 +25,30 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main("%s tests" % " ".join(self.test_args))
         sys.exit(errno)
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
     
 def requirements():
     return [str(ir.req) for ir in parse_requirements('requirements.txt')]
+
+def get_version():
+    try:
+        # pip-installed packages can get the version from the 'version.txt'
+        # file, since it is included in the package MANIFEST.
+        with open('version.txt', 'r') as f:
+            return f.read().strip()
+    except IOError:
+        # since 'version.txt' is .gitignored, running setup.py (install|develop)
+        # from a git repo requires a bit of bootstrapping. in this case, we use
+        # the raw .git tag as the version.
+        pip.main(['install', '-U', '-i http://pypi/pq/development/', 'pq-ci'])
+        from pq_ci import git
+        tag = git.parse_tag()
+        return '-'.join([tag['version'], tag['commits'], tag['sha']])
 
 readme = open('README.rst').read()
 
 setup(
     name='pq_cmdline',
-    version='0.1.0',
+    version=get_version(),
     description='Project Quicksilver command line interaction',
     long_description=readme,
     author='Project Quicksilver Team',
