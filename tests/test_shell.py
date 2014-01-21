@@ -1,61 +1,38 @@
-# $Id $ 
+# $Id $
 #
-# Copyright 2009-2013 Riverbed Technology, Inc.
+# Copyright 2009-2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
 import pytest
-import logging
+from mock import patch, Mock
+from paramiko import SSHException
 
-from pq_cmdline.sshshell import SshShell
-from pq_cmdline.cli import Cli
-from pq_cmdline.interactive_channel import InteractiveChannel
+from pq_runtime.exceptions import SshError
+from pq_cmdline.shell import Shell
 
-logging.basicConfig(level=logging.DEBUG)
+ANY_HOST = 'host1'
+ANY_USER = 'user1'
+ANY_PASSWORD = 'password1'
+ANY_COMMAND = 'pwd'
 
-@pytest.mark.skipif("not config.getvalue('host')")
-def test_shell():
-    logger = logging.getLogger('test_shell')
-    host = pytest.config.getoption('--host')
-    user = pytest.config.getoption('--user')
-    password = pytest.config.getoption('--password')
-    sh = SshShell(host, user, password)
-    sh.connect()
-    (output, exitstatus) = sh.exec_command("pwd")
-    logger.debug("pwd output %s" % output)
-    assert exitstatus == 0
-    sh.disconnect()
 
-@pytest.mark.skipif("not config.getvalue('host')")
-def test_exec_command():
-    """
-    Test exec_command() without doing connect() explicitly first. In this case
-    it will do connect() inside exec_command().
-    """
-    logger = logging.getLogger('test_exec_command')
-    host = pytest.config.getoption('--host')
-    user = pytest.config.getoption('--user')
-    password = pytest.config.getoption('--password')
-    sh = SshShell(host, user, password)
-    (output, exitstatus) = sh.exec_command("pwd")
-    logger.debug("pwd output %s" % output)
-    assert exitstatus == 0
-    sh.disconnect()
+@pytest.fixture
+def any_shell():
+    with patch('pq_cmdline.shell.SshProcess') as mock:
+        return Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
 
-@pytest.mark.skipif("not config.getvalue('host')")
-def test_cli():
-    logger = logging.getLogger('test_cli')
-    
-    host = pytest.config.getoption('--host')
-    user = pytest.config.getoption('--user')
-    password = pytest.config.getoption('--password')
-    
-    sh = SshShell(host, user, password)
-    sh.connect()
-    cli = Cli(InteractiveChannel(sh, host))
-    cli.start()
-    cli.enter_level_config()
-    output = cli.run_command("show version concise")
-    logger.debug("version: %s" % output)
-    cli.stop()
-    sh.disconnect()
-    
+
+def test_members_initialized_correctly(any_shell):
+    assert any_shell._host == ANY_HOST
+    assert any_shell._user == ANY_USER
+    assert any_shell._password == ANY_PASSWORD
+    assert any_shell.sshprocess.connect.called
+
+
+def test_exec_command_raises_on_ssh_exceptions(any_shell):
+    mock_channel = Mock()
+    any_shell.sshprocess.transport.open_session.return_value = mock_channel
+    any_shell.sshprocess.is_connected.return_value = False
+    mock_channel.exec_command.side_effect = SSHException('paramiko error')
+    with pytest.raises(SshError):
+        any_shell.exec_command(ANY_COMMAND)
