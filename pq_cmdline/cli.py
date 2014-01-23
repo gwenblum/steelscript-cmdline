@@ -3,13 +3,24 @@
 # Copyright 2013 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
-from __future__ import absolute_import
+from __future__ import (absolute_import, unicode_literals, print_function,
+                        division)
 
 import logging
 import re
 
 from pq_runtime.exceptions import CommandError, CommandTimeout
 from pq_cmdline.interactive_channel import InteractiveChannel
+
+# For Cli2
+from pq_cmdline.ssh_channel import SshChannel
+from pq_cmdline.sshprocess import SshProcess
+
+# Control-u clears any entered text.  Neat.
+DELETE_LINE = '\x15'
+
+# Command terminator
+ENTER_LINE = '\r'
 
 
 class CLILevel(object):
@@ -328,3 +339,340 @@ class Cli(object):
                 'Output was:\n%s' % (command, expected_output, output))
 
         return output
+
+
+class Cli2(object):
+    """
+    New implementation of Cli for a Riverbed appliance.
+    """
+
+    cli_exec_path = '/opt/tms/bin/cli'
+
+    # Regexes for the different prompts.  Prompt start is hard - sometimes
+    # there are ansi escape codes at the start, can't get them to shut off.
+    name_prefix_re = '^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
+
+    cli_root_prompt = name_prefix_re + ' >'
+    cli_enable_prompt = name_prefix_re + ' #'
+    cli_conf_prompt = name_prefix_re + ' \(config\) #'
+    cli_any_prompt = name_prefix_re + ' (>|#|\(config\) #)'
+
+    # Matches the prompt used by less
+    prompt_less = '(^|\n|\r)lines \d+-\d+'
+
+    def __init__(self, host, user='admin', password='', terminal='console',
+                 transport_type='ssh'):
+        """
+        Create a new Cli Channel object.
+
+        :param host: host/ip
+        :param user: username to log in with
+        :param password: password to log in with
+        :param terminal:  terminal emulation to use; default to 'console'
+        """
+
+        self._host = host
+        self._user = user
+        self._password = password
+        self._terminal = terminal
+        self._transport_type = transport_type
+        self._log = logging.getLogger(__name__)
+
+        # Initialize channel
+        self._initialize_channel()
+
+    def _initialize_channel(self):
+        """
+        Initialize channel: create underlying Transport and Channel.
+        """
+        if self._transport_type == 'ssh':
+            self._initialize_cli_over_ssh()
+        else:
+            raise NotImplementedError(
+                "Unsupported transport type %s" % self._transport_type)
+
+    def _initialize_cli_over_ssh(self):
+        """
+        Initialize underlying ssh transport and ssh channel. It expect ssh to
+        shell or cli. Start cli if ssh-ed to shell.
+        """
+
+        # Create SshProcess
+        self.transport = SshProcess(self._host, self._user, self._password)
+
+        # Create ssh channel and start channel
+        self.channel = SshChannel(self.transport, self._terminal)
+
+        # Wait for a prompt, try and figure out where we are.  It's a new
+        # channel so we should only be at bash or the main CLI prompt.
+        (output, match) = self.channel.expect([self.channel.bash_prompt,
+                                               self.cli_root_prompt])
+
+        # Start cli if log into shell
+        timeout = 60
+        if match.re.pattern == self.channel.bash_prompt:
+            self._log.info('At bash prompt, executing CLI')
+            self._send_line_and_wait(self.cli_exec_path,
+                                     [self.cli_root_prompt], timeout)
+
+        # Disable session paging. When we run a CLI command, we want to get
+        # all output instead of a page at a time.
+        self._log.info('Disabling paging')
+        self._send_line_and_wait('no cli session paging enable',
+                                 [self.cli_root_prompt])
+
+    def _send_and_wait(self, text_to_send, match_res, timeout=60):
+        """
+        Discard old data in buffer, sends data, then blocks until some text is
+        received that matches one or more patterns.
+
+        :param text_to_send: Text to send, may be empty.  Note, you are
+                             responsible for your own command terminator!
+        :param match_text: Pattern(s) to look for to be considered successful.
+        :param timeout: Maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
+
+        :return: (output, re.MatchObject) where output is the output of the
+                 command (without the matched text), and MatchObject is
+                 a Python re.MatchObject containing data on what was matched.
+        """
+        self.channel.receive_all()
+        self.channel.send(text_to_send)
+        return self.channel.expect(match_res, timeout)
+
+    def _send_line_and_wait(self, text_to_send, match_res, timeout=60):
+        """
+        Same to _send_and_wait but automatically append a newline to data
+        before send.
+
+        :param text_to_send: Text to send, may be empty.  Note, you are
+                             responsible for your own command terminator!
+        :param match_text: Pattern(s) to look for to be considered successful.
+        :param timeout: Maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
+
+        :return: (output, re.MatchObject) where output is the output of the
+                 command (without the matched text), and MatchObject is
+                 a Python re.MatchObject containing data on what was matched.
+        """
+        text_to_send = text_to_send + ENTER_LINE
+        return self._send_and_wait(text_to_send, match_res, timeout)
+
+    def current_cli_level(self):
+        """
+        Determine what level the CLI is at. This is done by sending newline
+        and check which prompt pattern matches.
+
+        :return: current CLI level. Throws exceptions if current CLI level
+                 could not be detected.
+        """
+
+        (output, match) = self._send_line_and_wait('',
+                                                   [self.channel.bash_prompt,
+                                                    self.cli_root_prompt,
+                                                    self.cli_enable_prompt,
+                                                    self.cli_conf_prompt])
+
+        levels = {self.channel.bash_prompt: CLILevel.bash,
+                  self.cli_root_prompt: CLILevel.root,
+                  self.cli_enable_prompt: CLILevel.enable,
+                  self.cli_conf_prompt: CLILevel.config}
+
+        return levels[match.re.pattern]
+
+    def enter_mode(self, mode="configure"):
+        """
+        Enter mode based on mode string ('normal', 'enable', or 'configure').
+
+        :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
+                   'configure'
+
+        :raises NotImplementedError: if mode is not "normal", "enable", or
+                                     "configure"
+        :raises CommandError: if the shell is not in the CLI.
+        """
+        if mode == "normal":
+            self.enter_level_root()
+
+        elif mode == "enable":
+            self.enter_level_enable()
+
+        elif mode == "configure":
+            self.enter_level_config()
+
+        else:
+            raise NotImplementedError("unknown mode: %s" % mode)
+
+    def enter_level_root(self):
+        """
+        Puts the CLI into the 'root' mode (where it is when the CLI first
+        executes), if it is not there already.  Note this will go 'backwards'
+        if needed (e.g., exiting config mode)
+
+        :raises CommandError: if the shell is not in the CLI; current thinking
+                              is this indicates the CLI has crashed/exited, and
+                              it is better to open a new CliChannel than have
+                              this one log back in and potentially hide an
+                              error.
+        """
+
+        self._log.info('Going to root level')
+
+        level = self.current_cli_level()
+
+        if level == CLILevel.bash:
+            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+
+        elif level == CLILevel.root:
+            self._log.debug('Already at root, doing nothing')
+
+        elif level == CLILevel.enable:
+            self._send_line_and_wait('disable', self.cli_root_prompt)
+
+        elif level == CLILevel.config:
+            self._send_line_and_wait('exit', self.cli_enable_prompt)
+            self._send_line_and_wait('disable', self.cli_root_prompt)
+
+        else:
+            raise CommandError('Unknown CLI level')
+
+    def enter_level_enable(self):
+        """
+        Puts the CLI into enable mode, if it is not there already.  Note this
+        will go 'backwards' if needed (e.g., exiting config mode)
+
+        :raises CommandError: if the shell is not in the CLI; current
+                              thinking is this indicates the CLI has
+                              crashed/exited, and it is better to open a
+                              new CliChannel than have this one log back in
+                              and potentially hide an error.
+        """
+
+        self._log.info('Going to Enable level')
+
+        level = self.current_cli_level()
+
+        if level == CLILevel.bash:
+            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+
+        elif level == CLILevel.root:
+            self._send_line_and_wait('enable', self.cli_enable_prompt)
+
+        elif level == CLILevel.enable:
+            self._log.debug('Already at Enable, doing nothing')
+
+        elif level == CLILevel.config:
+            self._send_line_and_wait('exit', self.cli_enable_prompt)
+
+        else:
+            raise CommandError('Unknown CLI level')
+
+    def enter_level_config(self):
+        """
+        Puts the CLI into config mode, if it is not there already.
+
+        :raises CommandError: if the shell is not in the CLI; current thinking
+                              is this indicates the CLI has crashed/exited, and
+                              it is better to open a new CliChannel than have
+                              this one log back in and potentially hide an
+                              error.
+        """
+
+        self._log.info('Going to Config level')
+
+        level = self.current_cli_level()
+
+        if level == CLILevel.bash:
+            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+
+        elif level == CLILevel.root:
+            self._send_line_and_wait('enable', self.cli_enable_prompt)
+            self._send_line_and_wait('config terminal', self.cli_conf_prompt)
+
+        elif level == CLILevel.enable:
+            self._send_line_and_wait('config terminal', self.cli_conf_prompt)
+
+        elif level == CLILevel.config:
+            self._log.info('Already at Config, doing nothing')
+
+        else:
+            raise CommandError('Unknown CLI level')
+
+    def exec_command(self, command, timeout=60):
+        """
+        Runs the given command.
+
+        :param command:  command to execute, newline appended automatically
+        :param timeout:  maximum time, in seconds, to wait for the command to
+                         finish. 0 to wait forever.
+
+        :raises CommandTimeout: if the command did not complete before the
+                                timeout expired.
+        :raises CommandError: if the CLI returns a string starting with % and
+                              except_on_error is True
+
+        :return: (exitcode, output) where output is the output of the command,
+                 minus the command itself. exitcode is the return code;
+                 zero for success, and non-zero return code for errors.
+        """
+
+        self._log.debug('Executing cmd "%s"' % command)
+
+        (output, match) = self._send_line_and_wait(command,
+                                                   self.cli_any_prompt,
+                                                   timeout=timeout)
+
+        # CLI adds on escape chars and such sometimes (see bug 75081), so to
+        # remove the command we just send from the output, split the output
+        # into lines, then rejoin it with the first line removed.
+        output = '\n'.join(output.splitlines()[1:])
+
+        exitcode = 0
+        if output and (output[0] == '%'):
+            exitcode = 1
+
+        return (exitcode, output)
+
+    def get_sub_commands(self, root_cmd):
+        """
+        Gets a list of commands at the current level.  ie, it sends root_cmd
+        with ? and returns everything that is a command. This strips out
+        things in <>'s, or other free-form fields the user has to enter.
+
+        :param root_cmd - root of the command to get subcommands for
+        :return a list of the full paths to subcommands.  eg,  if rootCmd is
+            "web ?", this returns ['web autologout', 'web auto-refresh', ...]
+        """
+
+        self._log.debug('Generating help for "%s"' % root_cmd)
+        sub_commands = []
+        (output, match) = self._send_and_wait(root_cmd + ' ?',
+                                              self.cli_any_prompt)
+
+        # Split the output into a list of lines. The first one will be the
+        # command we sent, teh last two will be an escape code and the prompt,
+        # So remove those.
+        lines = output.splitlines()
+        lines = lines[1:]
+
+        self._log.info("raw output: %s" % lines)
+        for line in lines:
+            command = line.split(' ')[0]
+
+            if command == '%':
+                # Remove the command we enter to be back  at the empty prompt
+                self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
+                raise CommandError('Error from cli on "%s ?". Output was:\n%s'
+                                   % (root_cmd, output))
+            # If this is a user-input field, skip it. Most are surronded by
+            # <>, but not all. If the command contains anything other than
+            # letters or numbers, we assume it is a user field.
+            if command.isalnum():
+                if root_cmd:
+                    sub_commands.append(root_cmd + ' ' + command)
+                else:
+                    sub_commands.append(command)
+
+        # Remove the command we enter, so we're back at the empty prompt
+        self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
+        return sub_commands
