@@ -77,7 +77,7 @@ class SshShell(object):
             self.transport.banner_timeout = timeout
             self.transport.start_client()
             self.transport.auth_password(self.user, self.password,
-                                         fallback=False)
+                                         fallback=True)
         except:
             # Close the session, or the child thread apparently hangs
             self.disconnect()

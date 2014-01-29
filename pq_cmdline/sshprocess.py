@@ -62,7 +62,7 @@ class SshProcess(Transport):
             self.transport.banner_timeout = self.BANNER_TIMEOUT
             self.transport.start_client()
             self.transport.auth_password(self._user, self._password,
-                                         fallback=False)
+                                         fallback=True)
         except paramiko.ssh_exception.SSHException:
             # Close the session, or the child thread apparently hangs
             self.disconnect()
