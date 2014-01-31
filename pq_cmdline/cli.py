@@ -15,12 +15,13 @@ from pq_cmdline.interactive_channel import InteractiveChannel
 # For Cli2
 from pq_cmdline.ssh_channel import SshChannel
 from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline.telnet_channel import TelnetChannel
 
 # Control-u clears any entered text.  Neat.
-DELETE_LINE = '\x15'
+DELETE_LINE = b'\x15'
 
 # Command terminator
-ENTER_LINE = '\r'
+ENTER_LINE = b'\r'
 
 
 class CLILevel(object):
@@ -350,7 +351,8 @@ class Cli2(object):
 
     # Regexes for the different prompts.  Prompt start is hard - sometimes
     # there are ansi escape codes at the start, can't get them to shut off.
-    name_prefix_re = '^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
+    name_prefix_re =\
+        '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
 
     cli_root_prompt = name_prefix_re + ' >'
     cli_enable_prompt = name_prefix_re + ' #'
@@ -387,6 +389,8 @@ class Cli2(object):
         """
         if self._transport_type == 'ssh':
             self._initialize_cli_over_ssh()
+        elif self._transport_type == 'telnet':
+            self._initialize_cli_over_telnet()
         else:
             raise NotImplementedError(
                 "Unsupported transport type %s" % self._transport_type)
@@ -414,12 +418,37 @@ class Cli2(object):
             self._log.info('At bash prompt, executing CLI')
             self._send_line_and_wait(self.cli_exec_path,
                                      [self.cli_root_prompt], timeout)
+        self._disable_paging()
 
-        # Disable session paging. When we run a CLI command, we want to get
-        # all output instead of a page at a time.
+    def _disable_paging(self):
+        """
+        Disable session paging. When we run a CLI command, we want to get
+        all output instead of a page at a time.
+        """
         self._log.info('Disabling paging')
         self._send_line_and_wait('no cli session paging enable',
                                  [self.cli_root_prompt])
+
+    def _initialize_cli_over_telnet(self):
+        """
+        Create and inititalize telnet channel. It assume telnet to either
+        shell or cli. Start cli if telneted to shell.
+        """
+
+        # Create telnet channel
+        self.channel = TelnetChannel(self._host, self._user, self._password)
+
+        # Start and Wait for a prompt, try and figure out where we are.
+        match = self.channel.start([self.channel.bash_prompt,
+                                    self.cli_root_prompt])
+
+        # Start cli if log into shell
+        timeout = 60
+        if match.re.pattern == self.channel.bash_prompt:
+            self._log.info('At bash prompt, executing CLI')
+            self._send_line_and_wait(self.cli_exec_path,
+                                     [self.cli_root_prompt], timeout)
+        self._disable_paging()
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """
