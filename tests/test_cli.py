@@ -106,9 +106,9 @@ def test_enter_level_config_from_root_level(any_cli):
     any_cli.current_cli_level = MagicMock(name='method')
     any_cli.current_cli_level.return_value = CLILevel.root
     any_cli._send_line_and_wait = MagicMock(name='method')
+    any_cli._enable = MagicMock(name='method')
     any_cli.enter_level_config()
-    any_cli._send_line_and_wait.assert_any_call(
-        'enable', any_cli.cli_enable_prompt)
+    assert any_cli._enable.called
     any_cli._send_line_and_wait.assert_called_with(
         'config terminal', any_cli.cli_conf_prompt)
 

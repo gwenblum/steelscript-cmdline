@@ -16,6 +16,7 @@ ANY_TEXT_TO_SEND = 'show service\r'
 ANY_PROMPT_RE = ['^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >']
 ANY_PROMPT_MATCHED = 'my-sh1 >'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
+ANY_TIMEOUT = 120
 
 
 @pytest.fixture
@@ -30,57 +31,84 @@ def test_members_initialized_correctly(any_telnet_channel):
     assert any_telnet_channel.channel is None
 
 
-def test_start_raises_if_no_login_prompt(any_telnet_channel):
+def test_start_calls_appropriate_methods(any_telnet_channel):
+    any_telnet_channel._handle_init_login = MagicMock(name='method')
     with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
-        mock_channel = Mock()
-        mock.return_value = mock_channel
-        mock_channel.expect.return_value = (-1, '', '')
-        with pytest.raises(CommandTimeout):
-            any_telnet_channel.start()
-
-
-def test_start_raises_if_no_prompt_match_after_login(any_telnet_channel):
-    with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
-        mock_channel = Mock()
-        mock.return_value = mock_channel
-        mock_channel.expect.side_effect = [(0, '', ''), (-1, '', '')]
-        LOGIN_CMD = ANY_USERNAME + ENTER_LINE
-        with pytest.raises(CommandTimeout):
-            any_telnet_channel.start()
-        mock_channel.write.assert_called_with(LOGIN_CMD)
-
-
-def test_start_raises_if_no_prompt_match_after_password(any_telnet_channel):
-    with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
-        mock_channel = Mock()
-        mock.return_value = mock_channel
-        mock_channel.expect.side_effect = [(0, '', ''), (0, '', ''),
-                                           (-1, '', '')]
-        PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
-        with pytest.raises(CommandTimeout):
-            any_telnet_channel.start()
-        mock_channel.write.assert_called_with(PASSWORD_CMD)
-
-
-def test_start_when_password_is_not_asked(any_telnet_channel):
-    with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
-        mock_channel = Mock()
-        mock.return_value = mock_channel
-        mock_channel.expect.side_effect = [(0, '', ''), (1, '', '')]
-        LOGIN_CMD = ANY_USERNAME + ENTER_LINE
         any_telnet_channel.start()
-        mock_channel.write.assert_called_with(LOGIN_CMD)
+        assert any_telnet_channel._handle_init_login.called
+        assert mock.called
 
 
-def test_start_when_password_is_required(any_telnet_channel):
-    with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
-        mock_channel = Mock()
-        mock.return_value = mock_channel
-        mock_channel.expect.side_effect = [(0, '', ''), (0, '', ''),
-                                           (0, '', '')]
-        PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
-        any_telnet_channel.start()
-        mock_channel.write.assert_called_with(PASSWORD_CMD)
+def test_handle_init_login_when_not_ask_user_and_password(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_match = Mock()
+    mock_channel.expect.return_value = (2, mock_match, '')
+    match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
+    assert match == mock_match
+
+
+def test_handle_init_login_when_ask_user_only(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_match = Mock()
+    mock_channel.expect.side_effect = [(0, '', ''), (2, mock_match, '')]
+    match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
+    LOGIN_CMD = ANY_USERNAME + ENTER_LINE
+    mock_channel.write.assert_called_with(LOGIN_CMD)
+    assert match == mock_match
+
+
+def test_handle_init_login_when_ask_password_only(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_match = Mock()
+    mock_channel.expect.side_effect = [(1, '', ''), (2, mock_match, '')]
+    match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
+    PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
+    mock_channel.write.assert_called_with(PASSWORD_CMD)
+    assert match == mock_match
+
+
+def test_handle_init_login_when_ask_user_and_password(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_match = Mock()
+    mock_channel.expect.side_effect = [(0, '', ''), (1, '', ''),
+                                       (2, mock_match, '')]
+    match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
+    LOGIN_CMD = ANY_USERNAME + ENTER_LINE
+    PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
+    mock_channel.write.assert_any_call(LOGIN_CMD)
+    mock_channel.write.assert_called_with(PASSWORD_CMD)
+    assert match == mock_match
+
+
+def test_handle_init_login_raises_if_not_match(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_channel.expect.side_effect = [(-1, '', '')]
+    with pytest.raises(CommandTimeout):
+        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                                      ANY_TIMEOUT)
+
+
+def test_handle_init_login_raises_if_user_not_accepted(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_channel.expect.side_effect = [(0, '', ''), (0, '', '')]
+    with pytest.raises(CommandError):
+        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                                      ANY_TIMEOUT)
+
+
+def test_handle_init_login_raises_if_password_not_accepted(any_telnet_channel):
+    mock_channel = Mock()
+    any_telnet_channel.channel = mock_channel
+    mock_channel.expect.side_effect = [(1, '', ''), (1, '', '')]
+    with pytest.raises(CommandError):
+        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                                      ANY_TIMEOUT)
 
 
 def test_verify_connected_raises_if_channel_not_started(any_telnet_channel):

@@ -17,8 +17,8 @@ from pq_runtime.exceptions import (re_raise, CommandError, CommandTimeout,
                                    NbtError)
 from pq_cmdline.channel import Channel
 
-LOGIN_PROMPT = b'login: '
-PASSWORD_PROMPT = b'assword: '
+LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
+PASSWORD_PROMPT = b'(^|\n|\r)(P|p)assword: '
 ENTER_LINE = b'\r'
 
 
@@ -69,28 +69,51 @@ class TelnetChannel(Channel):
         # Start channel
         self.channel = telnetlib.Telnet(self._host)
 
-        # Log in
-        (index, match, data) = self.channel.expect([LOGIN_PROMPT], timeout)
-        if index == -1:
-            raise CommandTimeout("Fail to match login prompt %s before timeout"
-                                 % LOGIN_PROMPT)
-        self._log.debug("Sending login user ...")
-        self.channel.write(self._user + ENTER_LINE)
+        return self._handle_init_login(match_res, timeout)
 
-        # Now we need to detect whether password is required.
-        # Some devices like steelhead may not requrie password.
-        match_password = match_res
-        match_password.insert(0, PASSWORD_PROMPT)
-        (index, match, data) = self.channel.expect(match_password, timeout)
+    def _handle_init_login(self, match_res, timeout):
+        """
+        Handle init login.
+
+        :param match_res: Pattern(s) of prompts to look for after login.
+                          May be a single regex string, or a list of them.
+        :param timeout: maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
+        :return: Python re.MatchObject containing data on what was matched
+                 after login.
+        """
+
+        # Add login prompt and password prompt so that we can detect
+        # what require for login
+        reg_with_login_prompts = match_res
+        reg_with_login_prompts.insert(0, PASSWORD_PROMPT)
+        reg_with_login_prompts.insert(0, LOGIN_PROMPT)
+
+        (index, match, data) = self.channel.expect(reg_with_login_prompts,
+                                                   timeout)
+
         if index == 0:
+            # username is required for login
+            self._log.debug("Sending login user ...")
+            self.channel.write(self._user + ENTER_LINE)
+            (index, match, data) = self.channel.expect(reg_with_login_prompts,
+                                                       timeout)
+        if index == 1:
+            # password is required for login
             self._log.debug("Sending password ...")
             self.channel.write(self._password + ENTER_LINE)
-            (index, match, data) = self.channel.expect(match_res, timeout)
+            (index, match, data) = self.channel.expect(reg_with_login_prompts,
+                                                       timeout)
+        # At this point, we should already loged in; raises exceptions if not
+        if index < 0:
+            raise CommandTimeout("Fail to match any prompt %s before timeout"
+                                 % reg_with_login_prompts)
+        if index == 0:
+            raise CommandError("Login failed; still ask username")
+        if index == 1:
+            raise CommandError("Login failed; still ask password")
 
-        if index == -1:
-            raise CommandTimeout("Failed to match prompt %s before timeout"
-                                 % match_res)
-
+        # Login successfully if reach this point
         self._log.info('Telnet channel to "%s" started' % self._host)
         return match
 
@@ -136,7 +159,7 @@ class TelnetChannel(Channel):
             raise NbtError('text_to_send should not be None')
 
         # Encode text to ascii; telnetlib does not work well with unicode
-        # literals.    
+        # literals.
         text_to_send = text_to_send.encode('ascii')
 
         self._verify_connected()

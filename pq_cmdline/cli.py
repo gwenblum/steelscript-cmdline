@@ -585,7 +585,7 @@ class Cli2(object):
             raise CommandError('Channel is at the Bash prompt; CLI crashed?')
 
         elif level == CLILevel.root:
-            self._send_line_and_wait('enable', self.cli_enable_prompt)
+            self._enable()
 
         elif level == CLILevel.enable:
             self._log.debug('Already at Enable, doing nothing')
@@ -595,6 +595,18 @@ class Cli2(object):
 
         else:
             raise CommandError('Unknown CLI level')
+
+    def _enable(self):
+        """
+        Run cli command to enter enable mode. It may or may not require
+        password.
+        """
+        password_prompt = '(P|p)assword:'
+        (output, match) = self._send_line_and_wait('enable',
+                                                   [self.cli_enable_prompt,
+                                                    password_prompt])
+        if match.re.pattern == password_prompt:
+            self._send_line_and_wait(self._password, self.cli_enable_prompt)
 
     def enter_level_config(self):
         """
@@ -615,7 +627,7 @@ class Cli2(object):
             raise CommandError('Channel is at the Bash prompt; CLI crashed?')
 
         elif level == CLILevel.root:
-            self._send_line_and_wait('enable', self.cli_enable_prompt)
+            self._enable()
             self._send_line_and_wait('config terminal', self.cli_conf_prompt)
 
         elif level == CLILevel.enable:
