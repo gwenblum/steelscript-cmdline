@@ -378,14 +378,22 @@ class Cli2(object):
         self._password = password
         self._terminal = terminal
         self._transport_type = transport_type
+        self._new_transport = False
+        self._transport = None
         self._log = logging.getLogger(__name__)
 
-        # Initialize channel
-        self._initialize_channel()
+    def __enter__(self):
+        self.start()
+        return self
 
-    def _initialize_channel(self):
+    def __exit__(self, type, value, traceback):
+        if self._new_transport and self._transport:
+            self._transport.disconnect()
+            self._transport = None
+
+    def start(self):
         """
-        Initialize channel: create underlying Transport and Channel.
+        Initialize underlying channel.
         """
         if self._transport_type == 'ssh':
             self._initialize_cli_over_ssh()
@@ -402,10 +410,12 @@ class Cli2(object):
         """
 
         # Create SshProcess
-        self.transport = SshProcess(self._host, self._user, self._password)
+        if self._transport is None:
+            self._transport = SshProcess(self._host, self._user, self._password)
+            self._new_transport = True
 
         # Create ssh channel and start channel
-        self.channel = SshChannel(self.transport, self._terminal)
+        self.channel = SshChannel(self._transport, self._terminal)
 
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.

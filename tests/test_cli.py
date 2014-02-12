@@ -15,6 +15,7 @@ ANY_USER = 'user1'
 ANY_PASSWORD = 'password1'
 ANY_TERMINAL = 'console'
 TRANSPORT_SSH = 'ssh'
+TRANSPORT_TELNET = 'telnet'
 TRANSPORT_UNKNOWN = 'any unknown type'
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'
@@ -24,11 +25,73 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_cli():
-    with patch('pq_cmdline.cli.Cli2._initialize_channel'):
-        cli = Cli(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
-                  TRANSPORT_SSH)
-        cli.channel = Mock()
-        return cli
+    cli = Cli(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
+    cli.channel = Mock()
+    return cli
+
+
+def test_members_intialize_correctly(any_cli):
+    assert any_cli._host == ANY_HOST
+    assert any_cli._user == ANY_USER
+    assert any_cli._password == ANY_PASSWORD
+    assert any_cli._terminal == ANY_TERMINAL
+    assert any_cli._transport_type == TRANSPORT_SSH
+
+
+def test_start_raises_for_unknown_transport(any_cli):
+    any_cli._transport_type = TRANSPORT_UNKNOWN
+    with pytest.raises(NotImplementedError):
+        any_cli.start()
+
+
+def test_start_initialize_telnet(any_cli):
+    any_cli._transport_type = TRANSPORT_TELNET
+    any_cli._initialize_cli_over_telnet = MagicMock(name='method')
+    any_cli.start()
+    assert any_cli._initialize_cli_over_telnet.called
+
+
+def test_start_initialize_ssh(any_cli):
+    any_cli._initialize_cli_over_ssh = MagicMock(name='method')
+    any_cli.start()
+    assert any_cli._initialize_cli_over_ssh.called
+
+
+def test_context_manger_enter_calls_start(any_cli):
+    any_cli.start = MagicMock(name='method')
+    with any_cli:
+        assert any_cli.start.called
+
+
+def test_use_context_manger_twice_works(any_cli):
+    any_cli.start = MagicMock(name='method')
+    with any_cli as cli1:
+        pass
+    with any_cli as cli2:
+        pass
+    assert any_cli.start.call_count == 2
+
+
+def test_context_manger_exit_close_transport(any_cli):
+    any_cli.start = MagicMock(name='method')
+    any_cli._new_transport = True
+    mock_transport = Mock()
+    any_cli._transport = mock_transport
+    with any_cli:
+        pass
+    assert mock_transport.disconnect.called
+    assert any_cli._transport is None
+
+
+def test_context_manger_exit_if_not_new_transport(any_cli):
+    any_cli.start = MagicMock(name='method')
+    any_cli._new_transport = False
+    mock_transport = Mock()
+    any_cli._transport = mock_transport
+    with any_cli:
+        pass
+    assert not mock_transport.disconnect.called
+    assert any_cli._transport == mock_transport
 
 
 def test_current_cli_level_at_root_level(any_cli):
