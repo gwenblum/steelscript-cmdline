@@ -1,7 +1,8 @@
-# $Id $
-#
 # Copyright 2009-2013 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
+
+from __future__ import (absolute_import, unicode_literals, print_function,
+                        division)
 
 from pq_cmdline.cli import Cli2 as Cli
 from pq_cmdline.cli import CLILevel
@@ -135,7 +136,6 @@ def test_enter_level_root_from_config_level(any_cli):
     any_cli.current_cli_level.return_value = CLILevel.config
     any_cli._send_line_and_wait = MagicMock(name='method')
     any_cli.enter_level_root()
-    print any_cli._send_line_and_wait.mock_calls
     any_cli._send_line_and_wait.assert_any_call(
         'exit', any_cli.cli_enable_prompt)
     any_cli._send_line_and_wait.assert_called_with(

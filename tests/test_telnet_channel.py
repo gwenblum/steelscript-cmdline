@@ -1,7 +1,8 @@
-# $Id $
-#
 # Copyright 2009-2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
+
+from __future__ import (absolute_import, unicode_literals, print_function,
+                        division)
 
 import pytest
 from mock import (Mock, MagicMock, patch)

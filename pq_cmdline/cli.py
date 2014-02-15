@@ -1,5 +1,3 @@
-# $Id$
-#
 # Copyright 2013 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
