@@ -1,8 +1,8 @@
 # Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
-from __future__ import absolute_import, unicode_literals, print_function,\
-    division
+from __future__ import (unicode_literals, print_function, division,
+                        absolute_import)
 
 import time
 import select
@@ -115,7 +115,7 @@ class SshChannel(Channel):
 
         self._verify_connected()
 
-        self._log.debug('Sending "%s"' % self.__safe_line_feeds(text_to_send))
+        self._log.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
 
         bytes_sent = 0
 
@@ -168,7 +168,7 @@ class SshChannel(Channel):
         # to the log. Otherwise the newlines make the output unreadable.
         safe_match_text = []
         for match in match_res:
-            safe_match_text.append(self.__safe_line_feeds(match))
+            safe_match_text.append(self.safe_line_feeds(match))
 
         self._log.debug('Waiting for %s' % str(safe_match_text))
 
@@ -194,7 +194,7 @@ class SshChannel(Channel):
                 raise CommandTimeout(
                     'Did not find "%s" after %d seconds. Received data:\n%s'
                     % (str(match_res), timeout,
-                        repr(self.__safe_line_feeds(received_data))))
+                        repr(self.safe_line_feeds(received_data))))
 
             new_data = None
 
@@ -228,7 +228,7 @@ class SshChannel(Channel):
             # prompt matching easier, any \r character that does not have
             # a \n near is replaced with a \n.
             received_data = received_data[:next_line_start] + \
-                self.__fixup_carriage_returns(received_data[next_line_start:])
+                self.fixup_carriage_returns(received_data[next_line_start:])
 
             # Take the data from next_line_start to end and split it into
             # lines so we can look for a match on each one
@@ -240,7 +240,7 @@ class SshChannel(Channel):
                 if match:
                     self._log.debug(
                         'Matched "%s" in \n%s'
-                        % (self.__safe_line_feeds(match.re.pattern),
+                        % (self.safe_line_feeds(match.re.pattern),
                             new_lines[line_num]))
 
                     # Output is all data up to the next_line_start, plus
@@ -273,51 +273,3 @@ class SshChannel(Channel):
                 return match
 
         return None
-
-    def __safe_line_feeds(self, in_string):
-        """
-        :param in_string: string to replace linefeeds
-        :return: a string that has the linefeeds converted to ASCII
-                representation for printing
-        """
-
-        out_string = in_string.replace('\n', '\\n')
-        out_string = out_string.replace('\r', '\\r')
-
-        return out_string
-
-    def __fixup_carriage_returns(self, data):
-        """
-        To work around all the different \r\n combos we are
-        getting from the CLI, we normalize it as:
-
-        1) Eat consecutive \r's               (a\r\r\nb -> a\r\nb)
-        2) Convert \r\n's to \n               (a\r\nb -> a\nb)
-        3) Convert \n\r to \n                 (a\r\n\rb) -> (a\n\rb) -> (a\nb)
-        4) Convert single \r's to \n, unless at
-           end of strings                     (a\rb -> a\nb)
-
-        #4 doesn't trigger at the end of the line to cover partially received
-           data; the next character that comes in may be a \n, \r, etc.
-
-        :param data: string to convert
-
-        :return: the string data with the linefeeds converted into only \n's
-        """
-
-        # Not the fastest approach, but when the strings are short this should
-        # be ok..
-
-        # Eat consecutive \r's
-
-        new_data = re.sub('\r+', '\r', data)
-
-        # Convert \r\n to \n
-
-        new_data = re.sub('\r\n', '\n', new_data)
-
-        # Convert \n\r to \n, unless the \r is the end of the line
-
-        new_data = re.sub('\n\r(?!$|\r|\n)', '\n', new_data)
-
-        return new_data
