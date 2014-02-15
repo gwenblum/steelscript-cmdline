@@ -1,4 +1,4 @@
--i http://pypibox/pq/development/
+-i http://pypibox.lab.nbttech.com/pq/development/
 
 # External dependencies
 paramiko
