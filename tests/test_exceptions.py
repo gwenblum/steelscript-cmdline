@@ -5,7 +5,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 from pq_cmdline.exceptions import (
-    CmdlineException, CmdlineTimeout, UnexpectedOutput,
+    CmdlineException, CmdlineTimeout, UnexpectedOutput, UnknownCLIMode,
     CmdlineError, ShellError, CLIError, ConnectionError
 )
 
@@ -16,6 +16,15 @@ ANY_NONZERO_STATUS = -1
 ANY_MODE = 'config'
 ANY_TIMEOUT = 60
 ANY_CONTEXT = "blah explanation whatever"
+ANY_UNKNOWN_CLI_PROMPT = "C:\ "
+
+
+def test_cmdline_exception_no_args():
+    e = CmdlineException()
+    assert e.command is None
+    assert e.output is None
+    assert unicode(e) == 'Unknown command line error'
+
 
 def test_cmdline_exception():
     e = CmdlineException(ANY_COMMAND, output=ANY_OUTPUT)
@@ -129,3 +138,16 @@ def test_unkexpected_output():
     assert e.command in msg
     assert e.output in msg
     assert e.expected_output in msg
+
+
+def test_unknown_cli_mode():
+    e = UnknownCLIMode(prompt=ANY_UNKNOWN_CLI_PROMPT)
+    print(e.command)
+    print(e.output)
+    print(e.prompt)
+    assert e.command is None
+    assert e.output is None
+    assert e.prompt is ANY_UNKNOWN_CLI_PROMPT
+
+    msg = unicode(e)
+    assert e.prompt in msg

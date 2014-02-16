@@ -14,7 +14,7 @@ class CmdlineException(NbtError):
     :ivar output: The output returned.  None if the command did not return.
     """
 
-    def __init__(self, command, output=None, _subclass_msg=None):
+    def __init__(self, command=None, output=None, _subclass_msg=None):
         """
         :param command: The command that produced the error.
         :param output: The output returned.  None if the command did not return.
@@ -23,8 +23,11 @@ class CmdlineException(NbtError):
         self.output = output
         if _subclass_msg is None:
             if output is None:
-                msg = (("Command '%s' encountered an unknown error, "
-                        "with no output.") % command)
+                if command is None:
+                    msg = 'Unknown command line error'
+                else:
+                    msg = (("Command '%s' encountered an unknown error, "
+                            "with no output.") % command)
             else:
                 msg = ("Command '%s' encountered an error, with output '%s'" %
                        (command, output))
@@ -55,10 +58,13 @@ class CmdlineTimeout(CmdlineException):
 
 
 class ConnectionError(CmdlineException):
-    """Indicates a non-timeout error from the underlying protocol.
+    """Indicates a (probably) non-timeout error from the underlying protocol.
 
     May contain a wrapped exception from a third-party library.
     In Python 3 this would be on the __cause__ attribute.
+    The third-party library may not use a specific exception for timeouts,
+    so certain kinds of timeouts may appear as a ConnectionError.
+    Timeouts managed by PQ code should use CmdlineTimeout instead.
 
     This exceptipn should be used to propagate errors up to levels
     that should not be aware of the specific underlying protocol.
@@ -173,3 +179,12 @@ class UnexpectedOutput(CmdlineException):
 
         super(UnexpectedOutput, self).__init__(command, output=output,
                                                _subclass_msg=msg)
+
+
+class UnknownCLIMode(CmdlineException):
+    """Exception for any CLI (Riverbed or otherwise) sees an unknown mode."""
+
+    def __init__(self, prompt):
+        self.prompt = prompt
+        super(UnknownCLIMode, self).__init__(
+            _subclass_msg="Unknown CLI mode, prompt: '%s'" % prompt)
