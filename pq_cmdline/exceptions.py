@@ -10,13 +10,15 @@ from pq_runtime.exceptions import NbtError
 class CmdlineException(NbtError):
     """Base exception representing an error executing the command line.
 
-    :param command: The command that produced the error.
-    :param output: The output returned.  None if the command did not return.
-
     :ivar command: The command that produced the error.
     :ivar output: The output returned.  None if the command did not return.
     """
+
     def __init__(self, command, output=None, _subclass_msg=None):
+        """
+        :param command: The command that produced the error.
+        :param output: The output returned.  None if the command did not return.
+        """
         self.command = command
         self.output = output
         if _subclass_msg is None:
@@ -32,7 +34,21 @@ class CmdlineException(NbtError):
 
 
 class CmdlineTimeout(CmdlineException):
+    """Indicates a command was abandoned due to a timeout.
+
+    Some timeouts within a given protocol may be reported as ConnectionError
+    as the third-party libraries are not always specific about causes.
+    However, all timeouts triggered in PQ code will raise this exception.
+
+    :ivar command: The command we were trying to execute.
+    :ivar timeout: The number of seconds that we were waiting for.
+    """
+
     def __init__(self, command, timeout):
+        """
+        :param command: The command we were trying to execute.
+        :param timeout: The number of seconds that we were waiting for.
+        """
         self.timeout = timeout
         msg = ("Command '%s' timed out after %d seconds." % (command, timeout))
         super(CmdlineTimeout, self).__init__(command, _subclass_msg=msg)
@@ -47,13 +63,18 @@ class ConnectionError(CmdlineException):
     This exceptipn should be used to propagate errors up to levels
     that should not be aware of the specific underlying protocol.
 
-    :param cause: The protocol-specific exception, if any, that triggered this.
-    :param context: An optional string describing the conetxt of the error.
-
+    :ivar command: The command we were trying to execute.
     :ivar cause: The protocol-specific exception, if any, that triggered this.
     """
 
     def __init__(self, command=None, cause=None, context=None):
+        """
+        :param command: The command we were trying to execute.
+        :param cause: The protocol-specific exception, if any,
+                      that triggered this.
+        :param context: An optional string describing the conetxt of the error.
+        """
+
         self.cause = cause
         if command:
             msg = "Connection error while executing '%s'" % command
@@ -82,15 +103,17 @@ class ShellError(CmdlineError):
     Technically, representing an unexpected exit from the shell, as some
     command, such as diff, have successful nonzero exits.
 
-    :param command: The command that produced the error.
-    :param exit_status: The exit status of the command.
-    :param output: The output as returned by the shell, if any.
-
     :ivar command: The command that produced the error.
     :ivar exit_status: The exit status of the command.
     :ivar output: The output as returned by the shell, if any.
     """
+
     def __init__(self, command, exit_status, output=None):
+        """
+        :param command: The command that produced the error.
+        :param exit_status: The exit status of the command.
+        :param output: The output as returned by the shell, if any.
+        """
         self.exit_status = exit_status
         msg = ("Command '%s exited with status %d, output: '%s'" %
                (command, exit_status,
@@ -102,16 +125,17 @@ class ShellError(CmdlineError):
 class CLIError(CmdlineError):
     """Exception representing an error message from the CLI.
 
-    :param command: The command that produced the error.
-    :param mode: The CLI mode we were in when the error occurred.
-    :param output: The error string as returned by the CLI.
-
     :ivar command: The command that produced the error.
     :ivar mode: The CLI mode we were in when the error occurred.
     :ivar output: The error string as returned by the CLI.
     """
 
     def __init__(self, command, mode, output=None):
+        """
+        :param command: The command that produced the error.
+        :param mode: The CLI mode we were in when the error occurred.
+        :param output: The error string as returned by the CLI.
+        """
         self.mode = mode
         msg = ("Command '%s' in mode '%s' resulted in an error: '%s'" %
                (command, mode, '<no output>' if output is None else output))
@@ -124,9 +148,19 @@ class UnexpectedOutput(CmdlineException):
 
     This generally does not mean easily detectable error output, which is
     indicated by the appropriate subclass of ``CmdlineError``
+
+    :ivar command: The command that produced the error.
+    :ivar output: The output as returned from the command.
+    :ivar expected_output: The output expected from the command, possibly None.
     """
 
     def __init__(self, command, output, expected_output=None):
+        """
+        :param command: The command that produced the error.
+        :param output: The output as returned from the command.
+        :param expected_output: The output expected from the command,
+              possibly None.
+        """
         self.expected_output = expected_output
 
         if expected_output is None:
