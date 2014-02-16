@@ -10,7 +10,7 @@ import select
 from mock import Mock, MagicMock, patch
 from testfixtures import Replacer, test_time
 
-from pq_cmdline.ssh_channel import SshChannel
+from pq_cmdline.ssh_channel import SSHChannel
 from pq_cmdline import exceptions
 
 ANY_TERM = 'console'
@@ -28,7 +28,7 @@ ANY_TIMEOUT = 120
 def any_ssh_channel():
     mock_sshprocess = Mock()
     mock_sshprocess.is_connected.return_value = True
-    return SshChannel(mock_sshprocess)
+    return SSHChannel(mock_sshprocess)
 
 
 def test_members_initialized_correctly():
@@ -36,7 +36,7 @@ def test_members_initialized_correctly():
     mock_sshprocess.is_connected.return_value = True
     mock_channel = Mock()
     mock_sshprocess.open_interactive_channel.return_value = mock_channel
-    ssh_channel = SshChannel(mock_sshprocess, ANY_TERM, ANY_TERM_WIDTH,
+    ssh_channel = SSHChannel(mock_sshprocess, ANY_TERM, ANY_TERM_WIDTH,
                              ANY_TERM_HEIGHT)
     assert ssh_channel.sshprocess == mock_sshprocess
     assert ssh_channel.channel == mock_channel
@@ -48,7 +48,7 @@ def test_members_initialized_correctly():
 def test_constructor_connects_sshprocess_if_it_is_not_connected():
     mock_sshprocess = Mock()
     mock_sshprocess.is_connected.return_value = False
-    ssh_channel = SshChannel(mock_sshprocess)
+    ssh_channel = SSHChannel(mock_sshprocess)
     assert ssh_channel.sshprocess.connect.called
 
 

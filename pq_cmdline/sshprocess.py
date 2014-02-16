@@ -15,9 +15,9 @@ from pq_cmdline import exceptions
 from pq_cmdline.transport import Transport
 
 
-class SshProcess(Transport):
+class SSHProcess(Transport):
     """
-    Ssh transport class to handle ssh connection setup.
+    SSH transport class to handle ssh connection setup.
     """
 
     # Seconds to wait for banner comming out after starting connection.
@@ -65,7 +65,7 @@ class SshProcess(Transport):
             # Close the session, or the child thread apparently hangs
             self.disconnect()
             # TODO: re_raise not compatibile with passing kwargs
-            # re_raise(SshError, "Could not connect to %s" % self._host)
+            # re_raise(SSHError, "Could not connect to %s" % self._host)
             self._log.info("Could not connect to %s", self._host)
             re_raise(exceptions.ConnectionError)
 

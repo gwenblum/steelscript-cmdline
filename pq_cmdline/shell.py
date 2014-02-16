@@ -11,7 +11,7 @@ import time
 import select
 
 from pq_runtime.exceptions import re_raise
-from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline import exceptions
 
 
@@ -44,7 +44,7 @@ class Shell(object):
 
         # Initialize underlying sshprocess, which
         # http://www.lag.net/paramiko/docs/
-        self.sshprocess = SshProcess(host=host, user=user, password=password)
+        self.sshprocess = SSHProcess(host=host, user=user, password=password)
         self.sshprocess.connect()
 
         ## Logging module

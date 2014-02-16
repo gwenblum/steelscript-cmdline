@@ -25,7 +25,7 @@ class TelnetChannel(Channel):
     and receive data.
     """
 
-    bash_prompt = '\[\S+ \S+\]#\s*$'
+    BASH_PROMPT = '\[\S+ \S+\]#\s*$'
 
     def __init__(self, host, user='root', password=''):
         """
@@ -59,7 +59,7 @@ class TelnetChannel(Channel):
         """
 
         if not match_res:
-            match_res = [self.bash_prompt]
+            match_res = [self.BASH_PROMPT]
         elif not isinstance(match_res, list):
             match_res = [match_res, ]
 

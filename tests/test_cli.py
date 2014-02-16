@@ -9,8 +9,8 @@ import re
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.cli import Cli2 as Cli
-from pq_cmdline.cli import CLILevel
+from pq_cmdline.cli import CLI
+from pq_cmdline.cli import CLIMode
 from pq_cmdline import exceptions
 
 ANY_HOST = 'sh1'
@@ -32,7 +32,7 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_cli():
-    cli = Cli(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
+    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
     cli.channel = Mock()
     return cli
 
@@ -48,7 +48,7 @@ def cli_mock_output(any_cli):
 def config_mode_match():
     fake_match = MagicMock()
     fake_match.re = MagicMock()
-    fake_match.re.pattern = Cli.cli_conf_prompt
+    fake_match.re.pattern = CLI.CLI_CONF_PROMPT
     return fake_match
 
 
@@ -116,113 +116,113 @@ def test_context_manger_exit_if_not_new_transport(any_cli):
     assert any_cli._transport == mock_transport
 
 
-def test_current_cli_level_at_root_level(any_cli):
+def test_current_cli_mode_at_normal_mode(any_cli):
     mock_match = Mock()
-    mock_match.re.pattern = any_cli.cli_root_prompt
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    mock_match.re.pattern = any_cli.CLI_NORMAL_PROMPT
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
-        current_level = any_cli.current_cli_level()
-        assert current_level == CLILevel.root
+        current_mode = any_cli.current_cli_mode()
+        assert current_mode == CLIMode.NORMAL
 
 
-def test_current_cli_level_at_enable_level(any_cli):
+def test_current_cli_mode_at_enable_mode(any_cli):
     mock_match = Mock()
-    mock_match.re.pattern = any_cli.cli_enable_prompt
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    mock_match.re.pattern = any_cli.CLI_ENABLE_PROMPT
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
-        current_level = any_cli.current_cli_level()
-        assert current_level == CLILevel.enable
+        current_mode = any_cli.current_cli_mode()
+        assert current_mode == CLIMode.ENABLE
 
 
-def test_current_cli_level_at_config_level(any_cli):
+def test_current_cli_mode_at_config_mode(any_cli):
     mock_match = Mock()
-    mock_match.re.pattern = any_cli.cli_conf_prompt
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    mock_match.re.pattern = any_cli.CLI_CONF_PROMPT
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
-        current_level = any_cli.current_cli_level()
-        assert current_level == CLILevel.config
+        current_mode = any_cli.current_cli_mode()
+        assert current_mode == CLIMode.CONFIG
 
 
-def test_current_cli_level_raise_at_unknown_level(any_cli):
+def test_current_cli_mode_raise_at_unknown_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
-            any_cli.current_cli_level()
+            any_cli.current_cli_mode()
 
 
-def test_enter_level_root_from_config_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.config
+def test_enter_mode_normal_from_config_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.CONFIG
     any_cli._send_line_and_wait = MagicMock(name='method')
-    any_cli.enter_level_root()
+    any_cli.enter_mode_normal()
     any_cli._send_line_and_wait.assert_any_call(
-        'exit', any_cli.cli_enable_prompt)
+        'exit', any_cli.CLI_ENABLE_PROMPT)
     any_cli._send_line_and_wait.assert_called_with(
-        'disable', any_cli.cli_root_prompt)
+        'disable', any_cli.CLI_NORMAL_PROMPT)
 
 
-def test_enter_level_root_from_enable_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.enable
+def test_enter_mode_normal_from_enable_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.ENABLE
     any_cli._send_line_and_wait = MagicMock(name='method')
-    any_cli.enter_level_root()
+    any_cli.enter_mode_normal()
     any_cli._send_line_and_wait.assert_called_with(
-        'disable', any_cli.cli_root_prompt)
+        'disable', any_cli.CLI_NORMAL_PROMPT)
 
 
-def test_enter_level_root_when_already_at_root_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.root
-    any_cli.enter_level_root()
+def test_enter_mode_normal_when_already_at_normal_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.NORMAL
+    any_cli.enter_mode_normal()
     assert not any_cli.channel._send_line_and_wait.called
 
 
-def test_enter_level_root_raise_if_current_level_is_unknown(any_cli):
+def test_enter_mode_normal_raise_if_current_mode_is_unknown(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
-            any_cli.enter_level_root()
+            any_cli.enter_mode_normal()
 
 
-def test_enter_level_config_from_root_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.root
+def test_enter_mode_config_from_normal_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.NORMAL
     any_cli._send_line_and_wait = MagicMock(name='method')
     any_cli._enable = MagicMock(name='method')
-    any_cli.enter_level_config()
+    any_cli.enter_mode_config()
     assert any_cli._enable.called
     any_cli._send_line_and_wait.assert_called_with(
-        'config terminal', any_cli.cli_conf_prompt)
+        'config terminal', any_cli.CLI_CONF_PROMPT)
 
 
-def test_enter_level_config_from_enable_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.enable
+def test_enter_mode_config_from_enable_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.ENABLE
     any_cli._send_line_and_wait = MagicMock(name='method')
-    any_cli.enter_level_config()
+    any_cli.enter_mode_config()
     any_cli._send_line_and_wait.assert_called_with(
-        'config terminal', any_cli.cli_conf_prompt)
+        'config terminal', any_cli.CLI_CONF_PROMPT)
 
 
-def test_enter_level_config_when_already_at_config_level(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = CLILevel.config
+def test_enter_mode_config_when_already_at_config_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.CONFIG
     any_cli._send_line_and_wait = MagicMock(name='method')
-    any_cli.enter_level_config()
+    any_cli.enter_mode_config()
     assert not any_cli._send_line_and_wait.called
 
 
-def test_enter_level_config_raise_if_current_level_is_unknown(any_cli):
+def test_enter_mode_config_raise_if_current_mode_is_unknown(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
-            any_cli.enter_level_config()
+            any_cli.enter_mode_config()
 
 
 def test_exec_command_output(cli_mock_output, config_mode_match):

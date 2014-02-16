@@ -7,8 +7,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import logging
 import re
 
-from pq_cmdline.ssh_channel import SshChannel
-from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline.ssh_channel import SSHChannel
+from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline.telnet_channel import TelnetChannel
 from pq_cmdline import exceptions
 
@@ -19,33 +19,33 @@ DELETE_LINE = b'\x15'
 ENTER_LINE = b'\r'
 
 
-class CLILevel(object):
+class CLIMode(object):
     """
-    Different config levels the CLI can be in, plus one if it's not even in the
-    CLI for some reason (ie back to bash).  These need to be in order!
+    Different config modes the CLI can be in, plus one if it's not even in the
+    CLI for some reason (ie back to bash).
     """
-    bash = 0
-    root = 1
-    enable = 2
-    config = 3
+    BASH = 'bash'
+    NORMAL = 'normal'
+    ENABLE = 'enable'
+    CONFIG = 'configure'
 
 
-class Cli2(object):
+class CLI(object):
     """
-    New implementation of Cli for a Riverbed appliance.
+    New implementation of CLI for a Riverbed appliance.
     """
 
-    cli_exec_path = '/opt/tms/bin/cli'
+    CLI_EXEC_PATH = '/opt/tms/bin/cli'
 
     # Regexes for the different prompts.  Prompt start is hard - sometimes
     # there are ansi escape codes at the start, can't get them to shut off.
-    name_prefix_re =\
+    NAME_PREFIX_RE =\
         '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
 
-    cli_root_prompt = name_prefix_re + ' >'
-    cli_enable_prompt = name_prefix_re + ' #'
-    cli_conf_prompt = name_prefix_re + ' \(config\) #'
-    cli_any_prompt = name_prefix_re + ' (>|#|\(config\) #)'
+    CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ' >'
+    CLI_ENABLE_PROMPT = NAME_PREFIX_RE + ' #'
+    CLI_CONF_PROMPT = NAME_PREFIX_RE + ' \(config\) #'
+    CLI_ANY_PROMPT = NAME_PREFIX_RE + ' (>|#|\(config\) #)'
 
     # Matches the prompt used by less
     prompt_less = '(^|\n|\r)lines \d+-\d+'
@@ -97,25 +97,27 @@ class Cli2(object):
         shell or cli. Start cli if ssh-ed to shell.
         """
 
-        # Create SshProcess
+        # Create SSHProcess
         if self._transport is None:
-            self._transport = SshProcess(self._host, self._user, self._password)
+            self._transport = SSHProcess(self._host,
+                                         self._user,
+                                         self._password)
             self._new_transport = True
 
         # Create ssh channel and start channel
-        self.channel = SshChannel(self._transport, self._terminal)
+        self.channel = SSHChannel(self._transport, self._terminal)
 
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
-        (output, match) = self.channel.expect([self.channel.bash_prompt,
-                                               self.cli_root_prompt])
+        (output, match) = self.channel.expect([self.channel.BASH_PROMPT,
+                                               self.CLI_NORMAL_PROMPT])
 
         # Start cli if log into shell
         timeout = 60
-        if match.re.pattern == self.channel.bash_prompt:
+        if match.re.pattern == self.channel.BASH_PROMPT:
             self._log.info('At bash prompt, executing CLI')
-            self._send_line_and_wait(self.cli_exec_path,
-                                     [self.cli_root_prompt], timeout)
+            self._send_line_and_wait(self.CLI_EXEC_PATH,
+                                     [self.CLI_NORMAL_PROMPT], timeout)
         self._disable_paging()
 
     def _disable_paging(self):
@@ -125,7 +127,7 @@ class Cli2(object):
         """
         self._log.info('Disabling paging')
         self._send_line_and_wait('no cli session paging enable',
-                                 [self.cli_root_prompt])
+                                 [self.CLI_NORMAL_PROMPT])
 
     def _initialize_cli_over_telnet(self):
         """
@@ -137,15 +139,15 @@ class Cli2(object):
         self.channel = TelnetChannel(self._host, self._user, self._password)
 
         # Start and Wait for a prompt, try and figure out where we are.
-        match = self.channel.start([self.channel.bash_prompt,
-                                    self.cli_root_prompt])
+        match = self.channel.start([self.channel.BASH_PROMPT,
+                                    self.CLI_NORMAL_PROMPT])
 
         # Start cli if log into shell
         timeout = 60
-        if match.re.pattern == self.channel.bash_prompt:
+        if match.re.pattern == self.channel.BASH_PROMPT:
             self._log.info('At bash prompt, executing CLI')
-            self._send_line_and_wait(self.cli_exec_path,
-                                     [self.cli_root_prompt], timeout)
+            self._send_line_and_wait(self.CLI_EXEC_PATH,
+                                     [self.CLI_NORMAL_PROMPT], timeout)
         self._disable_paging()
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
@@ -185,31 +187,31 @@ class Cli2(object):
         text_to_send = text_to_send + ENTER_LINE
         return self._send_and_wait(text_to_send, match_res, timeout)
 
-    def current_cli_level(self):
+    def current_cli_mode(self):
         """
-        Determine what level the CLI is at. This is done by sending newline
+        Determine what mode the CLI is at. This is done by sending newline
         and check which prompt pattern matches.
 
-        :return: current CLI level.
-        :raises UnknownCLIMode: if the current level could not be detected.
+        :return: current CLI mode.
+        :raises UnknownCLIMode: if the current mode could not be detected.
         """
 
         (output, match) = self._send_line_and_wait('',
-                                                   [self.channel.bash_prompt,
-                                                    self.cli_root_prompt,
-                                                    self.cli_enable_prompt,
-                                                    self.cli_conf_prompt])
+                                                   [self.channel.BASH_PROMPT,
+                                                    self.CLI_NORMAL_PROMPT,
+                                                    self.CLI_ENABLE_PROMPT,
+                                                    self.CLI_CONF_PROMPT])
 
-        levels = {self.channel.bash_prompt: CLILevel.bash,
-                  self.cli_root_prompt: CLILevel.root,
-                  self.cli_enable_prompt: CLILevel.enable,
-                  self.cli_conf_prompt: CLILevel.config}
+        modes = {self.channel.BASH_PROMPT: CLIMode.BASH,
+                 self.CLI_NORMAL_PROMPT: CLIMode.NORMAL,
+                 self.CLI_ENABLE_PROMPT: CLIMode.ENABLE,
+                 self.CLI_CONF_PROMPT: CLIMode.CONFIG}
 
-        if match.re.pattern not in levels:
+        if match.re.pattern not in modes:
             raise exceptions.UnknownCLIMode(prompt=output)
-        return levels[match.re.pattern]
+        return modes[match.re.pattern]
 
-    def enter_mode(self, mode="configure"):
+    def enter_mode(self, mode=CLIMode.CONFIG):
         """
         Enter mode based on mode string ('normal', 'enable', or 'configure').
 
@@ -220,22 +222,21 @@ class Cli2(object):
                                 "configure"
         :raises CLINotRunning: if the shell is not in the CLI.
         """
-        if mode == "normal":
-            self.enter_level_root()
+        if mode == CLIMode.NORMAL:
+            self.enter_mode_normal()
 
-        elif mode == "enable":
-            self.enter_level_enable()
+        elif mode == CLIMode.ENABLE:
+            self.enter_mode_enable()
 
-        elif mode == "configure":
-            self.enter_level_config()
+        elif mode == CLIMode.CONFIG:
+            self.enter_mode_config()
 
         else:
-            raise UnknownCLIMode(mode=mode)
+            raise exceptions.UnknownCLIMode(mode=mode)
 
-
-    def enter_level_root(self):
+    def enter_mode_normal(self):
         """
-        Puts the CLI into the 'root' mode (where it is when the CLI first
+        Puts the CLI into the 'normal' mode (where it is when the CLI first
         executes), if it is not there already.  Note this will go 'backwards'
         if needed (e.g., exiting config mode)
 
@@ -246,25 +247,24 @@ class Cli2(object):
                                an error.
         """
 
-        self._log.info('Going to root level')
+        self._log.info('Going to normal mode')
 
-        level = self.current_cli_level()
+        mode = self.current_cli_mode()
 
-        if level == CLILevel.bash:
+        if mode == CLIMode.BASH:
             raise exceptions.CLINotRunning()
 
-        elif level == CLILevel.root:
-            self._log.debug('Already at root, doing nothing')
+        elif mode == CLIMode.NORMAL:
+            self._log.debug('Already at normal, doing nothing')
 
-        elif level == CLILevel.enable:
-            self._send_line_and_wait('disable', self.cli_root_prompt)
+        elif mode == CLIMode.ENABLE:
+            self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
-        elif level == CLILevel.config:
-            self._send_line_and_wait('exit', self.cli_enable_prompt)
-            self._send_line_and_wait('disable', self.cli_root_prompt)
+        elif mode == CLIMode.CONFIG:
+            self._send_line_and_wait('exit', self.CLI_ENABLE_PROMPT)
+            self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
-
-    def enter_level_enable(self):
+    def enter_mode_enable(self):
         """
         Puts the CLI into enable mode, if it is not there already.  Note this
         will go 'backwards' if needed (e.g., exiting config mode)
@@ -276,22 +276,21 @@ class Cli2(object):
                                an error.
         """
 
-        self._log.info('Going to Enable level')
+        self._log.info('Going to Enable mode')
 
-        level = self.current_cli_level()
+        mode = self.current_cli_mode()
 
-        if level == CLILevel.bash:
+        if mode == CLIMode.BASH:
             raise exceptions.CLINotRunning()
 
-        elif level == CLILevel.root:
+        elif mode == CLIMode.NORMAL:
             self._enable()
 
-        elif level == CLILevel.enable:
+        elif mode == CLIMode.ENABLE:
             self._log.debug('Already at Enable, doing nothing')
 
-        elif level == CLILevel.config:
-            self._send_line_and_wait('exit', self.cli_enable_prompt)
-
+        elif mode == CLIMode.CONFIG:
+            self._send_line_and_wait('exit', self.CLI_ENABLE_PROMPT)
 
     def _enable(self):
         """
@@ -300,13 +299,12 @@ class Cli2(object):
         """
         password_prompt = '(P|p)assword:'
         (output, match) = self._send_line_and_wait('enable',
-                                                   [self.cli_enable_prompt,
+                                                   [self.CLI_ENABLE_PROMPT,
                                                     password_prompt])
         if match.re.pattern == password_prompt:
-            self._send_line_and_wait(self._password, self.cli_enable_prompt)
+            self._send_line_and_wait(self._password, self.CLI_ENABLE_PROMPT)
 
-
-    def enter_level_config(self):
+    def enter_mode_config(self):
         """
         Puts the CLI into config mode, if it is not there already.
 
@@ -317,23 +315,22 @@ class Cli2(object):
                                an error.
         """
 
-        self._log.info('Going to Config level')
+        self._log.info('Going to Config mode')
 
-        level = self.current_cli_level()
+        mode = self.current_cli_mode()
 
-        if level == CLILevel.bash:
+        if mode == CLIMode.BASH:
             raise exceptions.CLINotRunning()
 
-        elif level == CLILevel.root:
+        elif mode == CLIMode.NORMAL:
             self._enable()
-            self._send_line_and_wait('config terminal', self.cli_conf_prompt)
+            self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
 
-        elif level == CLILevel.enable:
-            self._send_line_and_wait('config terminal', self.cli_conf_prompt)
+        elif mode == CLIMode.ENABLE:
+            self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
 
-        elif level == CLILevel.config:
+        elif mode == CLIMode.CONFIG:
             self._log.info('Already at Config, doing nothing')
-
 
     def exec_command(self, command, timeout=60, mode='configure',
                      output_expected=None, error_expected=False):
@@ -377,7 +374,7 @@ class Cli2(object):
         self._log.debug('Executing cmd "%s"' % command)
 
         (output, match) = self._send_line_and_wait(command,
-                                                   self.cli_any_prompt,
+                                                   self.CLI_ANY_PROMPT,
                                                    timeout=timeout)
 
         # CLI adds on escape chars and such sometimes (see bug 75081), so to
@@ -391,7 +388,7 @@ class Cli2(object):
                 return output
             else:
                 try:
-                    mode = self.current_cli_level()
+                    mode = self.current_cli_mode()
                 except exceptions.UnknownCLIMode:
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(command, output=output, mode=mode)
@@ -406,19 +403,19 @@ class Cli2(object):
 
     def get_sub_commands(self, root_cmd):
         """
-        Gets a list of commands at the current level.  ie, it sends root_cmd
+        Gets a list of commands at the current mode.  ie, it sends root_cmd
         with ? and returns everything that is a command. This strips out
         things in <>'s, or other free-form fields the user has to enter.
 
         :param root_cmd - root of the command to get subcommands for
-        :return a list of the full paths to subcommands.  eg,  if rootCmd is
+        :return a list of the full paths to subcommands.  eg,  if root_cmd is
             "web ?", this returns ['web autologout', 'web auto-refresh', ...]
         """
 
         self._log.debug('Generating help for "%s"' % root_cmd)
         sub_commands = []
         output, match = self._send_and_wait('%s ?' % root_cmd,
-                                            self.cli_any_prompt)
+                                            self.CLI_ANY_PROMPT)
 
         # Split the output into a list of lines. The first one will be the
         # command we sent, teh last two will be an escape code and the prompt,
@@ -432,7 +429,7 @@ class Cli2(object):
 
             if command == '%':
                 # Remove the command we enter to be back at the empty prompt
-                self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
+                self._send_line_and_wait(DELETE_LINE, self.CLI_ANY_PROMPT)
                 try:
                     mode = self.current_cli_level()
                 except exceptions.UnknownCLIMode:
@@ -449,5 +446,5 @@ class Cli2(object):
                     sub_commands.append(command)
 
         # Remove the command we enter, so we're back at the empty prompt
-        self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
+        self._send_line_and_wait(DELETE_LINE, self.CLI_ANY_PROMPT)
         return sub_commands

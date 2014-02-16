@@ -9,7 +9,7 @@ import time
 import select
 from mock import Mock, patch
 
-from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline import exceptions
 
 ANY_HOST = 'host1'
@@ -19,7 +19,7 @@ ANY_PASSWORD = 'password1'
 
 @pytest.fixture
 def any_sshprocess():
-    return SshProcess(ANY_HOST, ANY_USER, ANY_PASSWORD)
+    return SSHProcess(ANY_HOST, ANY_USER, ANY_PASSWORD)
 
 
 def test_members_initialized_correctly(any_sshprocess):

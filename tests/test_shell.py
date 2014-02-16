@@ -22,7 +22,7 @@ ANY_ERROR = ('error message', -1)
 
 @pytest.fixture
 def any_shell():
-    with patch('pq_cmdline.shell.SshProcess') as mock:
+    with patch('pq_cmdline.shell.SSHProcess'):
         return Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
 
 

@@ -14,20 +14,20 @@ from pq_cmdline.channel import Channel
 from pq_cmdline import exceptions
 
 
-class SshChannel(Channel):
+class SSHChannel(Channel):
     """
     Class represents an ssh channel, a two-way channel that allows send
     and receive data.
     """
 
     # Note that for the ^, Python won't accept [^] as a valid regex?
-    bash_prompt = '(^|\n|\r)\[\S+ \S+\]#'
+    BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
 
     def __init__(self, sshprocess, term='console', width=80, height=24):
         """
-        Create a new SshChannel object from a SshProcess object.
+        Create a new SSHChannel object from a SSHProcess object.
 
-        :param sshprocess: SshProcess object to open a channel with.
+        :param sshprocess: SSHProcess object to open a channel with.
         :param term: terminal emulation to use; defaults to 'console'
         :param width: width (in characters) of the terminal screen;
                       defaults to 80
