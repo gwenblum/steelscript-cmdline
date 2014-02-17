@@ -4,6 +4,8 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
+from pprint import pformat
+
 from pq_runtime.exceptions import NbtError
 
 
@@ -35,6 +37,41 @@ class CmdlineException(NbtError):
             msg = _subclass_msg
         super(CmdlineException, self).__init__(msg)
 
+    def _process_failed_match(self, failed_match):
+        # Take a failed match, which may be a match result object, a pattern
+        # object, or just a string, and pull the string out of it.
+        # Or it can be a list of the above types.
+        # Returns a tuple of the string and either an empty string or a
+        # " while waiting for %s" string suitable for including in an error.
+
+        if isinstance(failed_match, list) and len(failed_match) == 1:
+            failed_match = failed_match[0]
+
+        if failed_match is None:
+            failed_match_pattern = None
+        elif isinstance(failed_match, list):
+            failed_match_pattern = ("one of:\n%s\n" %
+                pformat([self._convert_match(p) for p in failed_match],
+                        indent=2))
+        else:
+            failed_match_pattern = "'%s'" % self._convert_match(failed_match)
+
+        if failed_match is None:
+            match_msg = ''
+        else:
+            match_msg = (" while waiting to match %s" %
+                         failed_match_pattern)
+        return failed_match_pattern, match_msg
+
+
+    def _convert_match(self, match):
+        if hasattr(match, 're'):
+            return match.re.pattern
+        elif hasattr(match, 'pattern'):
+            return match.pattern
+        else:
+            return match
+
 
 class CmdlineTimeout(CmdlineException):
     """Indicates a command was abandoned due to a timeout.
@@ -44,16 +81,26 @@ class CmdlineTimeout(CmdlineException):
     However, all timeouts triggered in PQ code will raise this exception.
 
     :ivar command: The command we were trying to execute.
+    :ivar output: Partial output received, if any.
     :ivar timeout: The number of seconds that we were waiting for.
+    :ivar failed_match_pattern: The pattern we were trying to match, if any.
     """
 
-    def __init__(self, command, timeout):
+    def __init__(self, timeout, command=None, output=None, failed_match=None):
         """
-        :param command: The command we were trying to execute.
         :param timeout: The number of seconds that we were waiting for.
+        :param command: The command we were trying to execute.
+        :param output: Partial output received, if any.
+        :param failed_match: What we were trying to match, or None.
+        :type failed_match: Match object, pattern object, or string.
         """
         self.timeout = timeout
-        msg = ("Command '%s' timed out after %d seconds." % (command, timeout))
+        self.failed_match_pattern, match_msg = (
+            self._process_failed_match(failed_match))
+
+        msg = ("Command '%s' timed out%s after %d seconds." %
+              (command, match_msg, timeout))
+
         super(CmdlineTimeout, self).__init__(command, _subclass_msg=msg)
 
 
@@ -70,28 +117,61 @@ class ConnectionError(CmdlineException):
     that should not be aware of the specific underlying protocol.
 
     :ivar command: The command we were trying to execute.
+    :ivar output: Any output produced just before the failure.
     :ivar cause: The protocol-specific exception, if any, that triggered this.
+    :ivar failed_match_pattern: The pattern we were trying to match, if any.
     """
 
-    def __init__(self, command=None, cause=None, context=None):
+    def __init__(self, command=None, output=None, cause=None,
+                       failed_match=None, context=None,
+                       _subclass_msg=None):
         """
         :param command: The command we were trying to execute.
+        :param output: Any output produced just before the failure.
         :param cause: The protocol-specific exception, if any,
                       that triggered this.
+        :param failed_match: What we were trying to match, or None.
+        :type failed_match: Match object, pattern object, or string.
         :param context: An optional string describing the conetxt of the error.
         """
 
         self.cause = cause
-        if command:
-            msg = "Connection error while executing '%s'" % command
-        else:
-            msg = "Connection error."
-        if context is not None:
-            msg = "%s\n    Additional context: '%s'" % (msg, context)
-        if cause is not None:
-            msg = "%s\n    Underlying exception:\n%s" % (msg, cause)
+        if _subclass_msg is None:
+            if command:
+                msg = "Connection error while executing '%s'" % command
+            else:
+                msg = "Connection error."
+            if context is not None:
+                msg = "%s\n    Additional context: '%s'" % (msg, context)
+            if cause is not None:
+                msg = "%s\n    Underlying exception:\n%s" % (msg, cause)
 
+            self.failed_match_pattern, match_msg = (
+                self._process_failed_match(failed_match))
+            if match_msg:
+                msg = "%s%s" % (msg, match_msg)
+        else:
+            msg = _subclass_msg
         super(ConnectionError, self).__init__(command, _subclass_msg=msg)
+
+
+class CLINotRunning(ConnectionError):
+    """Exception for when the CLI has crashed or could not be started.
+
+    :ivar output:  Output of trying to start the CLI, or None if we expected
+                   the CLI to be there and it was not.
+    """
+    def __init__(self, output=None):
+        """
+        :param output: Output of trying to start the CLI, or None if
+                       we expected the CLI to be there and it was not.
+        """
+        if output is None:
+            msg = "CLI is not running."
+        else:
+            msg = "Could not start the CLI: '%s'" % output
+        super(CLINotRunning, self).__init__(command=None, output=output,
+                                            _subclass_msg=msg)
 
 
 class CmdlineError(CmdlineException):
@@ -150,7 +230,10 @@ class CLIError(CmdlineError):
 
 
 class UnexpectedOutput(CmdlineException):
-    """Exception for output where none should be, or output in the wrong format.
+    """Exception for when output does not match expectations.
+
+    This could include output where none was expected, no output where
+    some was expected, or differiing output than expected.
 
     This generally does not mean easily detectable error output, which is
     indicated by the appropriate subclass of ``CmdlineError``
@@ -158,33 +241,62 @@ class UnexpectedOutput(CmdlineException):
     :ivar command: The command that produced the error.
     :ivar output: The output as returned from the command.
     :ivar expected_output: The output expected from the command, possibly None.
+                           If unspecified output was expected, set to True.
+    :type expected_output: String, possibly a regexp pattern.
     """
 
     def __init__(self, command, output, expected_output=None):
         """
         :param command: The command that produced the error.
-        :param output: The output as returned from the command.
+        :param output: The output as returned from the command, possibly None.
         :param expected_output: The output expected from the command,
-              possibly None.
+              possibly None.  If unspecified output was expected, set to True.
+        :type expected_output: String, possibly a regexp pattern.
         """
         self.expected_output = expected_output
 
-        if expected_output is None:
-            msg = (("Command '%s' returned output '%s' where none "
-                    "was expected.") % (command, output))
+        if output is None:
+            msg = "Command '%s' returned no output " % command
         else:
-            msg = (("Command '%s' returned the following output:\n"
-                    "%s\ninstead of this expected output:\n%s") %
-                   (command, output, expected_output))
+            msg = ("Command '%s' returned the following output:\n%s\n" %
+                   (command, output))
+
+        if expected_output is None:
+            msg = "%s%s" % (msg, "where none was expected.")
+        elif expected_output is True:
+            msg = "%s%s" % (msg, "where unspecified output was expected.")
+        else:
+            msg = ("%s%s%s" %
+                   (msg, "where this output was expected:\n", expected_output))
 
         super(UnexpectedOutput, self).__init__(command, output=output,
                                                _subclass_msg=msg)
 
 
 class UnknownCLIMode(CmdlineException):
-    """Exception for any CLI (Riverbed or otherwise) sees an unknown mode."""
+    """Exception for any CLI that sees or is asked for an unknown mode.
 
-    def __init__(self, prompt):
+    :ivar prompt: The prompt seen that cannot be mapped to a mode
+    :ivar mode: The mode that was requested but not recognized
+    """
+
+    def __init__(self, prompt=None, mode=None):
+        """
+        :param prompt: The prompt seen that cannot be mapped to a mode
+        :param mode: The mode that was requested but not recognized
+        """
         self.prompt = prompt
-        super(UnknownCLIMode, self).__init__(
-            _subclass_msg="Unknown CLI mode, prompt: '%s'" % prompt)
+        self.mode = mode
+
+        if prompt is not None:
+            if mode is not None:
+                msg = ("Unknown mode '%s' seen or reqested, prompt is '%s'" %
+                       (mode, prompt))
+            else:
+                msg = "Unkonwn mode seen, prompt is '%s'" % prompt
+        elif mode is not None:
+            msg = "Unknown mode '%s' requested." % mode
+        else:
+            msg = "Unknown mode seen or requested, no details available."
+
+        super(UnknownCLIMode, self).__init__(_subclass_msg=msg)
