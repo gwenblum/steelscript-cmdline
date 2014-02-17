@@ -53,9 +53,7 @@ setup(
     long_description=readme,
     author='Project Quicksilver Team',
     author_email='eng-quicksilver@riverbed.com',
-    packages=[
-        'pq_cmdline',
-    ],
+    packages=find_packages(),
     package_dir={'pq_cmdline': 'pq_cmdline'},
     include_package_data=True,
     install_requires=requirements(),
