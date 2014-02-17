@@ -261,13 +261,13 @@ class UnexpectedOutput(CmdlineException):
             msg = ("Command '%s' returned the following output:\n%s\n" %
                    (command, output))
 
-        if expected_output is None:
-            msg = "%s%s" % (msg, "where none was expected.")
-        elif expected_output is True:
+        if expected_output is True:
             msg = "%s%s" % (msg, "where unspecified output was expected.")
-        else:
+        elif expected_output:
             msg = ("%s%s%s" %
                    (msg, "where this output was expected:\n", expected_output))
+        else:
+            msg = "%s%s" % (msg, "where none was expected.")
 
         super(UnexpectedOutput, self).__init__(command, output=output,
                                                _subclass_msg=msg)

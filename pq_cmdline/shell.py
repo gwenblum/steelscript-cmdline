@@ -50,19 +50,38 @@ class Shell(object):
         ## Logging module
         self._log = logging.getLogger(__name__)
 
-    def exec_command(self, command, timeout=60):
-        """
-        Executes the given command.  Note, this is stateless.
-        So an exec_command cannot use environment variables/directory
-        changes/whatever from a previous exec_command.
+    def exec_command(self, command, timeout=60, expect_output=None,
+                     expect_error=False, exit_info=None):
+        """Executes the given command statelessly.
+
+        Since this is stateless, an exec_command cannot use environment
+        variables/directory changes/whatever from a previous exec_command.
+
+        This method handles detecting simple boolean conditions such as
+        the presence of output or errors.
 
         :param command: command to send
         :param timeout: seconds to wait for command to finish. None to disable
+        :param expect_output: If not None, indicates whether output is
+            expected (True) or no output is expected (False).
+            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+        :type expect_output: bool or None
+        :param expect_error: If True, do not raise ShellError on a nonzero
+            exit status.  Default is False
+        :type expect_error: bool
+        :param exit_info: If set to a dict, the exit status is added to
+            the dictionary under the key 'status'.  Primarily used in
+            conjunction with ``expect_error`` when multiple nonzero statuses
+            are possible.
+        :type exit_info: dict or None
 
-        :raises ConnectionError: if not connected
+        :raises ConnectionError: if the connection is lost
         :raises CmdlineTimeout: on timeout
+        :raises ShellError: on an unexpected nonzero exit status
+        :raises UnexpectedOutput: if output occurrs when no output was
+            expected, or no output occurs when output was expected
 
-        :return: (output, exit_code) for the command.
+        :return: output from the command
         """
 
         self._log.debug('Executing command "%s"' % command)
@@ -71,6 +90,27 @@ class Shell(object):
         if (not self.sshprocess.is_connected()):
             self.sshprocess.connect()
 
+        output, exit_status = self._exec_paramiko_command(command)
+
+        if isinstance(exit_info, dict):
+            exit_info['status'] = exit_status
+
+        # If the command failed and the user wants an exception, do it!
+        if exit_status != 0:
+            if not expect_error:
+                raise exceptions.ShellError(command=command,
+                                            output=output,
+                                            exit_status=exit_status)
+        if ((expect_output is not None) and
+            ((output and not expect_output) or
+             (expect_output and not output))):
+            raise exceptions.UnexpectedOutput(command=command,
+                                              output=output,
+                                              expected_output=expect_output)
+        return output
+
+
+    def _exec_paramiko_command(self, command):
         channel = self.sshprocess.transport.open_session()
 
         # Put stderr into the same output as stdout.
@@ -149,11 +189,4 @@ class Shell(object):
         exit_status = channel.recv_exit_status()
         channel.close()
 
-        # If the command failed and the user wants an exception, do it!
-        if (exit_status != 0):
-            raise exceptions.ShellError(
-                ('Command "%s" returned %d with the output:\n%s' %
-                 (command, exit_status, output)),
-                command, output=output, exit_status=exit_status)
-
-        return (output, exit_status)
+        return output, exit_status

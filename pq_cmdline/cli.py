@@ -334,24 +334,40 @@ class Cli2(object):
         elif level == CLILevel.config:
             self._log.info('Already at Config, doing nothing')
 
-        else:
-            raise CommandError('Unknown CLI level')
 
-    def exec_command(self, command, timeout=60):
-        """
-        Runs the given command.
+    def exec_command(self, command, timeout=60, mode='configure',
+                     expect_output=None, expect_error=False):
+        """Executes the given command.
+
+        This method handles detecting simple boolean conditions such as
+        the presence of output or errors.
 
         :param command:  command to execute, newline appended automatically
         :param timeout:  maximum time, in seconds, to wait for the command to
-                         finish. 0 to wait forever.
+            finish. 0 to wait forever.
+        :param mode:  mode to enter before running the command.  To skip this
+            step and execute directly in the cli's current mode, explicitly
+            set this parameter to None.  The default is "configure"
+        :param expect_output: If not None, indicates whether output is
+            expected (True) or no output is expected (False).
+            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+        :type expect_output: bool or None
+        :param expect_error: If true, cli error output (with a leading '%') is
+            expected and will be returned as regular output instead of
+            raising a CLIError.  Default is False, and expect_error always
+            overrides expect_output.
+        :type expect_error: bool
 
-        :raises CmdlineTimeout: if the command did not complete before the
-                                timeout expired.
+        :raises CmdlineTimeout: on timeout
+        :raises CLIError: if the output matches the cli's error format, and
+            error output was not expected.
+        :raises UnexpectedOutput: if output occurrs when no output was
+            expected, or no output occurs when output was expected
 
-        :return: (exitcode, output) where output is the output of the command,
-                 minus the command itself. exitcode is the return code;
-                 zero for success, and non-zero return code for errors.
+        :return: output of the command, minus the command itself.
         """
+        if mode is not None:
+            self.enter_mode(mode)
 
         self._log.debug('Executing cmd "%s"' % command)
 
@@ -364,11 +380,25 @@ class Cli2(object):
         # into lines, then rejoin it with the first line removed.
         output = '\n'.join(output.splitlines()[1:])
 
-        exitcode = 0
         if output and (output[0] == '%'):
-            exitcode = 1
+            if expect_error:
+                # Skip expect_output processing entirely.
+                return output
+            else:
+                try:
+                    mode = self.current_cli_level()
+                except exceptions.UnknownCLIMode:
+                    mode = '<unrecognized>'
+                raise exceptions.CLIError(command, output=output, mode=mode)
 
-        return (exitcode, output)
+        if (expect_output is True) and not output:
+            raise exceptions.UnexpectedOutput(command, output=None,
+                                                       expected_output=True)
+        elif (expect_output is False) and output:
+            raise exceptions.UnexpectedOutput(command, output=output,
+                                                       expected_output=False)
+
+        return output
 
     def get_sub_commands(self, root_cmd):
         """
@@ -397,9 +427,14 @@ class Cli2(object):
             command = line.split(' ')[0]
 
             if command == '%':
-                # Remove the command we enter to be back  at the empty prompt
+                # Remove the command we enter to be back at the empty prompt
                 self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
-                raise exceptions.CLIError(command=root_cmd, output=output)
+                if output and (output[0] == '%') and not expect_error:
+                    try:
+                        mode = self.current_cli_level()
+                    except exceptions.UnknownCLIMode:
+                        mode = '<unrecognized>'
+                raise exceptions.CLIError(root_cmd, output=output, mode=mode)
 
             # If this is a user-input field, skip it. Most are surronded by
             # <>, but not all. If the command contains anything other than

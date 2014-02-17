@@ -22,6 +22,9 @@ TRANSPORT_TELNET = 'telnet'
 TRANSPORT_UNKNOWN = 'any unknown type'
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'
+ANY_COMMAND_OUTPUT_DATA = '%s\n%s' % (ANY_COMMAND, ANY_COMMAND_OUTPUT)
+ANY_COMMAND_ERROR = '% Unrecognized command'
+ANY_COMMAND_ERROR_DATA = '%s\n%s' % (ANY_COMMAND, ANY_COMMAND_ERROR)
 ANY_UNKNOWN_LEVEL = 'unknown'
 ANY_TIMEOUT = 120
 
@@ -31,6 +34,20 @@ def any_cli():
     cli = Cli(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
     cli.channel = Mock()
     return cli
+
+
+@pytest.fixture
+def cli_mock_output(any_cli):
+    any_cli._send_line_and_wait = MagicMock(name='method')
+    return any_cli
+
+
+@pytest.fixture
+def config_mode_match():
+    fake_match = MagicMock()
+    fake_match.re = MagicMock()
+    fake_match.re.pattern = Cli.cli_conf_prompt
+    return fake_match
 
 
 def test_members_intialize_correctly(any_cli):
@@ -206,12 +223,43 @@ def test_enter_level_config_raise_if_current_level_is_unknown(any_cli):
             any_cli.enter_level_config()
 
 
-def test_exec_command_return_data(any_cli):
-    command_with_return = ANY_COMMAND + '\n'
-    data = command_with_return + ANY_COMMAND_OUTPUT
-    any_cli._send_line_and_wait = MagicMock(name='method')
-    any_cli._send_line_and_wait.return_value = (data, 'match')
-    (exitcode, output) = any_cli.exec_command(ANY_COMMAND, ANY_TIMEOUT)
-    any_cli._send_line_and_wait.assert_called_with(
-        ANY_COMMAND, any_cli.cli_any_prompt, timeout=ANY_TIMEOUT)
-    assert output == ANY_COMMAND_OUTPUT
+def test_exec_command_output(cli_mock_output, config_mode_match):
+    cmo= cli_mock_output
+    cmo._send_line_and_wait.return_value = (ANY_COMMAND_OUTPUT_DATA,
+                                            config_mode_match)
+
+    assert cmo.exec_command(ANY_COMMAND) == ANY_COMMAND_OUTPUT
+    assert cmo.exec_command(ANY_COMMAND,
+                            expect_output=True) == ANY_COMMAND_OUTPUT
+    with pytest.raises(exceptions.UnexpectedOutput):
+        cmo.exec_command(ANY_COMMAND, expect_output=False)
+
+
+def test_exec_command_no_output(cli_mock_output, config_mode_match):
+    cmo = cli_mock_output
+    cmo._send_line_and_wait.return_value = ('%s\n' % ANY_COMMAND,
+                                            config_mode_match)
+    assert cmo.exec_command(ANY_COMMAND) == ''
+    assert cmo.exec_command(ANY_COMMAND, expect_output=False) == ''
+    with pytest.raises(exceptions.UnexpectedOutput):
+        cmo.exec_command(ANY_COMMAND, expect_output=True)
+
+
+def test_exec_command_error(cli_mock_output, config_mode_match):
+    cmo = cli_mock_output
+    cmo._send_line_and_wait.return_value = (ANY_COMMAND_ERROR_DATA,
+                                            config_mode_match)
+    assert cmo.exec_command(ANY_COMMAND,
+                            expect_error=True) == ANY_COMMAND_ERROR
+    assert cmo.exec_command(ANY_COMMAND,
+                            expect_output=False,
+                            expect_error=True) == ANY_COMMAND_ERROR
+    assert cmo.exec_command(ANY_COMMAND,
+                            expect_output=True,
+                            expect_error=True) == ANY_COMMAND_ERROR
+    with pytest.raises(exceptions.CLIError):
+        cmo.exec_command(ANY_COMMAND, expect_output=True)
+    with pytest.raises(exceptions.CLIError):
+        cmo.exec_command(ANY_COMMAND, expect_output=False)
+    with pytest.raises(exceptions.CLIError):
+        cmo.exec_command(ANY_COMMAND, expect_output=None)
