@@ -9,8 +9,8 @@ import time
 import select
 from mock import Mock, patch
 
-from pq_runtime.exceptions import SshError
 from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline import exceptions
 
 ANY_HOST = 'host1'
 ANY_USER = 'user1'
@@ -51,7 +51,7 @@ def test_is_connected_if_transport_is_active(any_sshprocess):
 
 
 def test_open_interactive_channel_raise_if_not_connected(any_sshprocess):
-    with pytest.raises(SshError):
+    with pytest.raises(exceptions.ConnectionError):
         any_sshprocess.open_interactive_channel()
 
 

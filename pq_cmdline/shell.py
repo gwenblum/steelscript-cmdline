@@ -10,9 +10,9 @@ import logging
 import time
 import select
 
-from pq_runtime.exceptions import (re_raise, SshError, CommandError,
-                                   CommandTimeout, NbtError)
+from pq_runtime.exceptions import re_raise
 from pq_cmdline.sshprocess import SshProcess
+from pq_cmdline import exceptions
 
 
 class Shell(object):
@@ -59,8 +59,8 @@ class Shell(object):
         :param command: command to send
         :param timeout: seconds to wait for command to finish. None to disable
 
-        :raises SshError: if not connected
-        :raises CommandTimeout: on timeout
+        :raises ConnectionError: if not connected
+        :raises CmdlineTimeout: on timeout
 
         :return: (output, exit_code) for the command.
         """
@@ -88,7 +88,10 @@ class Shell(object):
             channel.exec_command(command)
         except paramiko.SSHException:
             if not self.sshprocess.is_connected():
-                re_raise(SshError, "Not connected to %s" % self._host)
+                # TODO: re_raise not compatibile with passing kwargs
+                # re_raise(SshError, "Not connected to %s" % self._host)
+                self._log.info("Not connected to %s", self._host)
+                re_raise(exceptions.ConnectionError)
             else:
                 self._log.debug(
                     'Ignore Paramiko SSHException due to 1.7.5 bug')
@@ -109,8 +112,8 @@ class Shell(object):
 
             # Timeout if this is taking too long.
             if timeout and ((time.time() - starttime) > timeout):
-                raise CommandTimeout('Command "%s" timed out after %d seconds'
-                                     % (command, timeout))
+                raise exceptions.CmdlineTimeout(command=command,
+                                                timeout=timeout)
 
             # If the reader-ready list isn't empty, then read.  We know it must
             # be channel here, since thats all we're waiting on.
@@ -138,8 +141,8 @@ class Shell(object):
         # Rather than block here, we'll poll to ensure we don't get stuck.
         while not channel.exit_status_ready():
             if timeout and ((time.time() - starttime) > timeout):
-                raise CommandTimeout('Command "%s" timed out after %d seconds'
-                                     % (command, timeout))
+                raise exceptions.CmdlineTimeout(command=command,
+                                                timeout=timeout)
             else:
                 time.sleep(0.5)
 
@@ -147,8 +150,10 @@ class Shell(object):
         channel.close()
 
         # If the command failed and the user wants an exception, do it!
-        if (exit_status != 0) and except_on_error:
-            raise CommandError('Command "%s" returned %d with the output:\n%s'
-                               % (command, exit_status, output))
+        if (exit_status != 0):
+            raise exceptions.ShellError(
+                ('Command "%s" returned %d with the output:\n%s' %
+                 (command, exit_status, output)),
+                command, output=output, exit_status=exit_status)
 
         return (output, exit_status)

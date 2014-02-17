@@ -10,8 +10,8 @@ import telnetlib
 import socket
 import re
 
-from pq_runtime.exceptions import (re_raise, CommandError, CommandTimeout,
-                                   NbtError)
+from pq_runtime.exceptions import re_raise
+from pq_cmdline import exceptions
 from pq_cmdline.channel import Channel
 
 LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
@@ -103,12 +103,13 @@ class TelnetChannel(Channel):
                                                        timeout)
         # At this point, we should already loged in; raises exceptions if not
         if index < 0:
-            raise CommandTimeout("Fail to match any prompt %s before timeout"
-                                 % reg_with_login_prompts)
-        if index == 0:
-            raise CommandError("Login failed; still ask username")
-        if index == 1:
-            raise CommandError("Login failed; still ask password")
+            raise exceptions.CmdlineTimeout(timeout=timeout,
+                                            failed_match=match_res)
+        elif index in (0, 1):
+            self._log.info("Login failed, still waiting for %s prompt",
+                           ('username' if index == 0 else 'password'))
+            raise exceptions.CmdlineTimeout(timeout=timeout,
+                failed_match=reg_with_login_prompts[index])
 
         # Login successfully if reach this point
         self._log.info('Telnet channel to "%s" started' % self._host)
@@ -119,17 +120,21 @@ class TelnetChannel(Channel):
         Helper function that verifies the connection has been established
         and that the transport object we are using is still connected.
 
-        :raises CommandError: if we are not connected
+        :raises ConnectionError: if we are not connected
         """
 
         if not self.channel:
-            raise CommandError('Channel has not been started')
+            raise exceptions.ConnectionError(
+                context='Channel has not been started')
 
         # Send an NOP to see whether connection is still alive.
         try:
             self.channel.sock.sendall(telnetlib.IAC + telnetlib.NOP)
         except socket.error:
-            re_raise(CommandError, 'Host SSH shell has been disconnected')
+            # TODO: re_raise and passing kwargs not compatible.
+            # re_raise(CommandError, 'Host SSH shell has been disconnected')
+            self._log.info('Host SSH shell has been disconnected')
+            re_raise(exceptions.ConnectionError)
 
     def receive_all(self):
         """
@@ -150,10 +155,10 @@ class TelnetChannel(Channel):
         Sends text to the channel immediately.  Does not wait for any response.
 
         :param text_to_send: Text to send, may be an empty string.
-        :throw NbtError if text_to_send is None.
+        :raises TypeError: if text_to_send is None.
         """
         if text_to_send is None:
-            raise NbtError('text_to_send should not be None')
+            raise TypeError('text_to_send should not be None')
 
         # Encode text to ascii; telnetlib does not work well with unicode
         # literals.
@@ -178,7 +183,7 @@ class TelnetChannel(Channel):
                           May be a single regex string, or a list of them.
         :param timeout: maximum time, in seconds, to wait for a regular
                         expression match. 0 to wait forever.
-        :raises NbtError: if match_res is None or empty.
+        :raises TypeError: if match_res is None or empty.
         :return: (output, re.MatchObject) where output is the output of the
                  command (without the matched text), and MatchObject is a
                  Python re.MatchObject containing data on what was matched.
@@ -191,10 +196,10 @@ class TelnetChannel(Channel):
         """
 
         if match_res is None:
-            raise NbtError('Parameter match_res is required!')
+            raise TypeError('Parameter match_res is required!')
 
         if not match_res:
-            raise NbtError('match_res should not be empty!')
+            raise TypeError('match_res should not be empty!')
 
         # Convert the match text to a list, if it isn't already.
         if not isinstance(match_res, list):
@@ -211,8 +216,8 @@ class TelnetChannel(Channel):
         self._log.debug('Waiting for %s' % str(safe_match_text))
         (index, matched, data) = self.channel.expect(match_res, timeout)
         if index == -1:
-            raise CommandTimeout("Output not match %s before timeout"
-                                 % match_res)
+            raise exceptions.CmdlineTimeout(timeout=timeout,
+                                            failed_match=match_res)
         # Remove matched string at the end
         length = matched.start() - matched.end()
         if length < 0:

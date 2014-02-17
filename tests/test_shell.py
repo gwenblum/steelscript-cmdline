@@ -8,8 +8,8 @@ import pytest
 from mock import patch, Mock
 from paramiko import SSHException
 
-from pq_runtime.exceptions import SshError
 from pq_cmdline.shell import Shell
+from pq_cmdline import exceptions
 
 ANY_HOST = 'host1'
 ANY_USER = 'user1'
@@ -35,5 +35,5 @@ def test_exec_command_raises_on_ssh_exceptions(any_shell):
     any_shell.sshprocess.transport.open_session.return_value = mock_channel
     any_shell.sshprocess.is_connected.return_value = False
     mock_channel.exec_command.side_effect = SSHException('paramiko error')
-    with pytest.raises(SshError):
+    with pytest.raises(exceptions.ConnectionError):
         any_shell.exec_command(ANY_COMMAND)

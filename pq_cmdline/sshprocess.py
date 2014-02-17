@@ -10,7 +10,8 @@ from __future__ import absolute_import, unicode_literals, print_function,\
 import paramiko
 import logging
 
-from pq_runtime.exceptions import (re_raise, SshError)
+from pq_runtime.exceptions import re_raise
+from pq_cmdline import exceptions
 from pq_cmdline.transport import Transport
 
 
@@ -51,7 +52,7 @@ class SshProcess(Transport):
         """
         Connects to the host.
 
-        :raises SshError: on error
+        :raises ConnectionError: on error
         """
         self._log.info('Connecting to "%s" as "%s"' % (self._host, self._user))
         try:
@@ -63,7 +64,10 @@ class SshProcess(Transport):
         except paramiko.ssh_exception.SSHException:
             # Close the session, or the child thread apparently hangs
             self.disconnect()
-            re_raise(SshError, "Could not connect to %s" % self._host)
+            # TODO: re_raise not compatibile with passing kwargs
+            # re_raise(SshError, "Could not connect to %s" % self._host)
+            self._log.info("Could not connect to %s", self._host)
+            re_raise(exceptions.ConnectionError)
 
     def disconnect(self):
         """
@@ -94,15 +98,15 @@ class SshProcess(Transport):
         :param width: width (in characters) of the terminal screen; defaults to 80
         :param height: height (in characters) of the terminal screen; defaults to 24
 
-        :raises SshError: if the SSH connection has not yet been
-                          established.
+        :raises ConnectionError: if the SSH connection has not yet been
+                                 established.
 
         :return: An Paramiko channel that communicate with the remote end in
                  a stateful way.
         """
 
         if (not self.is_connected()):
-            raise SshError('Not connected!')
+            raise exceptions.ConnectionError(context='Not connected!')
 
         channel = self.transport.open_session()
         channel.get_pty(term, width, height)

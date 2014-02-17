@@ -4,12 +4,14 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-from pq_cmdline.cli import Cli2 as Cli
-from pq_cmdline.cli import CLILevel
-from pq_runtime.exceptions import CommandError, CommandTimeout
+import re
 
 import pytest
 from mock import Mock, MagicMock, patch
+
+from pq_cmdline.cli import Cli2 as Cli
+from pq_cmdline.cli import CLILevel
+from pq_cmdline import exceptions
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
@@ -127,7 +129,7 @@ def test_current_cli_level_raise_at_unknown_level(any_cli):
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
     with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
-        with pytest.raises(KeyError):
+        with pytest.raises(exceptions.UnknownCLIMode):
             any_cli.current_cli_level()
 
 
@@ -159,10 +161,12 @@ def test_enter_level_root_when_already_at_root_level(any_cli):
 
 
 def test_enter_level_root_raise_if_current_level_is_unknown(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = ANY_UNKNOWN_LEVEL
-    with pytest.raises(CommandError):
-        any_cli.enter_level_root()
+    mock_match = Mock()
+    mock_match.re.pattern = ANY_UNKNOWN_LEVEL
+    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+        mock.return_value = ('output', mock_match)
+        with pytest.raises(exceptions.UnknownCLIMode):
+            any_cli.enter_level_root()
 
 
 def test_enter_level_config_from_root_level(any_cli):
@@ -194,10 +198,12 @@ def test_enter_level_config_when_already_at_config_level(any_cli):
 
 
 def test_enter_level_config_raise_if_current_level_is_unknown(any_cli):
-    any_cli.current_cli_level = MagicMock(name='method')
-    any_cli.current_cli_level.return_value = ANY_UNKNOWN_LEVEL
-    with pytest.raises(CommandError):
-        any_cli.enter_level_config()
+    mock_match = Mock()
+    mock_match.re.pattern = ANY_UNKNOWN_LEVEL
+    with patch('pq_cmdline.cli.Cli2._send_line_and_wait') as mock:
+        mock.return_value = ('output', mock_match)
+        with pytest.raises(exceptions.UnknownCLIMode):
+            any_cli.enter_level_config()
 
 
 def test_exec_command_return_data(any_cli):

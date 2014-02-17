@@ -10,8 +10,8 @@ import logging
 import paramiko
 import re
 
-from pq_runtime.exceptions import CommandError, CommandTimeout, NbtError
 from pq_cmdline.channel import Channel
+from pq_cmdline import exceptions
 
 
 class SshChannel(Channel):
@@ -37,7 +37,7 @@ class SshChannel(Channel):
         """
 
         if not sshprocess:
-            raise NbtError("Parameter 'sshprocess' is required!")
+            raise TypeError("Parameter 'sshprocess' is required!")
 
         self.sshprocess = sshprocess
         self._host = self.sshprocess._host
@@ -65,10 +65,12 @@ class SshChannel(Channel):
         """
 
         if not self.channel:
-            raise CommandError('Channel has not been started')
+            raise exceptions.ConnectionError(
+                context='Channel has not been started')
 
         if not self.sshprocess.is_connected():
-            raise CommandError('Host SSH shell has been disconnected')
+            raise exceptions.ConnectionError(
+                context='Host SSH shell has been disconnected')
 
     def receive_all(self):
         """
@@ -108,10 +110,10 @@ class SshChannel(Channel):
         Sends text to the channel immediately.  Does not wait for any response.
 
         :param text_to_send: Text to send, may be an empty string.
-        :throw NbtError if text_to_send is None.
+        :raises TypeError: if text_to_send is None.
         """
         if text_to_send is None:
-            raise NbtError('text_to_send should not be None')
+            raise TypeError('text_to_send should not be None')
 
         self._verify_connected()
 
@@ -122,7 +124,7 @@ class SshChannel(Channel):
         while bytes_sent < len(text_to_send):
             bytes_sent_this_time = self.channel.send(text_to_send[bytes_sent:])
             if bytes_sent_this_time == 0:
-                raise CommandError('Channel is closed')
+                raise exceptions.ConnectionError(context='Channel is closed')
             bytes_sent += bytes_sent_this_time
 
     def expect(self, match_res, timeout=60):
@@ -140,7 +142,7 @@ class SshChannel(Channel):
                           Currently cannot match multiple lines.
         :param timeout: maximum time, in seconds, to wait for a regular
                         expression match. 0 to wait forever.
-        :raises NbtError: if match_res is None or empty.
+        :raises TypeError: if match_res is None or empty.
         :return: (output, re.MatchObject) where output is the output of the
                  command (without the matched text), and MatchObject is a
                  Python re.MatchObject containing data on what was matched.
@@ -153,10 +155,10 @@ class SshChannel(Channel):
         """
 
         if match_res is None:
-            raise NbtError('Parameter match_res is required!')
+            raise TypeError('Parameter match_res is required!')
 
         if not match_res:
-            raise NbtError('match_res should not be empty!')
+            raise TypeError('match_res should not be empty!')
 
         # Convert the match text to a list, if it isn't already.
         if not isinstance(match_res, list):
@@ -191,10 +193,11 @@ class SshChannel(Channel):
 
             # Timeout if this is taking too long.
             if timeout and ((time.time() - starttime) > timeout):
-                raise CommandTimeout(
-                    'Did not find "%s" after %d seconds. Received data:\n%s'
-                    % (str(match_res), timeout,
-                        repr(self.safe_line_feeds(received_data))))
+                partial_output = repr(self.safe_line_feeds(received_data))
+                raise exceptions.CmdlineTimeout(command=None,
+                                                output=partial_output,
+                                                timeout=timeout,
+                                                failed_match=match_res)
 
             new_data = None
 
@@ -210,14 +213,23 @@ class SshChannel(Channel):
 
                 if len(new_data) == 0:
                     # Channel closed
-                    raise CommandError('Channel unexpectedly closed ' +
-                                       'waiting for "%s"' % str(match_res))
+                    raise exceptions.ConnectionError(
+                        failed_match=match_res,
+                        context='Channel unexpectedly closed')
 
             elif self.channel.exit_status_ready():
-                raise CommandError('Channel unexpectedly closed ' +
-                                   'waiting for "%s"' % str(match_res))
+                raise exceptions.ConnectionError(
+                    failed_match=match_res,
+                    context='Channel unexpectedly closed')
             else:
                 continue
+            #######################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # TODO: Somthing is messed up here.  This if has two branches
+            #       that result in exceptions, and an else clause that
+            #       continues the next loop iteration.  So what is all of this
+            #       code down here for?
+            # NOTE: The unit tests pass with or without the else clause present
+            #######################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
             # If we're still here, we have new data to process.
             received_data += new_data

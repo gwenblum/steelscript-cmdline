@@ -11,7 +11,7 @@ from mock import Mock, MagicMock, patch
 from testfixtures import Replacer, test_time
 
 from pq_cmdline.ssh_channel import SshChannel
-from pq_runtime.exceptions import CommandError, CommandTimeout, NbtError
+from pq_cmdline import exceptions
 
 ANY_TERM = 'console'
 ANY_TERM_WIDTH = 120
@@ -54,17 +54,17 @@ def test_constructor_connects_sshprocess_if_it_is_not_connected():
 
 def test_verify_connected_raises_if_not_connected(any_ssh_channel):
     any_ssh_channel.sshprocess.is_connected.return_value = False
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.ConnectionError):
         any_ssh_channel._verify_connected()
 
 
 def test_send_raises_if_text_to_send_is_None(any_ssh_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_ssh_channel.send(None)
 
 
 def test_expect_raises_if_match_res_is_None(any_ssh_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_ssh_channel.expect(None)
 
 
@@ -77,7 +77,7 @@ def test_receive_all_returns_data_in_buffer(any_ssh_channel):
 
 def test_send_raises_if_channel_send_return_zero(any_ssh_channel):
     any_ssh_channel.channel.send.return_value = 0
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.ConnectionError):
         any_ssh_channel.send(ANY_TEXT_TO_SEND)
 
 
@@ -99,31 +99,31 @@ def test_send_with_empty_string(any_ssh_channel):
 
 
 def test_expect_raises_if_no_match_regex(any_ssh_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_ssh_channel.expect(None)
 
 
 def test_expect_raises_if_match_regex_is_empty_list(any_ssh_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_ssh_channel.expect([])
 
 
 def test_expect_raises_if_match_regex_is_empty_string(any_ssh_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_ssh_channel.expect('')
 
 
 def test_expect_if_channel_returns_nothing(any_ssh_channel):
     select.select = MagicMock(name='method', return_value=([1], [], []))
     any_ssh_channel.channel.recv.return_value = ''
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.ConnectionError):
         any_ssh_channel.expect(ANY_PROMPT_RE)
 
 
 def test_expect_raises_if_channel_exits_early(any_ssh_channel):
     select.select = MagicMock(name='method', return_value=([], [], []))
     any_ssh_channel.channel.exit_status_ready.return_value = True
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.ConnectionError):
         any_ssh_channel.expect(ANY_PROMPT_RE)
 
 
@@ -133,7 +133,7 @@ def test_expect_if_not_ready_before_timeout(any_ssh_channel):
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
         r.replace('pq_cmdline.ssh_channel.time.time', mock_time)
-        with pytest.raises(CommandTimeout):
+        with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 
 
@@ -143,7 +143,7 @@ def test_expect_timeout_if_no_matched_prompt(any_ssh_channel):
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
         r.replace('pq_cmdline.ssh_channel.time.time', mock_time)
-        with pytest.raises(CommandTimeout):
+        with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 
 

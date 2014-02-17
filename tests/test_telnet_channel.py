@@ -8,7 +8,7 @@ import pytest
 from mock import (Mock, MagicMock, patch)
 
 from pq_cmdline.telnet_channel import (TelnetChannel, ENTER_LINE)
-from pq_runtime.exceptions import (CommandError, CommandTimeout, NbtError)
+from pq_cmdline import exceptions
 
 ANY_HOST = 'my-sh1'
 ANY_USERNAME = 'user1'
@@ -89,7 +89,7 @@ def test_handle_init_login_raises_if_not_match(any_telnet_channel):
     mock_channel = Mock()
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(-1, '', '')]
-    with pytest.raises(CommandTimeout):
+    with pytest.raises(exceptions.CmdlineTimeout):
         match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
                                                       ANY_TIMEOUT)
 
@@ -98,7 +98,7 @@ def test_handle_init_login_raises_if_user_not_accepted(any_telnet_channel):
     mock_channel = Mock()
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(0, '', ''), (0, '', '')]
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.CmdlineTimeout):
         match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
                                                       ANY_TIMEOUT)
 
@@ -107,13 +107,13 @@ def test_handle_init_login_raises_if_password_not_accepted(any_telnet_channel):
     mock_channel = Mock()
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(1, '', ''), (1, '', '')]
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.CmdlineTimeout):
         match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
                                                       ANY_TIMEOUT)
 
 
 def test_verify_connected_raises_if_channel_not_started(any_telnet_channel):
-    with pytest.raises(CommandError):
+    with pytest.raises(exceptions.ConnectionError):
         any_telnet_channel._verify_connected()
 
 
@@ -134,12 +134,12 @@ def test_send_calls_appropriate_methods(any_telnet_channel):
 
 
 def test_expect_raise_if_match_res_is_none(any_telnet_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_telnet_channel.expect(None)
 
 
 def test_expect_raise_if_match_res_is_empty(any_telnet_channel):
-    with pytest.raises(NbtError):
+    with pytest.raises(TypeError):
         any_telnet_channel.expect([])
 
 
@@ -147,7 +147,7 @@ def test_expect_raises_if_not_match_before_timeout(any_telnet_channel):
     any_telnet_channel._verify_connected = MagicMock(name='method')
     any_telnet_channel.channel = Mock()
     any_telnet_channel.channel.expect.return_value = (-1, '', '')
-    with pytest.raises(CommandTimeout):
+    with pytest.raises(exceptions.CmdlineTimeout):
         any_telnet_channel.expect(ANY_PROMPT_RE)
 
 

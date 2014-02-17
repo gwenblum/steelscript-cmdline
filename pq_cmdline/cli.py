@@ -14,6 +14,7 @@ from pq_cmdline.interactive_channel import InteractiveChannel
 from pq_cmdline.ssh_channel import SshChannel
 from pq_cmdline.sshprocess import SshProcess
 from pq_cmdline.telnet_channel import TelnetChannel
+from pq_cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -500,8 +501,8 @@ class Cli2(object):
         Determine what level the CLI is at. This is done by sending newline
         and check which prompt pattern matches.
 
-        :return: current CLI level. Throws exceptions if current CLI level
-                 could not be detected.
+        :return: current CLI level.
+        :raises UnknownCLIMode: if the current level could not be detected.
         """
 
         (output, match) = self._send_line_and_wait('',
@@ -515,6 +516,8 @@ class Cli2(object):
                   self.cli_enable_prompt: CLILevel.enable,
                   self.cli_conf_prompt: CLILevel.config}
 
+        if match.re.pattern not in levels:
+            raise exceptions.UnknownCLIMode(prompt=output)
         return levels[match.re.pattern]
 
     def enter_mode(self, mode="configure"):
@@ -524,9 +527,9 @@ class Cli2(object):
         :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
                    'configure'
 
-        :raises NotImplementedError: if mode is not "normal", "enable", or
-                                     "configure"
-        :raises CommandError: if the shell is not in the CLI.
+        :raises UnknownCLIMode: if mode is not "normal", "enable", or
+                                "configure"
+        :raises CLINotRunning: if the shell is not in the CLI.
         """
         if mode == "normal":
             self.enter_level_root()
@@ -538,7 +541,8 @@ class Cli2(object):
             self.enter_level_config()
 
         else:
-            raise NotImplementedError("unknown mode: %s" % mode)
+            raise UnknownCLIMode(mode=mode)
+
 
     def enter_level_root(self):
         """
@@ -546,11 +550,11 @@ class Cli2(object):
         executes), if it is not there already.  Note this will go 'backwards'
         if needed (e.g., exiting config mode)
 
-        :raises CommandError: if the shell is not in the CLI; current thinking
-                              is this indicates the CLI has crashed/exited, and
-                              it is better to open a new CliChannel than have
-                              this one log back in and potentially hide an
-                              error.
+        :raises CLINotRunning: if the shell is not in the CLI; current thinking
+                               is this indicates the CLI has crashed/exited,
+                               and it is better to open a new CliChannel than
+                               have this one log back in and potentially hide
+                               an error.
         """
 
         self._log.info('Going to root level')
@@ -558,7 +562,7 @@ class Cli2(object):
         level = self.current_cli_level()
 
         if level == CLILevel.bash:
-            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+            raise exceptions.CLINotRunning()
 
         elif level == CLILevel.root:
             self._log.debug('Already at root, doing nothing')
@@ -570,19 +574,17 @@ class Cli2(object):
             self._send_line_and_wait('exit', self.cli_enable_prompt)
             self._send_line_and_wait('disable', self.cli_root_prompt)
 
-        else:
-            raise CommandError('Unknown CLI level')
 
     def enter_level_enable(self):
         """
         Puts the CLI into enable mode, if it is not there already.  Note this
         will go 'backwards' if needed (e.g., exiting config mode)
 
-        :raises CommandError: if the shell is not in the CLI; current
-                              thinking is this indicates the CLI has
-                              crashed/exited, and it is better to open a
-                              new CliChannel than have this one log back in
-                              and potentially hide an error.
+        :raises CLINotRunning: if the shell is not in the CLI; current thinking
+                               is this indicates the CLI has crashed/exited,
+                               and it is better to open a new CliChannel than
+                               have this one log back in and potentially hide
+                               an error.
         """
 
         self._log.info('Going to Enable level')
@@ -590,7 +592,7 @@ class Cli2(object):
         level = self.current_cli_level()
 
         if level == CLILevel.bash:
-            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+            raise exceptions.CLINotRunning()
 
         elif level == CLILevel.root:
             self._enable()
@@ -601,8 +603,6 @@ class Cli2(object):
         elif level == CLILevel.config:
             self._send_line_and_wait('exit', self.cli_enable_prompt)
 
-        else:
-            raise CommandError('Unknown CLI level')
 
     def _enable(self):
         """
@@ -616,15 +616,16 @@ class Cli2(object):
         if match.re.pattern == password_prompt:
             self._send_line_and_wait(self._password, self.cli_enable_prompt)
 
+
     def enter_level_config(self):
         """
         Puts the CLI into config mode, if it is not there already.
 
-        :raises CommandError: if the shell is not in the CLI; current thinking
-                              is this indicates the CLI has crashed/exited, and
-                              it is better to open a new CliChannel than have
-                              this one log back in and potentially hide an
-                              error.
+        :raises CLINotRunning: if the shell is not in the CLI; current thinking
+                               is this indicates the CLI has crashed/exited,
+                               and it is better to open a new CliChannel than
+                               have this one log back in and potentially hide
+                               an error.
         """
 
         self._log.info('Going to Config level')
@@ -632,7 +633,7 @@ class Cli2(object):
         level = self.current_cli_level()
 
         if level == CLILevel.bash:
-            raise CommandError('Channel is at the Bash prompt; CLI crashed?')
+            raise exceptions.CLINotRunning()
 
         elif level == CLILevel.root:
             self._enable()
