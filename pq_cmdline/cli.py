@@ -656,10 +656,8 @@ class Cli2(object):
         :param timeout:  maximum time, in seconds, to wait for the command to
                          finish. 0 to wait forever.
 
-        :raises CommandTimeout: if the command did not complete before the
+        :raises CmdlineTimeout: if the command did not complete before the
                                 timeout expired.
-        :raises CommandError: if the CLI returns a string starting with % and
-                              except_on_error is True
 
         :return: (exitcode, output) where output is the output of the command,
                  minus the command itself. exitcode is the return code;
@@ -712,8 +710,8 @@ class Cli2(object):
             if command == '%':
                 # Remove the command we enter to be back  at the empty prompt
                 self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
-                raise CommandError('Error from cli on "%s ?". Output was:\n%s'
-                                   % (root_cmd, output))
+                raise exceptions.CLIError(command=root_cmd, output=output)
+
             # If this is a user-input field, skip it. Most are surronded by
             # <>, but not all. If the command contains anything other than
             # letters or numbers, we assume it is a user field.
