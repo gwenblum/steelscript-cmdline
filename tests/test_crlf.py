@@ -1,3 +1,5 @@
+# Copyright 2014 Riverbed Technology, Inc.
+# All Rights Reserved. Confidential.
 
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
@@ -6,7 +8,7 @@ import re
 
 from pq_cmdline import channel
 
-# Fill in abstract methods so we can instantiate a Chennel
+# Fill in abstract methods so we can instantiate a Channel
 class FakeChannel(channel.Channel):
     def receive_all(self):
         return ''
