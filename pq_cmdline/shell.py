@@ -102,8 +102,8 @@ class Shell(object):
                                             output=output,
                                             exit_status=exit_status)
         if ((expect_output is not None) and
-            ((output and not expect_output) or
-             (expect_output and not output))):
+            (bool(output) != bool(expect_output))):
+
             raise exceptions.UnexpectedOutput(command=command,
                                               output=output,
                                               expected_output=expect_output)

@@ -255,11 +255,11 @@ class UnexpectedOutput(CmdlineException):
         """
         self.expected_output = expected_output
 
-        if output is None:
-            msg = "Command '%s' returned no output " % command
-        else:
+        if output:
             msg = ("Command '%s' returned the following output:\n%s\n" %
                    (command, output))
+        else:
+            msg = "Command '%s' returned no output " % command
 
         if expected_output is True:
             msg = "%s%s" % (msg, "where unspecified output was expected.")

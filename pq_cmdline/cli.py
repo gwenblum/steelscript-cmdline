@@ -391,13 +391,12 @@ class Cli2(object):
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(command, output=output, mode=mode)
 
-        if (expect_output is True) and not output:
-            raise exceptions.UnexpectedOutput(command, output=None,
-                                                       expected_output=True)
-        elif (expect_output is False) and output:
-            raise exceptions.UnexpectedOutput(command, output=output,
-                                                       expected_output=False)
+        if ((expect_output is not None) and
+            (bool(output) != bool(expect_output))):
 
+            raise exceptions.UnexpectedOutput(command=command,
+                                              output=output,
+                                              expected_output=expect_output)
         return output
 
     def get_sub_commands(self, root_cmd):
