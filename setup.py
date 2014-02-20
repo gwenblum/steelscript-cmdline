@@ -39,7 +39,8 @@ def get_version():
         # since 'version.txt' is .gitignored, running setup.py (install|develop)
         # from a git repo requires a bit of bootstrapping. in this case, we use
         # the raw .git tag as the version.
-        pip.main(['install', '-U', '-i http://pypi/pq/development/', 'pq-ci'])
+        pip.main(['install', '-U', '-i',
+                  'http://pypibox.lab.nbttech.com/pq/development/', 'pq-ci'])
         from pq_ci import git
         tag = git.parse_tag()
         return '-'.join([tag['version'], tag['commits'], tag['sha']])
