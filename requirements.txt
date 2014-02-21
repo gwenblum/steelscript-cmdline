@@ -4,6 +4,7 @@
 paramiko
 pytest
 scp
+testfixtures
 
 # Quicksilver dependencies
 pq-runtime
