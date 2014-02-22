@@ -336,7 +336,7 @@ class Cli2(object):
 
 
     def exec_command(self, command, timeout=60, mode='configure',
-                     expect_output=None, expect_error=False):
+                     output_expected=None, error_expected=False):
         """Executes the given command.
 
         This method handles detecting simple boolean conditions such as
@@ -348,15 +348,15 @@ class Cli2(object):
         :param mode:  mode to enter before running the command.  To skip this
             step and execute directly in the cli's current mode, explicitly
             set this parameter to None.  The default is "configure"
-        :param expect_output: If not None, indicates whether output is
+        :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
             If the oppossite occurs, raise UnexpectedOutput. Default is None.
-        :type expect_output: bool or None
-        :param expect_error: If true, cli error output (with a leading '%') is
+        :type output_expected: bool or None
+        :param error_expected: If true, cli error output (with a leading '%') is
             expected and will be returned as regular output instead of
-            raising a CLIError.  Default is False, and expect_error always
-            overrides expect_output.
-        :type expect_error: bool
+            raising a CLIError.  Default is False, and error_expected always
+            overrides output_expected.
+        :type error_expected: bool
 
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
@@ -366,6 +366,11 @@ class Cli2(object):
 
         :return: output of the command, minus the command itself.
         """
+
+        if output_expected is not None and type(output_expected) is not bool:
+            raise TypeError("exec_command: output_expected requires a boolean "
+                            "value or None")
+        
         if mode is not None:
             self.enter_mode(mode)
 
@@ -381,8 +386,8 @@ class Cli2(object):
         output = '\n'.join(output.splitlines()[1:])
 
         if output and (output[0] == '%'):
-            if expect_error:
-                # Skip expect_output processing entirely.
+            if error_expected:
+                # Skip output_expected processing entirely.
                 return output
             else:
                 try:
@@ -391,12 +396,12 @@ class Cli2(object):
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(command, output=output, mode=mode)
 
-        if ((expect_output is not None) and
-            (bool(output) != bool(expect_output))):
+        if ((output_expected is not None) and
+            (bool(output) != bool(output_expected))):
 
             raise exceptions.UnexpectedOutput(command=command,
                                               output=output,
-                                              expected_output=expect_output)
+                                              expected_output=output_expected)
         return output
 
     def get_sub_commands(self, root_cmd):
@@ -412,8 +417,8 @@ class Cli2(object):
 
         self._log.debug('Generating help for "%s"' % root_cmd)
         sub_commands = []
-        (output, match) = self._send_and_wait(root_cmd + ' ?',
-                                              self.cli_any_prompt)
+        output, match = self._send_and_wait('%s ?' % root_cmd,
+                                            self.cli_any_prompt)
 
         # Split the output into a list of lines. The first one will be the
         # command we sent, teh last two will be an escape code and the prompt,
@@ -428,11 +433,10 @@ class Cli2(object):
             if command == '%':
                 # Remove the command we enter to be back at the empty prompt
                 self._send_line_and_wait(DELETE_LINE, self.cli_any_prompt)
-                if output and (output[0] == '%') and not expect_error:
-                    try:
-                        mode = self.current_cli_level()
-                    except exceptions.UnknownCLIMode:
-                        mode = '<unrecognized>'
+                try:
+                    mode = self.current_cli_level()
+                except exceptions.UnknownCLIMode:
+                    mode = '<unrecognized>'
                 raise exceptions.CLIError(root_cmd, output=output, mode=mode)
 
             # If this is a user-input field, skip it. Most are surronded by
