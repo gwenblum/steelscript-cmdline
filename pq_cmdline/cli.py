@@ -431,7 +431,7 @@ class CLI(object):
                 # Remove the command we enter to be back at the empty prompt
                 self._send_line_and_wait(DELETE_LINE, self.CLI_ANY_PROMPT)
                 try:
-                    mode = self.current_cli_level()
+                    mode = self.current_cli_mode()
                 except exceptions.UnknownCLIMode:
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(root_cmd, output=output, mode=mode)
