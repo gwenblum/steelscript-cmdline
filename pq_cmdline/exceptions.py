@@ -6,10 +6,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 from pprint import pformat
 
-from pq_runtime.exceptions import NbtError
+from pq_runtime.exceptions import PQException
 
 
-class CmdlineException(NbtError):
+class CmdlineException(PQException):
     """Base exception representing an error executing the command line.
 
     :ivar command: The command that produced the error.
