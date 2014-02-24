@@ -19,6 +19,13 @@ PASSWORD_PROMPT = b'(^|\n|\r)(P|p)assword: '
 ENTER_LINE = b'\r'
 
 
+class PQTelnet(telnetlib.Telnet):
+    def msg(self, msg, *args):
+        """ Forward telnetlib's debug messages to log """
+        context = 'Telnet(%s,%d):' % (self.host, self.port)
+        logging.debug(context + msg, *args)
+
+
 class TelnetChannel(Channel):
     """
     Class represents a telnet channel, a two-way channel that allows send
@@ -42,7 +49,7 @@ class TelnetChannel(Channel):
         self._user = user
         self._password = password
 
-        ## telnetlib.Telnet
+        ## PQTelnet
         self.channel = None
 
         self._log = logging.getLogger(__name__)
@@ -64,7 +71,7 @@ class TelnetChannel(Channel):
             match_res = [match_res, ]
 
         # Start channel
-        self.channel = telnetlib.Telnet(self._host)
+        self.channel = PQTelnet(self._host)
 
         return self._handle_init_login(match_res, timeout)
 
@@ -108,7 +115,8 @@ class TelnetChannel(Channel):
         elif index in (0, 1):
             self._log.info("Login failed, still waiting for %s prompt",
                            ('username' if index == 0 else 'password'))
-            raise exceptions.CmdlineTimeout(timeout=timeout,
+            raise exceptions.CmdlineTimeout(
+                timeout=timeout,
                 failed_match=reg_with_login_prompts[index])
 
         # Login successfully if reach this point

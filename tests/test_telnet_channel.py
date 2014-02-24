@@ -34,7 +34,7 @@ def test_members_initialized_correctly(any_telnet_channel):
 
 def test_start_calls_appropriate_methods(any_telnet_channel):
     any_telnet_channel._handle_init_login = MagicMock(name='method')
-    with patch('pq_cmdline.telnet_channel.telnetlib.Telnet') as mock:
+    with patch('pq_cmdline.telnet_channel.PQTelnet') as mock:
         any_telnet_channel.start()
         assert any_telnet_channel._handle_init_login.called
         assert mock.called
