@@ -96,11 +96,10 @@ class Shell(object):
             exit_info['status'] = exit_status
 
         # If the command failed and the user wants an exception, do it!
-        if exit_status != 0:
-            if not expect_error:
-                raise exceptions.ShellError(command=command,
-                                            output=output,
-                                            exit_status=exit_status)
+        if exit_status != 0 and not expect_error:
+            raise exceptions.ShellError(command=command,
+                                        output=output,
+                                        exit_status=exit_status)
         if ((expect_output is not None) and
             (bool(output) != bool(expect_output))):
 
