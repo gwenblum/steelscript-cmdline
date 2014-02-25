@@ -7,7 +7,7 @@ import logging
 import re
 
 from pq_runtime.exceptions import CommandError, CommandTimeout, NbtError
-from pq_cmdline.cli import Cli2 as Cli
+from pq_cmdline.cli import CLI as Cli
 
 
 class IOSLevel(object):
