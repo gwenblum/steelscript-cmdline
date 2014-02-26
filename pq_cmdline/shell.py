@@ -90,7 +90,8 @@ class Shell(object):
         if (not self.sshprocess.is_connected()):
             self.sshprocess.connect()
 
-        output, exit_status = self._exec_paramiko_command(command)
+        output, exit_status = self._exec_paramiko_command(command,
+                                                          timeout=timeout)
 
         if isinstance(exit_info, dict):
             exit_info['status'] = exit_status
@@ -108,8 +109,7 @@ class Shell(object):
                                               expected_output=expect_output)
         return output
 
-
-    def _exec_paramiko_command(self, command):
+    def _exec_paramiko_command(self, command, timeout):
         channel = self.sshprocess.transport.open_session()
 
         # Put stderr into the same output as stdout.
