@@ -9,7 +9,7 @@ import pytest
 
 from pq_cmdline.exceptions import (
     CmdlineException, CmdlineTimeout, UnexpectedOutput, UnknownCLIMode,
-    CmdlineError, ShellError, CLIError, ConnectionError, CLINotRunning,
+    ShellError, CLIError, ConnectionError, CLINotRunning,
 )
 
 ANY_COMMAND = 'do some stuff'
@@ -25,12 +25,14 @@ ANY_SIMPLE_MATCH = 'match this'
 ANY_MATCH_FROM_PATTERN = '^a compiled pattern$'
 ANY_MATCH_FROM_RESULT = 'match result [a-z]+'
 
+
 @pytest.fixture
 def any_complex_match():
     return [
         re.compile(ANY_MATCH_FROM_PATTERN),
         re.search(ANY_MATCH_FROM_RESULT, 'string for match result abcdefg'),
     ]
+
 
 def test_cmdline_exception_no_args():
     e = CmdlineException()
@@ -59,6 +61,7 @@ def test_timeout():
     msg = unicode(e)
     assert e.command in msg
     assert unicode(e.timeout) in msg
+
 
 def test_timeout_output_complex_failed_match(any_complex_match):
     e = CmdlineTimeout(command=ANY_COMMAND, output=ANY_OUTPUT,
@@ -180,6 +183,7 @@ def test_unexpected_output_vs_none():
     assert e.output in msg
     assert 'none was expected' in msg
 
+
 def test_unexpected_output_none_vs_expected():
     e = UnexpectedOutput(command=ANY_COMMAND, output=None,
                          expected_output=ANY_EXPECTED_OUTPUT)
@@ -192,6 +196,7 @@ def test_unexpected_output_none_vs_expected():
     assert 'no output' in msg
     assert e.expected_output in msg
 
+
 def test_unexpected_output_none_vs_unspecified():
     e = UnexpectedOutput(command=ANY_COMMAND, output=None,
                          expected_output=True)
@@ -203,6 +208,7 @@ def test_unexpected_output_none_vs_unspecified():
     assert e.command in msg
     assert 'no output' in msg
     assert 'unspecified output' in msg
+
 
 def test_unexpected_output():
     e = UnexpectedOutput(command=ANY_COMMAND, output=ANY_OUTPUT,

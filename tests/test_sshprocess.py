@@ -5,8 +5,6 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import pytest
-import time
-import select
 from mock import Mock, patch
 
 from pq_cmdline.sshprocess import SSHProcess

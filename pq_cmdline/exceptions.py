@@ -19,7 +19,7 @@ class CmdlineException(PQException):
     def __init__(self, command=None, output=None, _subclass_msg=None):
         """
         :param command: The command that produced the error.
-        :param output: The output returned.  None if the command did not return.
+        :param output: The output returned, possibly None.
         """
         self.command = command
         self.output = output
@@ -50,7 +50,8 @@ class CmdlineException(PQException):
         if failed_match is None:
             failed_match_pattern = None
         elif isinstance(failed_match, list):
-            failed_match_pattern = ("one of:\n%s\n" %
+            failed_match_pattern = (
+                "one of:\n%s\n" %
                 pformat([self._convert_match(p) for p in failed_match],
                         indent=2))
         else:
@@ -62,7 +63,6 @@ class CmdlineException(PQException):
             match_msg = (" while waiting to match %s" %
                          failed_match_pattern)
         return failed_match_pattern, match_msg
-
 
     def _convert_match(self, match):
         if hasattr(match, 're'):
@@ -123,8 +123,7 @@ class ConnectionError(CmdlineException):
     """
 
     def __init__(self, command=None, output=None, cause=None,
-                       failed_match=None, context=None,
-                       _subclass_msg=None):
+                 failed_match=None, context=None, _subclass_msg=None):
         """
         :param command: The command we were trying to execute.
         :param output: Any output produced just before the failure.
@@ -225,8 +224,8 @@ class CLIError(CmdlineError):
         self.mode = mode
         msg = ("Command '%s' in mode '%s' resulted in an error: '%s'" %
                (command, mode, '<no output>' if output is None else output))
-        super(CLIError, self).__init__(command, output=output,
-                                                _subclass_msg=msg)
+        super(CLIError, self).__init__(command,
+                                       output=output, _subclass_msg=msg)
 
 
 class UnexpectedOutput(CmdlineException):

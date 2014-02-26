@@ -90,8 +90,8 @@ def test_handle_init_login_raises_if_not_match(any_telnet_channel):
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(-1, '', '')]
     with pytest.raises(exceptions.CmdlineTimeout):
-        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
-                                                      ANY_TIMEOUT)
+        any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                              ANY_TIMEOUT)
 
 
 def test_handle_init_login_raises_if_user_not_accepted(any_telnet_channel):
@@ -99,8 +99,8 @@ def test_handle_init_login_raises_if_user_not_accepted(any_telnet_channel):
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(0, '', ''), (0, '', '')]
     with pytest.raises(exceptions.CmdlineTimeout):
-        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
-                                                      ANY_TIMEOUT)
+        any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                              ANY_TIMEOUT)
 
 
 def test_handle_init_login_raises_if_password_not_accepted(any_telnet_channel):
@@ -108,8 +108,8 @@ def test_handle_init_login_raises_if_password_not_accepted(any_telnet_channel):
     any_telnet_channel.channel = mock_channel
     mock_channel.expect.side_effect = [(1, '', ''), (1, '', '')]
     with pytest.raises(exceptions.CmdlineTimeout):
-        match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
-                                                      ANY_TIMEOUT)
+        any_telnet_channel._handle_init_login(ANY_PROMPT_RE,
+                                              ANY_TIMEOUT)
 
 
 def test_verify_connected_raises_if_channel_not_started(any_telnet_channel):

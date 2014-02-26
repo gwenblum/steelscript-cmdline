@@ -63,7 +63,7 @@ def test_exec_command_error_output_on_expect_error(shell_mock_output):
     shell_mock_output._exec_paramiko_command.return_value = ANY_ERROR
     info = {}
     output = shell_mock_output.exec_command(ANY_COMMAND, expect_error=True,
-                                                     exit_info=info)
+                                            exit_info=info)
     assert output == ANY_ERROR[0]
     assert info['status'] == ANY_ERROR[1]
 

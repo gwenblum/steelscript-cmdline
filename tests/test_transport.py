@@ -19,7 +19,7 @@ def test_subclass_with_all_required_methods():
         def is_connected(self):
             pass
 
-    mytransport = MyTransport()
+    MyTransport()
 
 
 def test_subclass_raise_if_connect_is_not_implemented():
@@ -31,7 +31,7 @@ def test_subclass_raise_if_connect_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mytransport = MyTransport()
+        MyTransport()
 
 
 def test_subclass_raise_if_disconnect_is_not_implemented():
@@ -43,7 +43,7 @@ def test_subclass_raise_if_disconnect_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mytransport = MyTransport()
+        MyTransport()
 
 
 def test_subclass_raise_if_is_connected_is_not_implemented():
@@ -55,4 +55,4 @@ def test_subclass_raise_if_is_connected_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mytransport = MyTransport()
+        MyTransport()

@@ -5,7 +5,6 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import logging
-import re
 
 from pq_cmdline.ssh_channel import SSHChannel
 from pq_cmdline.sshprocess import SSHProcess
@@ -349,8 +348,8 @@ class CLI(object):
             expected (True) or no output is expected (False).
             If the oppossite occurs, raise UnexpectedOutput. Default is None.
         :type output_expected: bool or None
-        :param error_expected: If true, cli error output (with a leading '%') is
-            expected and will be returned as regular output instead of
+        :param error_expected: If true, cli error output (with a leading '%')
+            is expected and will be returned as regular output instead of
             raising a CLIError.  Default is False, and error_expected always
             overrides output_expected.
         :type error_expected: bool
@@ -367,7 +366,7 @@ class CLI(object):
         if output_expected is not None and type(output_expected) is not bool:
             raise TypeError("exec_command: output_expected requires a boolean "
                             "value or None")
-        
+
         if mode is not None:
             self.enter_mode(mode)
 
@@ -393,9 +392,8 @@ class CLI(object):
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(command, output=output, mode=mode)
 
-        if ((output_expected is not None) and
-            (bool(output) != bool(output_expected))):
-
+        if ((output_expected is not None) and (bool(output) !=
+                                               bool(output_expected))):
             raise exceptions.UnexpectedOutput(command=command,
                                               output=output,
                                               expected_output=output_expected)

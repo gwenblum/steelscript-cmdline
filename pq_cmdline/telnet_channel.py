@@ -8,7 +8,6 @@ from __future__ import (absolute_import, print_function, division)
 import logging
 import telnetlib
 import socket
-import re
 
 from pq_runtime.exceptions import re_raise
 from pq_cmdline import exceptions

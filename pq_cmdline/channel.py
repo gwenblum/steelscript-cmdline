@@ -31,7 +31,7 @@ class Channel(object):
         Sends text to the channel immediately.  Does not wait for any response.
 
         :param text_to_send: Text to send, including command terminator(s)
-                             when applicable. 
+                             when applicable.
         """
         pass
 
@@ -57,7 +57,7 @@ class Channel(object):
         """
         return
 
-    ### Helper methods ###################    
+    ### Helper methods ###################
     def safe_line_feeds(self, in_string):
         """
         :param in_string: string to replace linefeeds

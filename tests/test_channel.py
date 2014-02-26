@@ -19,7 +19,7 @@ def test_subclass_with_all_required_methods():
         def receive_all(self):
             pass
 
-    mychannel = MyChannel()
+    MyChannel()
 
 
 def test_subclass_raise_if_send_is_not_implemented():
@@ -31,7 +31,7 @@ def test_subclass_raise_if_send_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mychannel = MyChannel()
+        MyChannel()
 
 
 def test_subclass_raise_if_expect_is_not_implemented():
@@ -43,7 +43,7 @@ def test_subclass_raise_if_expect_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mychannel = MyChannel()
+        MyChannel()
 
 
 def test_subclass_raise_if_receive_all_is_not_implemented():
@@ -55,4 +55,4 @@ def test_subclass_raise_if_receive_all_is_not_implemented():
             pass
 
     with pytest.raises(TypeError):
-        mychannel = MyChannel()
+        MyChannel()

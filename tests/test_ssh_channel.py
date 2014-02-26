@@ -5,9 +5,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import pytest
-import time
 import select
-from mock import Mock, MagicMock, patch
+from mock import Mock, MagicMock
 from testfixtures import Replacer, test_time
 
 from pq_cmdline.ssh_channel import SSHChannel

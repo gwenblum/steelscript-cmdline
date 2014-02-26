@@ -8,6 +8,7 @@ import re
 
 from pq_cmdline import channel
 
+
 # Fill in abstract methods so we can instantiate a Channel
 class FakeChannel(channel.Channel):
     def receive_all(self):

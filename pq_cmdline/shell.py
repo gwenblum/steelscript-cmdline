@@ -4,7 +4,6 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-import sys
 import paramiko
 import logging
 import time
@@ -101,9 +100,8 @@ class Shell(object):
             raise exceptions.ShellError(command=command,
                                         output=output,
                                         exit_status=exit_status)
-        if ((expect_output is not None) and
-            (bool(output) != bool(expect_output))):
-
+        if ((expect_output is not None) and (bool(output) !=
+                                             bool(expect_output))):
             raise exceptions.UnexpectedOutput(command=command,
                                               output=output,
                                               expected_output=expect_output)

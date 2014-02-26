@@ -4,8 +4,8 @@
 # Basic SSH shell, wrapped around Paramiko
 # Modified based on codes from mgmt-fwk
 
-from __future__ import absolute_import, unicode_literals, print_function,\
-                       division
+from __future__ import (absolute_import, unicode_literals, print_function,
+                        division)
 
 import paramiko
 import logging
@@ -95,8 +95,10 @@ class SSHProcess(Transport):
         necessary; eg, the CLI.
 
         :param term: terminal type to emulate; defaults to 'console'
-        :param width: width (in characters) of the terminal screen; defaults to 80
-        :param height: height (in characters) of the terminal screen; defaults to 24
+        :param width: width (in characters) of the terminal screen;
+            defaults to 80
+        :param height: height (in characters) of the terminal screen;
+            defaults to 24
 
         :raises ConnectionError: if the SSH connection has not yet been
                                  established.

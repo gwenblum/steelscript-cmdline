@@ -4,8 +4,6 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-import re
-
 import pytest
 from mock import Mock, MagicMock, patch
 
@@ -87,9 +85,9 @@ def test_context_manger_enter_calls_start(any_cli):
 
 def test_use_context_manger_twice_works(any_cli):
     any_cli.start = MagicMock(name='method')
-    with any_cli as cli1:
+    with any_cli:
         pass
-    with any_cli as cli2:
+    with any_cli:
         pass
     assert any_cli.start.call_count == 2
 
@@ -226,7 +224,7 @@ def test_enter_mode_config_raise_if_current_mode_is_unknown(any_cli):
 
 
 def test_exec_command_output(cli_mock_output, config_mode_match):
-    cmo= cli_mock_output
+    cmo = cli_mock_output
     cmo._send_line_and_wait.return_value = (ANY_COMMAND_OUTPUT_DATA,
                                             config_mode_match)
 
@@ -265,6 +263,7 @@ def test_exec_command_error(cli_mock_output, config_mode_match):
         cmo.exec_command(ANY_COMMAND, output_expected=False)
     with pytest.raises(exceptions.CLIError):
         cmo.exec_command(ANY_COMMAND, output_expected=None)
+
 
 def test_get_sub_command_error(cli_mock_output, config_mode_match):
     cmo = cli_mock_output
