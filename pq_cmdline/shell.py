@@ -63,7 +63,7 @@ class Shell(object):
         :param timeout: seconds to wait for command to finish. None to disable
         :param expect_output: If not None, indicates whether output is
             expected (True) or no output is expected (False).
-            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+            If the opposite occurs, raise UnexpectedOutput. Default is None.
         :type expect_output: bool or None
         :param expect_error: If True, do not raise ShellError on a nonzero
             exit status.  Default is False
@@ -77,7 +77,7 @@ class Shell(object):
         :raises ConnectionError: if the connection is lost
         :raises CmdlineTimeout: on timeout
         :raises ShellError: on an unexpected nonzero exit status
-        :raises UnexpectedOutput: if output occurrs when no output was
+        :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
 
         :return: output from the command
@@ -125,7 +125,7 @@ class Shell(object):
             channel.exec_command(command)
         except paramiko.SSHException:
             if not self.sshprocess.is_connected():
-                # TODO: re_raise not compatibile with passing kwargs
+                # TODO: re_raise not compatabile with passing kwargs
                 # re_raise(SshError, "Not connected to %s" % self._host)
                 self._log.info("Not connected to %s", self._host)
                 re_raise(exceptions.ConnectionError)
@@ -170,7 +170,7 @@ class Shell(object):
                 # exit_status_ready can return true before we've read all the
                 # data.  Problem is, I know I've seen it return true when there
                 # was no data, and then data came in afterwards, so this might
-                # occassionally trip early.  If only paramiko.channel had a way
+                # occasionally trip early.  If only paramiko.channel had a way
                 # to see if it was closed..
                 chan_closed = True
 
