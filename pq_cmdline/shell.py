@@ -8,6 +8,7 @@ import paramiko
 import logging
 import time
 import select
+from socket import error as socket_error
 
 from pq_runtime.exceptions import re_raise
 from pq_cmdline.sshprocess import SSHProcess
@@ -108,7 +109,16 @@ class Shell(object):
         return output
 
     def _exec_paramiko_command(self, command, timeout):
-        channel = self.sshprocess.transport.open_session()
+        #todo: bug 160874, retry count and delay need to be parameterized
+        #      with default values.
+        for count in range(3):
+            try:
+                channel = self.sshprocess.transport.open_session()
+                break
+            except socket_error:
+                # Reconnect on error.
+                time.sleep(5)
+                self.sshprocess.connect()
 
         # Put stderr into the same output as stdout.
         channel.set_combine_stderr(True)
