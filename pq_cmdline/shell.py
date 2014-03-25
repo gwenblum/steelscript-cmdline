@@ -10,7 +10,7 @@ import time
 import select
 from socket import error as socket_error
 
-from pq_runtime.exceptions import re_raise
+from pq_runtime.exceptions import re_raise, InvalidInput
 from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline import exceptions
 
@@ -51,7 +51,8 @@ class Shell(object):
         self._log = logging.getLogger(__name__)
 
     def exec_command(self, command, timeout=60, expect_output=None,
-                     expect_error=False, exit_info=None):
+                     expect_error=False, exit_info=None, retry_count=3,
+                     retry_delay=5):
         """Executes the given command statelessly.
 
         Since this is stateless, an exec_command cannot use environment
@@ -74,6 +75,12 @@ class Shell(object):
             conjunction with ``expect_error`` when multiple nonzero statuses
             are possible.
         :type exit_info: dict or None
+        :param retry_count: the number of tries to reconnect if underlying
+            connection is disconnected. Default is 3
+        :type retry_count: int
+        :param retry_delay: delay in seconds between each retry to connect.
+            Default is 5
+        :type retry_delay: int
 
         :raises ConnectionError: if the connection is lost
         :raises CmdlineTimeout: on timeout
@@ -90,8 +97,11 @@ class Shell(object):
         if (not self.sshprocess.is_connected()):
             self.sshprocess.connect()
 
-        output, exit_status = self._exec_paramiko_command(command,
-                                                          timeout=timeout)
+        output, exit_status = self._exec_paramiko_command(
+            command,
+            timeout=timeout,
+            retry_count=retry_count,
+            retry_delay=retry_delay)
 
         if isinstance(exit_info, dict):
             exit_info['status'] = exit_status
@@ -108,17 +118,18 @@ class Shell(object):
                                               expected_output=expect_output)
         return output
 
-    def _exec_paramiko_command(self, command, timeout):
-        #todo: bug 160874, retry count and delay need to be parameterized
-        #      with default values.
-        for count in range(3):
-            try:
-                channel = self.sshprocess.transport.open_session()
-                break
-            except socket_error:
-                # Reconnect on error.
-                time.sleep(5)
-                self.sshprocess.connect()
+    def _exec_paramiko_command(self, command, timeout, retry_count,
+                               retry_delay):
+        try:
+            channel = self.sshprocess.transport.open_session()
+        except socket_error:
+            if retry_count == 0:
+                re_raise(exceptions.ConnectionError)
+
+            # Reconnect and try again
+            self._log.info("connection seems broken, reconnect...")
+            self._reconnect(retry_count=retry_count, retry_delay=retry_delay)
+            channel = self.sshprocess.transport.open_session()
 
         # Put stderr into the same output as stdout.
         channel.set_combine_stderr(True)
@@ -197,3 +208,20 @@ class Shell(object):
         channel.close()
 
         return output, exit_status
+
+    def _reconnect(self, retry_count, retry_delay):
+        if not isinstance(retry_count, int) or retry_count < 1:
+            raise InvalidInput("retry_count should be positive int")
+        if not isinstance(retry_delay, int) or retry_delay < 1:
+            raise InvalidInput("retry_delay should be positive int")
+
+        for count in range(retry_count):
+            try:
+                self.sshprocess.connect()
+                return
+            except exceptions.ConnectionError:
+                self._log.info("sleep %d second and retry..." % retry_delay)
+                time.sleep(retry_delay)
+
+        raise exceptions.ConnectionError("Failed to connect after "
+                                         "%d retries" % retry_count)
