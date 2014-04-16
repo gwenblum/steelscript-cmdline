@@ -26,7 +26,6 @@ class Shell(object):
     def __init__(self, host, user='root', password=''):
         """
         Create a Shell object to 'host' with specified user and password.
-        Automatically connect underlying transport if it is not connected.
 
         :param host: host/ip to ssh into
         :param user: username to log in with
@@ -42,10 +41,9 @@ class Shell(object):
         ## Password shell connects with
         self._password = password
 
-        # Initialize underlying sshprocess, which
+        # Initialize underlying sshprocess, but do not connect automatically.
         # http://www.lag.net/paramiko/docs/
         self.sshprocess = SSHProcess(host=host, user=user, password=password)
-        self.sshprocess.connect()
 
         ## Logging module
         self._log = logging.getLogger(__name__)

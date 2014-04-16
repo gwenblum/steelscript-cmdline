@@ -23,7 +23,12 @@ ANY_ERROR = ('error message', -1)
 @pytest.fixture
 def any_shell():
     with patch('pq_cmdline.shell.SSHProcess'):
-        return Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
+        shell = Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
+
+        # This will make it always appear to be unconnected,
+        # but this works for testing exec_command auto-connect.
+        shell.sshprocess.is_connected.return_value = False
+        return shell
 
 
 @pytest.fixture
@@ -36,12 +41,16 @@ def test_members_initialized_correctly(any_shell):
     assert any_shell._host == ANY_HOST
     assert any_shell._user == ANY_USER
     assert any_shell._password == ANY_PASSWORD
-    assert any_shell.sshprocess.connect.called
+    # We should not auto-connect.
+    assert not any_shell.sshprocess.connect.called
 
 
 def test_exec_command(shell_mock_output):
     shell_mock_output._exec_paramiko_command.return_value = ANY_OUTPUT
+
+    assert not shell_mock_output.sshprocess.connect.called
     assert shell_mock_output.exec_command(ANY_COMMAND) == ANY_OUTPUT[0]
+    assert shell_mock_output.sshprocess.connect.called
 
 
 def test_exec_command_raises_on_ssh_exceptions(any_shell):
