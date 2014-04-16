@@ -7,7 +7,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.cli import CLI
+from pq_cmdline.cli.rvbd_cli import RVBD_CLI
 from pq_cmdline.cli import CLIMode
 from pq_cmdline import exceptions
 
@@ -30,7 +30,8 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_cli():
-    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
+    cli = RVBD_CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
+                   TRANSPORT_SSH)
     cli.channel = Mock()
     return cli
 
@@ -46,7 +47,7 @@ def cli_mock_output(any_cli):
 def config_mode_match():
     fake_match = MagicMock()
     fake_match.re = MagicMock()
-    fake_match.re.pattern = CLI.CLI_CONF_PROMPT
+    fake_match.re.pattern = RVBD_CLI.CLI_CONF_PROMPT
     return fake_match
 
 

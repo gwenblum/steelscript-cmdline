@@ -6,10 +6,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 
 from pq_cmdline import exceptions
-from pq_cmdline.netdevices import CLI, CLIMode
+from pq_cmdline.cli import CLI, CLIMode
 
 
-class VyattaCli(CLI):
+class VYATTA_CLI(CLI):
 
     """
     Provides an interface to interact with the CLI of a vyatta router
@@ -199,5 +199,5 @@ class VyattaCli(CLI):
         if mode is not None:
             self.enter_mode(mode)
 
-        return super(VyattaCli, self).exec_command(
+        return super(VYATTA_CLI, self).exec_command(
             command, timeout, output_expected)

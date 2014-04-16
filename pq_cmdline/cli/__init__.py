@@ -112,7 +112,7 @@ class CLI(object):
 
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
-        self.channel.expect([self.CLI_START_PROMPT])
+        self.channel.expect(self.CLI_START_PROMPT)
 
     def _initialize_cli_over_telnet(self):
         """
@@ -124,7 +124,7 @@ class CLI(object):
         self.channel = TelnetChannel(self._host, self._user, self._password)
 
         # Start and Wait for a prompt, try and figure out where we are.
-        self.channel.start([self.CLI_START_PROMPT])
+        self.channel.start(self.CLI_START_PROMPT)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """

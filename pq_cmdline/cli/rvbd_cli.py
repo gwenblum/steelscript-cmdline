@@ -4,12 +4,10 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-import logging
+import re
 
-from pq_cmdline.ssh_channel import SSHChannel
-from pq_cmdline.sshprocess import SSHProcess
-from pq_cmdline.telnet_channel import TelnetChannel
 from pq_cmdline import exceptions
+from pq_cmdline.cli import CLIMode, CLI
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -18,18 +16,8 @@ DELETE_LINE = b'\x15'
 ENTER_LINE = b'\r'
 
 
-class CLIMode(object):
-    """
-    Different config modes the CLI can be in, plus one if it's not even in the
-    CLI for some reason (ie back to bash).
-    """
-    BASH = 'bash'
-    NORMAL = 'normal'
-    ENABLE = 'enable'
-    CONFIG = 'configure'
+class RVBD_CLI(CLI):
 
-
-class CLI(object):
     """
     New implementation of CLI for a Riverbed appliance.
     """
@@ -41,150 +29,69 @@ class CLI(object):
     NAME_PREFIX_RE =\
         '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
 
+    CLI_SHELL_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
     CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ' >'
     CLI_ENABLE_PROMPT = NAME_PREFIX_RE + ' #'
     CLI_CONF_PROMPT = NAME_PREFIX_RE + ' \(config\) #'
     CLI_ANY_PROMPT = NAME_PREFIX_RE + ' (>|#|\(config\) #)'
 
     # Matches the prompt used by less
-    prompt_less = '(^|\n|\r)lines \d+-\d+'
+    CLI_LESS_PROMPT = '(^|\n|\r)lines \d+-\d+'
 
-    def __init__(self, host, user='admin', password='', terminal='console',
-                 transport_type='ssh'):
-        """
-        Create a new Cli Channel object.
-
-        :param host: host/ip
-        :param user: username to log in with
-        :param password: password to log in with
-        :param terminal:  terminal emulation to use; default to 'console'
-        """
-
-        self._host = host
-        self._user = user
-        self._password = password
-        self._terminal = terminal
-        self._transport_type = transport_type
-        self._new_transport = False
-        self._transport = None
-        self._log = logging.getLogger(__name__)
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if self._new_transport and self._transport:
-            self._transport.disconnect()
-            self._transport = None
+    # CLI_START_PROMPT is needed by base CLI class for the first
+    # prompt expected on login to device. Either telnet or ssh.
+    CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
+    CLI_ERROR_PROMPT = '^%'
 
     def start(self):
         """
-        Initialize underlying channel.
+        Initialize the underlying channel, disable paging
         """
-        if self._transport_type == 'ssh':
-            self._initialize_cli_over_ssh()
-        elif self._transport_type == 'telnet':
-            self._initialize_cli_over_telnet()
-        else:
-            raise NotImplementedError(
-                "Unsupported transport type %s" % self._transport_type)
+        super(RVBD_CLI, self).start()
+
+        # disable paging
+        self._disable_paging()
 
     def _initialize_cli_over_ssh(self):
         """
         Initialize underlying ssh transport and ssh channel. It expect ssh to
         shell or cli. Start cli if ssh-ed to shell.
         """
-
-        # Create SSHProcess
-        if self._transport is None:
-            self._transport = SSHProcess(self._host,
-                                         self._user,
-                                         self._password)
-            self._new_transport = True
-
-        # Create ssh channel and start channel
-        self.channel = SSHChannel(self._transport, self._terminal)
-
-        # Wait for a prompt, try and figure out where we are.  It's a new
-        # channel so we should only be at bash or the main CLI prompt.
-        (output, match) = self.channel.expect([self.channel.BASH_PROMPT,
-                                               self.CLI_NORMAL_PROMPT])
+        super(RVBD_CLI, self)._initialize_cli_over_ssh()
 
         # Start cli if log into shell
-        timeout = 60
-        if match.re.pattern == self.channel.BASH_PROMPT:
-            self._log.info('At bash prompt, executing CLI')
-            self._send_line_and_wait(self.CLI_EXEC_PATH,
-                                     [self.CLI_NORMAL_PROMPT], timeout)
-        self._disable_paging()
-
-    def _disable_paging(self):
-        """
-        Disable session paging. When we run a CLI command, we want to get
-        all output instead of a page at a time.
-        """
-        self._log.info('Disabling paging')
-        self._send_line_and_wait('no cli session paging enable',
-                                 [self.CLI_NORMAL_PROMPT])
+        self._run_cli_from_shell()
 
     def _initialize_cli_over_telnet(self):
         """
         Create and inititalize telnet channel. It assume telnet to either
         shell or cli. Start cli if telneted to shell.
         """
-
-        # Create telnet channel
-        self.channel = TelnetChannel(self._host, self._user, self._password)
-
-        # Start and Wait for a prompt, try and figure out where we are.
-        match = self.channel.start([self.channel.BASH_PROMPT,
-                                    self.CLI_NORMAL_PROMPT])
+        super(RVBD_CLI, self)._initialize_cli_over_ssh()
 
         # Start cli if log into shell
-        timeout = 60
-        if match.re.pattern == self.channel.BASH_PROMPT:
-            self._log.info('At bash prompt, executing CLI')
+        self._run_cli_from_shell()
+
+    def _run_cli_from_shell(self):
+        """
+        Check to see if current mode is SHELL, start cli
+        """
+        mode = self.current_cli_mode()
+
+        if mode == CLIMode.SHELL:
+            timeout = 60
+            self._log.debug('At bash prompt, executing CLI')
             self._send_line_and_wait(self.CLI_EXEC_PATH,
                                      [self.CLI_NORMAL_PROMPT], timeout)
-        self._disable_paging()
 
-    def _send_and_wait(self, text_to_send, match_res, timeout=60):
+    def _disable_paging(self):
         """
-        Discard old data in buffer, sends data, then blocks until some text is
-        received that matches one or more patterns.
-
-        :param text_to_send: Text to send, may be empty.  Note, you are
-                             responsible for your own command terminator!
-        :param match_text: Pattern(s) to look for to be considered successful.
-        :param timeout: Maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
-
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is
-                 a Python re.MatchObject containing data on what was matched.
+        Disable session paging. When we run a CLI command, we want to get
+        all output instead of a page at a time.
         """
-        self.channel.receive_all()
-        self.channel.send(text_to_send)
-        return self.channel.expect(match_res, timeout)
-
-    def _send_line_and_wait(self, text_to_send, match_res, timeout=60):
-        """
-        Same to _send_and_wait but automatically append a newline to data
-        before send.
-
-        :param text_to_send: Text to send, may be empty.  Note, you are
-                             responsible for your own command terminator!
-        :param match_text: Pattern(s) to look for to be considered successful.
-        :param timeout: Maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
-
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is
-                 a Python re.MatchObject containing data on what was matched.
-        """
-        text_to_send = text_to_send + ENTER_LINE
-        return self._send_and_wait(text_to_send, match_res, timeout)
+        self._log.debug('Disabling paging')
+        self._send_line_and_wait('no cli session paging enable',
+                                 [self.CLI_NORMAL_PROMPT])
 
     def current_cli_mode(self):
         """
@@ -196,12 +103,12 @@ class CLI(object):
         """
 
         (output, match) = self._send_line_and_wait('',
-                                                   [self.channel.BASH_PROMPT,
+                                                   [self.CLI_SHELL_PROMPT,
                                                     self.CLI_NORMAL_PROMPT,
                                                     self.CLI_ENABLE_PROMPT,
                                                     self.CLI_CONF_PROMPT])
 
-        modes = {self.channel.BASH_PROMPT: CLIMode.BASH,
+        modes = {self.CLI_SHELL_PROMPT: CLIMode.SHELL,
                  self.CLI_NORMAL_PROMPT: CLIMode.NORMAL,
                  self.CLI_ENABLE_PROMPT: CLIMode.ENABLE,
                  self.CLI_CONF_PROMPT: CLIMode.CONFIG}
@@ -250,7 +157,7 @@ class CLI(object):
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.BASH:
+        if mode == CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
         elif mode == CLIMode.NORMAL:
@@ -279,7 +186,7 @@ class CLI(object):
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.BASH:
+        if mode == CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
         elif mode == CLIMode.NORMAL:
@@ -318,7 +225,7 @@ class CLI(object):
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.BASH:
+        if mode == CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
         elif mode == CLIMode.NORMAL:
@@ -331,7 +238,7 @@ class CLI(object):
         elif mode == CLIMode.CONFIG:
             self._log.info('Already at Config, doing nothing')
 
-    def exec_command(self, command, timeout=60, mode='configure',
+    def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
                      output_expected=None, error_expected=False):
         """Executes the given command.
 
@@ -372,16 +279,16 @@ class CLI(object):
 
         self._log.debug('Executing cmd "%s"' % command)
 
-        (output, match) = self._send_line_and_wait(command,
-                                                   self.CLI_ANY_PROMPT,
-                                                   timeout=timeout)
+        (output, match_res) = self._send_line_and_wait(command,
+                                                       self.CLI_ANY_PROMPT,
+                                                       timeout=timeout)
 
         # CLI adds on escape chars and such sometimes (see bug 75081), so to
         # remove the command we just send from the output, split the output
         # into lines, then rejoin it with the first line removed.
         output = '\n'.join(output.splitlines()[1:])
 
-        if output and (output[0] == '%'):
+        if output and (re.match(self.CLI_ERROR_PROMPT, output)):
             if error_expected:
                 # Skip output_expected processing entirely.
                 return output
@@ -412,8 +319,8 @@ class CLI(object):
 
         self._log.debug('Generating help for "%s"' % root_cmd)
         sub_commands = []
-        output, match = self._send_and_wait('%s ?' % root_cmd,
-                                            self.CLI_ANY_PROMPT)
+        output, match_res = self._send_and_wait('%s ?' % root_cmd,
+                                                self.CLI_ANY_PROMPT)
 
         # Split the output into a list of lines. The first one will be the
         # command we sent, teh last two will be an escape code and the prompt,
@@ -421,7 +328,7 @@ class CLI(object):
         lines = output.splitlines()
         lines = lines[1:]
 
-        self._log.info("raw output: %s" % lines)
+        self._log.debug("raw output: %s" % lines)
         for line in lines:
             command = line.split(' ')[0]
 

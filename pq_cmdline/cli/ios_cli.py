@@ -6,7 +6,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 
 from pq_cmdline import exceptions
-from pq_cmdline.netdevices import CLIMode, CLI
+from pq_cmdline.cli import CLIMode, CLI
 
 
 class IOS_CLI(CLI):

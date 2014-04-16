@@ -7,7 +7,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock
 
-from pq_cmdline.netdevices import CLI
+from pq_cmdline.cli import CLI
 from pq_cmdline import exceptions
 
 ANY_HOST = 'sh1'
