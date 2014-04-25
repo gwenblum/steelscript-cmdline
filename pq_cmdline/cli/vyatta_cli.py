@@ -9,7 +9,7 @@ from pq_cmdline import exceptions
 from pq_cmdline.cli import CLI, CLIMode
 
 
-class VYATTA_CLI(CLI):
+class VyattaCli(CLI):
 
     """
     Provides an interface to interact with the CLI of a vyatta router
@@ -41,6 +41,9 @@ class VYATTA_CLI(CLI):
 
     # add error prompts to this variable
     CLI_ERROR_PROMPT = '^Cannot'
+
+    # Line to be discarded from CLI output
+    DISCARD_PROMPT = '[edit]'
 
     def start(self):
         """
@@ -171,7 +174,7 @@ class VYATTA_CLI(CLI):
             raise exceptions.UnknownCLIMode(mode=mode)
 
     def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
-                     output_expected=None):
+                     force=False, output_expected=None):
         """
         Executes the given command.
 
@@ -184,6 +187,9 @@ class VYATTA_CLI(CLI):
         :param mode:  mode to enter before running the command.  To skip this
             step and execute directly in the cli's current mode, explicitly
             set this parameter to None.  The default is "configure"
+        :param force: Will force enter mode, discarding all changes
+                     that haven't been committed.
+        :type force: Boolean
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
             If the oppossite occurs, raise UnexpectedOutput. Default is None.
@@ -196,8 +202,35 @@ class VYATTA_CLI(CLI):
 
         :return: output of the command, minus the command itself.
         """
+        if output_expected is not None and not isinstance(
+                output_expected, bool):
+            raise TypeError("exec_command: output_expected requires a boolean "
+                            "value or None")
         if mode is not None:
-            self.enter_mode(mode)
+            self.enter_mode(mode, force)
 
-        return super(VYATTA_CLI, self).exec_command(
-            command, timeout, output_expected)
+        self._log.debug('Executing cmd "%s"' % command)
+
+        (output, match_res) = self._send_line_and_wait(command,
+                                                       self.CLI_ANY_PROMPT,
+                                                       timeout=timeout)
+        output = output.splitlines()[1:]
+
+        # Vyatta does not have a standard error prompt
+        # In config mode, each command (errorneous or not) is
+        # followed with '[edit]'. This skews the result for
+        # output_expected flag
+
+        # To address this remove line with '[edit]' when in config mode
+
+        if mode == CLIMode.CONFIG:
+            output = [line for line in output if self.DISCARD_PROMPT != line]
+
+        output = '\n'.join(output)
+
+        if ((output_expected is not None) and (bool(output) !=
+                                               bool(output_expected))):
+            raise exceptions.UnexpectedOutput(command=command,
+                                              output=output,
+                                              expected_output=output_expected)
+        return output

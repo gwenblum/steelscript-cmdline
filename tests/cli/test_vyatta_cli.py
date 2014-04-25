@@ -8,7 +8,7 @@ import pytest
 from mock import Mock, MagicMock
 
 from pq_cmdline.cli import CLIMode
-from pq_cmdline.cli.vyatta_cli import VYATTA_CLI
+from pq_cmdline.cli.vyatta_cli import VyattaCli
 from pq_cmdline import exceptions
 
 ANY_HOST = 'vyatta'
@@ -21,7 +21,7 @@ TRANSPORT_UNKNOWN = 'unknown'
 
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'
-ANY_COMMAND_OUTPUT_DATA = '%s\n%s' % (ANY_COMMAND, ANY_COMMAND_OUTPUT)
+ANY_COMMAND_OUTPUT_DATA = '%s\n%s\n[edit]' % (ANY_COMMAND, ANY_COMMAND_OUTPUT)
 ANY_ROOT_COMMAND = 'show'
 ANY_UNKNOWN_LEVEL = 'unknown'
 ANY_TIMEOUT = 120
@@ -31,7 +31,7 @@ ANY_ERROR_PROMPT = 'Cannot exit: configuration modified.'
 
 @pytest.fixture
 def any_vyatta_cli():
-    cli = VYATTA_CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, TRANSPORT_SSH)
+    cli = VyattaCli(ANY_HOST, ANY_USER, ANY_PASSWORD, TRANSPORT_SSH)
     cli.channel = Mock()
     return cli
 
@@ -47,7 +47,7 @@ def cli_mock_output(any_vyatta_cli):
 def config_mode_match():
     fake_match = MagicMock()
     fake_match.re = MagicMock()
-    fake_match.re.pattern = VYATTA_CLI.CLI_CONFIG_PROMPT
+    fake_match.re.pattern = VyattaCli.CLI_CONFIG_PROMPT
     return fake_match
 
 
