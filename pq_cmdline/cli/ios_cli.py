@@ -102,7 +102,7 @@ class IOS_CLI(CLI):
         elif mode == CLIMode.CONFIG:
             self.enter_mode_config()
 
-        elif mode == CLIMode.SUBIF and interface:
+        elif mode == CLIMode.SUBIF:
             self.enter_mode_subif(interface)
 
         else:
@@ -213,7 +213,8 @@ class IOS_CLI(CLI):
         """
 
         self._log.debug('Going to sub-if mode')
-
+        if interface is None:
+            raise ValueError('Cannot enter_mode_subif with Interface None')
         # enter mode config
         self.enter_mode(CLIMode.CONFIG)
 
@@ -224,7 +225,8 @@ class IOS_CLI(CLI):
             self.CLI_SUBIF_PROMPT)
 
     def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
-                     output_expected=None, error_expected=False):
+                     output_expected=None, error_expected=False,
+                     interface=None):
         """Executes the given command.
 
         This method handles detecting simple boolean conditions such as
@@ -245,6 +247,9 @@ class IOS_CLI(CLI):
             raising a CLIError.  Default is False, and error_expected always
             overrides output_expected.
         :type error_expected: bool
+        :param interface: if mode 'subif', interface to configure 'gi0/1.666'
+            or 'vlan 691'
+        :type interface: string
 
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
@@ -261,7 +266,7 @@ class IOS_CLI(CLI):
                             "value or None")
 
         if mode is not None:
-            self.enter_mode(mode)
+            self.enter_mode(mode, interface)
 
         self._log.debug('Executing cmd "%s"' % command)
 
