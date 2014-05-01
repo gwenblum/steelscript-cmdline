@@ -217,56 +217,81 @@ class SSHChannel(Channel):
                         failed_match=match_res,
                         context='Channel unexpectedly closed')
 
+                # If we're still here, we have new data to process.
+                received_data, new_lines = self._process_data(
+                    new_data, received_data, next_line_start)
+                output, match = self._match_lines(
+                    received_data, next_line_start, new_lines, match_res)
+
+                if (output, match) != (None, None):
+                    return output, match
+
+                # Update next_line_start to be the index of the last \n
+                next_line_start = received_data.rfind('\n') + 1
+
             elif self.channel.exit_status_ready():
                 raise exceptions.ConnectionError(
                     failed_match=match_res,
                     context='Channel unexpectedly closed')
-            else:
-                continue
-            #######################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            # TODO: Somthing is messed up here.  This if has two branches
-            #       that result in exceptions, and an else clause that
-            #       continues the next loop iteration.  So what is all of this
-            #       code down here for?
-            # NOTE: The unit tests pass with or without the else clause present
-            #######################!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-            # If we're still here, we have new data to process.
-            received_data += new_data
+    def _process_data(self, new_data, received_data, next_line_start):
+        """
+        Process the new data and return updated received_data and new lines.
 
-            # The CLI does some odd things, sending multiple \r's or just a
-            # \r, sometimes \r\r\n. To make this look like typical input, all
-            # the \r characters with \n near them are stripped. To make
-            # prompt matching easier, any \r character that does not have
-            # a \n near is replaced with a \n.
-            received_data = received_data[:next_line_start] + \
-                self.fixup_carriage_returns(received_data[next_line_start:])
+        :param new_data: The newly read data
+        :param received_data: All data received before new_data
+        :param next_line_start: Where to start splitting off the new lines.
 
-            # Take the data from next_line_start to end and split it into
-            # lines so we can look for a match on each one
-            new_lines = received_data[next_line_start:].splitlines()
+        :return: A tuple of the updated received_data followed by the list
+            of new lines.
+        """
+        received_data += new_data
 
-            # Loop through all new lines and check them for matches.
-            for line_num in range(len(new_lines)):
-                match = self.__find_match(new_lines[line_num], match_res)
-                if match:
-                    self._log.debug(
-                        'Matched "%s" in \n%s'
-                        % (self.safe_line_feeds(match.re.pattern),
-                            new_lines[line_num]))
+        # The CLI does some odd things, sending multiple \r's or just a
+        # \r, sometimes \r\r\n. To make this look like typical input, all
+        # the \r characters with \n near them are stripped. To make
+        # prompt matching easier, any \r character that does not have
+        # a \n near is replaced with a \n.
+        received_data = received_data[:next_line_start] + \
+            self.fixup_carriage_returns(received_data[next_line_start:])
 
-                    # Output is all data up to the next_line_start, plus
-                    # all lines up to the one we matched.
-                    output = received_data[:next_line_start] + \
-                        '\n'.join(new_lines[:line_num]) + \
-                        new_lines[line_num][:match.start()]
-                    return (output, match)
+        # Take the data from next_line_start to end and split it into
+        # lines so we can look for a match on each one
+        new_lines = received_data[next_line_start:].splitlines()
+        return received_data, new_lines
 
-            # If we're here, there's no match.  Update next_line_start to
-            # be the index of the last \n
-            next_line_start = received_data.rfind('\n') + 1
+    def _match_lines(self, received_data, next_line_start,
+                     new_lines, match_res):
+        """
+        Examine new lines for matches against our regular expressions.
 
-    def __find_match(self, data, match_res):
+        :param received_data: All data received so far, including latest.
+        :param new_lines: Latest data split into individual lines.
+        :param next_line_start: The point in received_data where new lines
+            begin.
+        :param match_res: The regular expressions for matching as documented
+            for `expect()`
+
+        :return: (output, re.MatchObject) as described for `expect() except
+            that (None, None) is returned to indicate no match.
+        """
+        # Loop through all new lines and check them for matches.
+        for line_num in range(len(new_lines)):
+            match = self._find_match(new_lines[line_num], match_res)
+            if match:
+                self._log.debug(
+                    'Matched "%s" in \n%s'
+                    % (self.safe_line_feeds(match.re.pattern),
+                        new_lines[line_num]))
+
+                # Output is all data up to the next_line_start, plus
+                # all lines up to the one we matched.
+                output = received_data[:next_line_start] + \
+                    '\n'.join(new_lines[:line_num]) + \
+                    new_lines[line_num][:match.start()]
+                return output, match
+
+    def _find_match(self, data, match_res):
         """
         Given a string and a list of match strings, see if any of the text
         matches.
