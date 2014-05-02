@@ -42,13 +42,13 @@ class TelnetChannel(Channel):
         :param password: password to log in with
         """
 
-        ## Hostname to connects
+        # Hostname to connects
         self._host = host
 
         self._user = user
         self._password = password
 
-        ## PQTelnet
+        # PQTelnet
         self.channel = None
 
         self._log = logging.getLogger(__name__)
@@ -202,25 +202,7 @@ class TelnetChannel(Channel):
                  which will be one of the elements of match_res passed in.
         """
 
-        if match_res is None:
-            raise TypeError('Parameter match_res is required!')
-
-        if not match_res:
-            raise TypeError('match_res should not be empty!')
-
-        # Convert the match text to a list, if it isn't already.
-        if not isinstance(match_res, list):
-            match_res = [match_res, ]
-
-        self._verify_connected()
-
-        # Create a newline-free copy of the list of regexes for outputting
-        # to the log. Otherwise the newlines make the output unreadable.
-        safe_match_text = []
-        for match in match_res:
-            safe_match_text.append(self.safe_line_feeds(match))
-
-        self._log.debug('Waiting for %s' % str(safe_match_text))
+        match_res, safe_match_text = self._expect_init(match_res)
         (index, matched, data) = self.channel.expect(match_res, timeout)
         if index == -1:
             raise exceptions.CmdlineTimeout(timeout=timeout,

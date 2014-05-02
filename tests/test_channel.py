@@ -4,7 +4,6 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-import pytest
 from pq_cmdline.channel import Channel
 
 
@@ -19,40 +18,14 @@ def test_subclass_with_all_required_methods():
         def receive_all(self):
             pass
 
-    MyChannel()
-
-
-def test_subclass_raise_if_send_is_not_implemented():
-    class MyChannel(Channel):
-        def expect(self):
+        def _verify_connected(self):
             pass
 
-        def receive_all(self):
-            pass
-
-    with pytest.raises(TypeError):
-        MyChannel()
+    assert isinstance(MyChannel(), MyChannel)
 
 
-def test_subclass_raise_if_expect_is_not_implemented():
-    class MyChannel(Channel):
-        def send(self):
-            pass
-
-        def receive_all(self):
-            pass
-
-    with pytest.raises(TypeError):
-        MyChannel()
-
-
-def test_subclass_raise_if_receive_all_is_not_implemented():
-    class MyChannel(Channel):
-        def send(self):
-            pass
-
-        def expect(self):
-            pass
-
-    with pytest.raises(TypeError):
-        MyChannel()
+def test_correct_methods_required():
+    assert all((Channel.send.__isabstractmethod__,
+                Channel.expect.__isabstractmethod__,
+                Channel.receive_all.__isabstractmethod__,
+                Channel._verify_connected.__isabstractmethod__))

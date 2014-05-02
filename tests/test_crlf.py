@@ -20,6 +20,9 @@ class FakeChannel(channel.Channel):
     def expect(self, match_res, timeout):
         return '', re.search(match_res, '')
 
+    def _verify_connected():
+        return True
+
 
 def test_safe_line_feeds():
     c = FakeChannel()

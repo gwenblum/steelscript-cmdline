@@ -8,7 +8,6 @@ import time
 import select
 import logging
 import paramiko
-import re
 
 from pq_cmdline.channel import Channel
 from pq_cmdline import exceptions
@@ -61,7 +60,7 @@ class SSHChannel(Channel):
         Helper function that verifies the connection has been established
         and that the transport object we are using is still connected.
 
-        :raises CommandError: if we are not connected
+        :raises ConnectionError: if we are not connected
         """
 
         if not self.channel:
@@ -154,26 +153,7 @@ class SSHChannel(Channel):
                  which will be one of the elements of match_res passed in.
         """
 
-        if match_res is None:
-            raise TypeError('Parameter match_res is required!')
-
-        if not match_res:
-            raise TypeError('match_res should not be empty!')
-
-        # Convert the match text to a list, if it isn't already.
-        if not isinstance(match_res, list):
-            match_res = [match_res, ]
-
-        self._verify_connected()
-
-        # Create a newline-free copy of the list of regexes for outputting
-        # to the log. Otherwise the newlines make the output unreadable.
-        safe_match_text = []
-        for match in match_res:
-            safe_match_text.append(self.safe_line_feeds(match))
-
-        self._log.debug('Waiting for %s' % str(safe_match_text))
-
+        match_res, safe_match_text = self._expect_init(match_res)
         received_data = ''
 
         # Index into received_data marking the start of the first unprocessed
@@ -290,23 +270,3 @@ class SSHChannel(Channel):
                     '\n'.join(new_lines[:line_num]) + \
                     new_lines[line_num][:match.start()]
                 return output, match
-
-    def _find_match(self, data, match_res):
-        """
-        Given a string and a list of match strings, see if any of the text
-        matches.
-
-        :param data: data to check for matches
-        :param match_res: list of match strings
-
-        :return: None if no match was found, or the entry in matchList that
-                 was found.
-        """
-
-        for pattern in match_res:
-            self._log.debug('Search "%s" in "%s"' % (pattern, data))
-            match = re.search(pattern, data)
-            if match:
-                return match
-
-        return None

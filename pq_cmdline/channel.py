@@ -57,7 +57,17 @@ class Channel(object):
         """
         return
 
-    ### Helper methods ###################
+    @abc.abstractmethod
+    def _verify_connected():
+        """
+        Helper function that verifies the connection has been established
+        and that the transport object we are using is still connected.
+
+        :raises ConnectionError: if we are not connected
+        """
+        return
+
+    # ###### Helper methods ###################
     def safe_line_feeds(self, in_string):
         """
         :param in_string: string to replace linefeeds
@@ -105,3 +115,56 @@ class Channel(object):
         new_data = re.sub('\n\r(?!$|\r|\n)', '\n', new_data)
 
         return new_data
+
+    def _expect_init(self, match_res):
+        """
+        Perform common setup tasks for expect methods.
+
+        Raise any necessary exceptions due to paramaters or bad
+        state (unconnected), adjust parameters as needed.
+        See the expect() docstring for further details.
+
+        :return: (match_res, safe_match_text) where match_res
+            is the given input guaranteed to be in list form,
+            and safe_match_text is a version suitable for logging.
+        """
+        if match_res is None:
+            raise TypeError('Parameter match_res is required!')
+
+        if not match_res:
+            raise TypeError('match_res should not be empty!')
+
+        # Convert the match text to a list, if it isn't already.
+        if not isinstance(match_res, list):
+            match_res = [match_res, ]
+
+        self._verify_connected()
+
+        # Create a newline-free copy of the list of regexes for outputting
+        # to the log. Otherwise the newlines make the output unreadable.
+        safe_match_text = []
+        for match in match_res:
+            safe_match_text.append(self.safe_line_feeds(match))
+
+        self._log.debug('Waiting for %s' % str(safe_match_text))
+
+        return match_res, safe_match_text
+
+    def _find_match(self, data, match_res):
+        """
+        See if any given regex matches the (unicode or byte string) data.
+
+        :param data: unicode or byte string data to check for matches
+        :param match_res: list of match regexes
+
+        :return: The match object resulting from the match, or None if
+            no match was found.
+        """
+
+        for pattern in match_res:
+            self._log.debug('Search "%s" in "%s"' % (pattern, data))
+            match = re.search(pattern, data)
+            if match:
+                return match
+
+        return None
