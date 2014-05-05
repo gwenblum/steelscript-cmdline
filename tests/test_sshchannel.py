@@ -9,7 +9,7 @@ import select
 from mock import Mock, MagicMock
 from testfixtures import Replacer, test_time
 
-from pq_cmdline.ssh_channel import SSHChannel
+from pq_cmdline.sshchannel import SSHChannel
 from pq_cmdline import exceptions
 
 ANY_TERM = 'console'
@@ -131,7 +131,7 @@ def test_expect_if_not_ready_before_timeout(any_ssh_channel):
     any_ssh_channel.channel.exit_status_ready.return_value = False
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
-        r.replace('pq_cmdline.ssh_channel.time.time', mock_time)
+        r.replace('pq_cmdline.sshchannel.time.time', mock_time)
         with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 
@@ -141,7 +141,7 @@ def test_expect_timeout_if_no_matched_prompt(any_ssh_channel):
     any_ssh_channel.channel.recv.return_value = ANY_DATA_RECEIVED
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
-        r.replace('pq_cmdline.ssh_channel.time.time', mock_time)
+        r.replace('pq_cmdline.sshchannel.time.time', mock_time)
         with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 

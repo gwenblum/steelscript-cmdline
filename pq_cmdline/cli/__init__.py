@@ -6,9 +6,9 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import logging
 
-from pq_cmdline.ssh_channel import SSHChannel
+from pq_cmdline.sshchannel import SSHChannel
 from pq_cmdline.sshprocess import SSHProcess
-from pq_cmdline.telnet_channel import TelnetChannel
+from pq_cmdline.telnetchannel import TelnetChannel
 from pq_cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
