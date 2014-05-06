@@ -6,6 +6,7 @@ from __future__ import (unicode_literals, print_function, division,
 
 import abc
 import re
+import logging
 
 
 class Channel(object):
@@ -134,8 +135,8 @@ class Channel(object):
         if not match_res:
             raise TypeError('match_res should not be empty!')
 
-        # Convert the match text to a list, if it isn't already.
-        if not isinstance(match_res, list):
+        # Convert the match regexes to a list if necessary.
+        if not (isinstance(match_res, list) or isinstance(match_res, tuple)):
             match_res = [match_res, ]
 
         self._verify_connected()
@@ -146,7 +147,7 @@ class Channel(object):
         for match in match_res:
             safe_match_text.append(self.safe_line_feeds(match))
 
-        self._log.debug('Waiting for %s' % str(safe_match_text))
+        logging.debug('Waiting for %s' % str(safe_match_text))
 
         return match_res, safe_match_text
 
@@ -162,7 +163,7 @@ class Channel(object):
         """
 
         for pattern in match_res:
-            self._log.debug('Search "%s" in "%s"' % (pattern, data))
+            logging.debug('Search "%s" in "%s"' % (pattern, data))
             match = re.search(pattern, data)
             if match:
                 return match

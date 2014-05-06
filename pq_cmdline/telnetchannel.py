@@ -51,8 +51,6 @@ class TelnetChannel(Channel):
         # PQTelnet
         self.channel = None
 
-        self._log = logging.getLogger(__name__)
-
     def start(self, match_res=None, timeout=15):
         """
         Start telnet session and log it in
@@ -97,13 +95,13 @@ class TelnetChannel(Channel):
 
         if index == 0:
             # username is required for login
-            self._log.debug("Sending login user ...")
+            logging.debug("Sending login user ...")
             self.channel.write(self._user + ENTER_LINE)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         if index == 1:
             # password is required for login
-            self._log.debug("Sending password ...")
+            logging.debug("Sending password ...")
             self.channel.write(self._password + ENTER_LINE)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
@@ -112,14 +110,14 @@ class TelnetChannel(Channel):
             raise exceptions.CmdlineTimeout(timeout=timeout,
                                             failed_match=match_res)
         elif index in (0, 1):
-            self._log.info("Login failed, still waiting for %s prompt",
+            logging.info("Login failed, still waiting for %s prompt",
                            ('username' if index == 0 else 'password'))
             raise exceptions.CmdlineTimeout(
                 timeout=timeout,
                 failed_match=reg_with_login_prompts[index])
 
         # Login successfully if reach this point
-        self._log.info('Telnet channel to "%s" started' % self._host)
+        logging.info('Telnet channel to "%s" started' % self._host)
         return match
 
     def _verify_connected(self):
@@ -140,7 +138,7 @@ class TelnetChannel(Channel):
         except socket.error:
             # TODO: re_raise and passing kwargs not compatible.
             # re_raise(CommandError, 'Host SSH shell has been disconnected')
-            self._log.info('Host SSH shell has been disconnected')
+            logging.info('Host SSH shell has been disconnected')
             re_raise(exceptions.ConnectionError)
 
     def receive_all(self):
@@ -153,7 +151,7 @@ class TelnetChannel(Channel):
 
         self._verify_connected()
 
-        self._log.debug('Receiving all data')
+        logging.debug('Receiving all data')
 
         return self.channel.read_very_eager()
 
@@ -173,7 +171,7 @@ class TelnetChannel(Channel):
 
         self._verify_connected()
 
-        self._log.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
+        logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
         self.channel.write(text_to_send)
 
     def expect(self, match_res, timeout=60):

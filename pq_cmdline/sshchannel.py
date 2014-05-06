@@ -40,7 +40,6 @@ class SSHChannel(Channel):
 
         self.sshprocess = sshprocess
         self._host = self.sshprocess._host
-        self._log = logging.getLogger(__name__)
 
         if not sshprocess.is_connected():
             sshprocess.connect()
@@ -53,7 +52,7 @@ class SSHChannel(Channel):
         self.channel = \
             self.sshprocess.open_interactive_channel(term, width, height)
 
-        self._log.info('Interactive channel to "%s" started' % self._host)
+        logging.info('Interactive channel to "%s" started' % self._host)
 
     def _verify_connected(self):
         """
@@ -81,7 +80,7 @@ class SSHChannel(Channel):
 
         self._verify_connected()
 
-        self._log.debug('Receiving all data')
+        logging.debug('Receiving all data')
 
         # Going behind Paramiko's back here; the Channel object does not have a
         # function to do this, but the BufferedPipe object that it uses to
@@ -116,7 +115,7 @@ class SSHChannel(Channel):
 
         self._verify_connected()
 
-        self._log.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
+        logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
 
         bytes_sent = 0
 
@@ -259,10 +258,10 @@ class SSHChannel(Channel):
         for line_num in range(len(new_lines)):
             match = self._find_match(new_lines[line_num], match_res)
             if match:
-                self._log.debug(
+                logging.debug(
                     'Matched "%s" in \n%s'
                     % (self.safe_line_feeds(match.re.pattern),
-                        new_lines[line_num]))
+                       new_lines[line_num]))
 
                 # Output is all data up to the next_line_start, plus
                 # all lines up to the one we matched.
