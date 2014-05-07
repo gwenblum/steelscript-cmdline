@@ -8,4 +8,4 @@ testfixtures
 
 # Quicksilver dependencies
 pq-runtime
-
+pq-libvirt
