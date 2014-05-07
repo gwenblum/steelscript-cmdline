@@ -177,7 +177,15 @@ class LibVirtChannel(channel.Channel):
 
         :return: the text that was present in the receive queue, if any.
         """
-        raise NotImplementedError
+        # Enclosed variables are immutable, but their contents are not.
+        received = ['']
+
+        def handler(s, buf, opaque):
+            received[0] += buf.decode('utf8', 'ignore')
+
+        self._stream.recvAll(handler, None)
+        return received[0]
+
 
     def send(self, text_to_send):
         """

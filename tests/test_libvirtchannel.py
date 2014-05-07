@@ -259,7 +259,20 @@ def test_init_login_raises(channel):
                                    libvirtchannel.DEFAULT_EXPECT_TIMEOUT)
 
 
-def test_send_calls_appropriate_methods(any_libvirt_channel):
-    any_libvirt_channel._stream = mock.Mock()
-    any_libvirt_channel.send(ANY_TEXT_TO_SEND_UNICODE)
-    any_libvirt_channel._stream.send.assert_called_with(ANY_TEXT_TO_SEND_UTF8)
+def test_send_calls_appropriate_methods(connected_channel):
+    connected_channel.send(ANY_TEXT_TO_SEND_UNICODE)
+    connected_channel._stream.send.assert_called_with(ANY_TEXT_TO_SEND_UTF8)
+
+
+def test_receive_all(connected_channel):
+
+    def side_effect(handler, opaque):
+        for c in ANY_DATA_RECEIVED:
+            handler(None, c, opaque)
+
+    connected_channel._stream.recvAll.side_effect = side_effect
+    assert connected_channel.receive_all() == ANY_DATA_RECEIVED
+
+
+def test_receive_all_empty(connected_channel):
+    assert connected_channel.receive_all() == ''
