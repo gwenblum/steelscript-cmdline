@@ -18,8 +18,9 @@ ANY_USERNAME = 'user1'
 ANY_PASSWORD = 'password1'
 ANY_TEXT_TO_SEND_UNICODE = 'show service\r'
 ANY_TEXT_TO_SEND_UTF8 = b'show service\r'
-ANY_PROMPT_RE = ['^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >']
-ANY_PROMPT_MATCHED = 'amnesiac >'
+PROMPT_PREFIX = b''
+ANY_PROMPT_RE = ['(^|\n|\r)[a-zA-Z0-9_\-.:]+ >']
+ANY_PROMPT_MATCHED = '\namnesiac >'
 ANY_DATA_CHAR = 'a'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
 ANY_TIMEOUT = 120
@@ -276,3 +277,43 @@ def test_receive_all(connected_channel):
 
 def test_receive_all_empty(connected_channel):
     assert connected_channel.receive_all() == ''
+
+
+def test_expect_raise_if_match_res_is_none(any_libvirt_channel):
+    with pytest.raises(TypeError):
+        any_libvirt_channel.expect(None)
+
+
+def test_expect_raise_if_match_res_is_empty(any_libvirt_channel):
+    with pytest.raises(TypeError):
+        any_libvirt_channel.expect([])
+
+
+def test_expect_raises_if_not_match_before_timeout(any_libvirt_channel):
+    # any_libvirt_channel._verify_connected = MagicMock(name='method')
+    any_libvirt_channel._stream = mock.Mock()
+    any_libvirt_channel._stream.recv.return_value = ANY_DATA_CHAR
+    with pytest.raises(exceptions.CmdlineTimeout):
+        any_libvirt_channel.expect(ANY_PROMPT_RE, timeout=1)
+
+
+def test_expect_returns_on_success(any_libvirt_channel):
+    # any_libvirt_channel._verify_connected = MagicMock(name='method')
+    # mock_match = mock.Mock()
+    # mock_match.start.return_value = len(ANY_DATA_RECEIVED)
+    # mock_match.end.return_value =\
+        # len(ANY_DATA_RECEIVED) + len(ANY_PROMPT_MATCHED)
+    # raw_data = ANY_DATA_RECEIVED + ANY_PROMPT_MATCHED
+
+    # Side effect returns elements of an iterable one call at a time,
+    # and strings are iterable.  So this wil return one character at a time.
+    any_libvirt_channel._stream = mock.Mock()
+    data = '%s%s' % (ANY_DATA_RECEIVED, ANY_PROMPT_MATCHED)
+    data = data.encode('utf8')
+
+    any_libvirt_channel._stream.recv.side_effect = data
+    m = re.search(ANY_PROMPT_RE[0], ANY_PROMPT_MATCHED)
+
+    (data, matched) = any_libvirt_channel.expect(ANY_PROMPT_RE)
+    assert data == ANY_DATA_RECEIVED
+    assert matched.re.pattern == m.re.pattern

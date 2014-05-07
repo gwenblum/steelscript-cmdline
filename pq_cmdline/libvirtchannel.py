@@ -5,6 +5,7 @@ from __future__ import (unicode_literals, print_function, division,
                         absolute_import)
 
 import logging
+import signal
 
 import libvirt
 
@@ -201,4 +202,59 @@ class LibVirtChannel(channel.Channel):
         self._stream.send(encoded)
 
     def expect(self, match_res, timeout=DEFAULT_EXPECT_TIMEOUT):
-        raise NotImplementedError
+        """
+        Matches regular expressions against singles lines in the stream.
+
+        Internally, this method works with bytes, but input and output
+        are unicode as usual.
+
+        :param match_res: a list of regular expressions to match against
+            the output.
+        :param timeout: Time to wait for matching data in the stream,
+            in seconds.  Note that the default timeout is longer than
+            on most channels.
+
+        :raises Exception if no match found before timeout.
+
+        :return: (output, re.MatchObject) where output is the output of
+            the command (without the matched text), and MatchObject is a
+            Python re.MatchObject containing data on what was matched.
+
+            You may use MatchObject.string[m.start():m.end()] to recover
+            the actual matched text, which will be unicode.
+
+            MatchObject.re.pattern will contain the pattern that matched,
+            which will be one of the elements of match_res passed in.
+        """
+
+        # Timeout handler
+        def expectsig(signum, frame):
+            raise exceptions.CmdlineTimeout(timeout)
+
+        match_res, safe_match_text = self._expect_init(match_res)
+
+        # We want to manage lines as unicode so that match object results
+        # will be stored as unicode.  Otherwise, we lead bytestrings
+        # out to the caller.  The type of the matched string is determined
+        # by the input string- the regex pattern can be either bytes
+        # or unicode.
+        data = ""
+        signal.signal(signal.SIGALRM, expectsig)
+        signal.alarm(timeout)
+        while True:
+            recv = self._stream.recv(1)
+            data = data + recv.decode('utf8', 'ignore')
+            match = self._find_match(data, match_res)
+            if match is not None:
+                logline = data
+                logging.debug('> ' + logline.strip('\r\n'))
+                logging.debug("successfully matched %s", match.re.pattern)
+                signal.alarm(0)
+                return (data[0:match.start()], match)
+
+            if recv == b'\n':
+                # Consoles will send either an 8 bit codec UTF-8
+                # Not 7 bit ASCII.  Use UTF-8 as that includes ISO-8859-1
+                # which should work for anything we have.
+                logline = data.decode('utf8', 'ignore').strip('\r\n')
+                logging.debug('> ' + logline)
