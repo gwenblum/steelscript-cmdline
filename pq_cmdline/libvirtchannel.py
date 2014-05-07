@@ -19,11 +19,10 @@ DISCONNECT_SESSION = b'\x04'
 # Command terminator
 ENTER_LINE = b'\r'
 
-LOGIN_PROMPT = b'login:'
-PASSWORD_PROMPT = b'assword:'
-ROOT_PROMPT = b'# '
-
-PROMPT_LIST = (LOGIN_PROMPT, PASSWORD_PROMPT, ROOT_PROMPT)
+PROMPT_PREFIX = b'(^|\n|\r)'
+LOGIN_PROMPT = b'%s(L|l)ogin: ' % PROMPT_PREFIX
+PASSWORD_PROMPT = b'%s(P|p)assword: ' % PROMPT_PREFIX
+ROOT_PROMPT = b'%s# ' % PROMPT_PREFIX
 
 DEFAULT_EXPECT_TIMEOUT = 300
 
@@ -106,13 +105,18 @@ class LibVirtChannel(channel.Channel):
         # TODO: Verify that the stream is really connected.
         return self._stream is not None
 
-    def _check_console_mode(self, logged_in_prompt, timeout):
+    def _check_console_mode(self, logged_in_res, timeout):
         """
-        Test to see if the console is logged in
-        :param logged_in_prompt: Regex for the prompt expected after login.
+        Test to see if the console is logged in.
+
+        :param logged_in_res: Regex list of logged in prompts.
+        :type logged_in_res: list (single pattern not allowed)
+        :param timeout: Time to wait for a prompt match.
+
         :return: Match object for actual prompt received.
         """
-        prompt_list = (LOGIN_PROMPT, PASSWORD_PROMPT, logged_in_prompt)
+        prompt_list = [LOGIN_PROMPT, PASSWORD_PROMPT]
+        prompt_list.extend(logged_in_res)
 
         logging.debug("Send an empty line to refresh the prompt.")
         # Clear the input buffer
@@ -126,11 +130,45 @@ class LibVirtChannel(channel.Channel):
                       match.string[match.start():match.end()])
         return match
 
-    def _handle_init_login(self, match_res, timeout):
+    def _handle_init_login(self, logged_in_res, timeout):
         """
         Login to host console.
+        :param logged_in_res: Regex list of logged in prompts.
+        :type logged_in_res: list (single pattern not allowed)
+        :param timeout: Time to wait for each prompt match.
+
+        :return: Match object for last prompt received.
         """
-        raise NotImplementedError
+        try:
+            match = self._check_console_mode(logged_in_res,
+                                             timeout=DEFAULT_EXPECT_TIMEOUT)
+            if self._console_logged_in:
+                return match
+
+            # Got a password prompt
+            if match.re.pattern == PASSWORD_PROMPT:
+                # Do not know who was being logged in, so reset the
+                # session to start over.
+                logging.debug("Incomplete login session found.")
+                self.send(DISCONNECT_SESSION)
+                self.expect([LOGIN_PROMPT])
+
+        except exceptions.CmdlineTimeout:
+            # Make one last attempt to get a login prompt
+            # Could be stuck in a program that does not have a prompt
+            # we recognize.
+            logging.debug("Time out logging in, retrying.")
+            self.send(DISCONNECT_SESSION)
+            self.expect([LOGIN_PROMPT])
+
+        # Now do the login.
+        self.send('%s%s' % (self._username, ENTER_LINE))
+        (match, output) = self.expect([PASSWORD_PROMPT, ROOT_PROMPT])
+        if match.re.pattern == PASSWORD_PROMPT:
+            self.send('%s%s' % (self._password, ENTER_LINE))
+            (match, output) = self.expect(logged_in_res)
+        self._console_logged_in = True
+        return match
 
     def receive_all(self):
         """
