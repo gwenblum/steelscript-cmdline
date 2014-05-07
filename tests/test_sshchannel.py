@@ -6,7 +6,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import pytest
 import select
-from mock import Mock, MagicMock
+from mock import Mock, MagicMock, patch
 from testfixtures import Replacer, test_time
 
 from pq_cmdline.sshchannel import SSHChannel
@@ -27,18 +27,21 @@ ANY_TIMEOUT = 120
 def any_ssh_channel():
     mock_sshprocess = Mock()
     mock_sshprocess.is_connected.return_value = True
-    return SSHChannel(mock_sshprocess)
+    channel = SSHChannel(mock_sshprocess)
+    # We just need to ignore the initial prompt expect at the end of start,
+    # but clients of this fixture need to do different things with expect.
+    with patch.object(channel, 'expect'):
+        channel.start()
+    return channel
 
 
 def test_members_initialized_correctly():
     mock_sshprocess = Mock()
     mock_sshprocess.is_connected.return_value = True
-    mock_channel = Mock()
-    mock_sshprocess.open_interactive_channel.return_value = mock_channel
     ssh_channel = SSHChannel(mock_sshprocess, ANY_TERM, ANY_TERM_WIDTH,
                              ANY_TERM_HEIGHT)
     assert ssh_channel.sshprocess == mock_sshprocess
-    assert ssh_channel.channel == mock_channel
+    assert ssh_channel.channel is None
     assert ssh_channel._term == ANY_TERM
     assert ssh_channel._term_width == ANY_TERM_WIDTH
     assert ssh_channel._term_height == ANY_TERM_HEIGHT
@@ -48,6 +51,8 @@ def test_constructor_connects_sshprocess_if_it_is_not_connected():
     mock_sshprocess = Mock()
     mock_sshprocess.is_connected.return_value = False
     ssh_channel = SSHChannel(mock_sshprocess)
+    ssh_channel.expect = MagicMock(name='method')
+    ssh_channel.start()
     assert ssh_channel.sshprocess.connect.called
 
 

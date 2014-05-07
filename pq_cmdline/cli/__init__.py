@@ -9,6 +9,7 @@ import logging
 from pq_cmdline.sshchannel import SSHChannel
 from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline.telnetchannel import TelnetChannel
+from pq_cmdline.libvirtchannel import LibVirtChannel
 from pq_cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
@@ -48,7 +49,7 @@ class CLI(object):
     CLI_ANY_PROMPT = CLI_START_PROMPT
 
     def __init__(self, host, user='admin', password='', terminal='console',
-                 transport_type='ssh'):
+                 transport_type='ssh', **channel_args):
         """
         Create a new Cli Channel object.
 
@@ -62,6 +63,10 @@ class CLI(object):
         :type terminal: string
         :param transport_type: telnet or ssh, defaults to ssh
         :type transport_type: string
+        :param channel_args: additional ``transport_type``-dependent
+            arguments, passed blindly to the transport ``start`` method.
+        :type channel_args: determined by the channel's constructor
+            where appropriate.
         """
 
         self._host = host
@@ -71,6 +76,7 @@ class CLI(object):
         self._transport_type = transport_type
         self._new_transport = False
         self._transport = None
+        self._channel_args = channel_args
         self._log = logging.getLogger(__name__)
 
     def __enter__(self):
@@ -82,17 +88,29 @@ class CLI(object):
             self._transport.disconnect()
             self._transport = None
 
-    def start(self):
+    def start(self, start_prompt=None):
         """
         Initialize underlying channel.
+
+        :param start_prompt: A non-default prompt to match, if any.
+        :type start_prompt: regex pattern
         """
+        logging.error(self._transport_type)
         if self._transport_type == 'ssh':
             self._initialize_cli_over_ssh()
         elif self._transport_type == 'telnet':
             self._initialize_cli_over_telnet()
+        elif self._transport_type == 'libvirt':
+            self._initialize_cli_over_libvirt()
         else:
             raise NotImplementedError(
                 "Unsupported transport type %s" % self._transport_type)
+
+        # Wait for a prompt, try and figure out where we are.  It's a new
+        # channel so we should only be at bash or the main CLI prompt.
+        if start_prompt is None:
+            start_prompt = self.CLI_START_PROMPT
+        self.channel.start(start_prompt)
 
     def _initialize_cli_over_ssh(self):
         """
@@ -110,21 +128,24 @@ class CLI(object):
         # Create ssh channel and start channel
         self.channel = SSHChannel(self._transport, self._terminal)
 
-        # Wait for a prompt, try and figure out where we are.  It's a new
-        # channel so we should only be at bash or the main CLI prompt.
-        self.channel.expect(self.CLI_START_PROMPT)
-
     def _initialize_cli_over_telnet(self):
         """
         Create and inititalize telnet channel. It assume telnet to either
         shell or cli. Start cli if telneted to shell.
         """
-
         # Create telnet channel
         self.channel = TelnetChannel(self._host, self._user, self._password)
 
-        # Start and Wait for a prompt, try and figure out where we are.
-        self.channel.start(self.CLI_START_PROMPT)
+    def _initialize_cli_over_libvirt(self):
+        """
+        Create and inititalize libvirt channel. Same general logic as telnet.
+        """
+
+        # Create libvirt channel.  self._channel_args should contain
+        # a 'domain_name' argument.
+        self.channel = LibVirtChannel(user=self._user,
+                                      password=self._password,
+                                      **self._channel_args)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """

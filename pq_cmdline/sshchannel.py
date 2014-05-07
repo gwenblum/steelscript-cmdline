@@ -12,6 +12,10 @@ import paramiko
 from pq_cmdline.channel import Channel
 from pq_cmdline import exceptions
 
+DEFAULT_TERM_WIDTH = 80
+DEFAULT_TERM_HEIGHT = 24
+DEFAULT_EXPECT_TIMEOUT = 60
+
 
 class SSHChannel(Channel):
     """
@@ -22,7 +26,8 @@ class SSHChannel(Channel):
     # Note that for the ^, Python won't accept [^] as a valid regex?
     BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
 
-    def __init__(self, sshprocess, term='console', width=80, height=24):
+    def __init__(self, sshprocess, term='console',
+                 width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT):
         """
         Create a new SSHChannel object from a SSHProcess object.
 
@@ -41,18 +46,11 @@ class SSHChannel(Channel):
         self.sshprocess = sshprocess
         self._host = self.sshprocess._host
 
-        if not sshprocess.is_connected():
-            sshprocess.connect()
-
         self._term = term
         self._term_width = width
         self._term_height = height
 
-        # Start channel
-        self.channel = \
-            self.sshprocess.open_interactive_channel(term, width, height)
-
-        logging.info('Interactive channel to "%s" started' % self._host)
+        self.channel = None
 
     def _verify_connected(self):
         """
@@ -69,6 +67,33 @@ class SSHChannel(Channel):
         if not self.sshprocess.is_connected():
             raise exceptions.ConnectionError(
                 context='Host SSH shell has been disconnected')
+
+    def start(self, match_res=None, timeout=DEFAULT_EXPECT_TIMEOUT):
+        """
+        Start an interactive ssh session and logs in.
+
+        :param match_res: Pattern(s) of prompts to look for.
+                          May be a single regex string, or a list of them.
+        :param timeout: maximum time, in seconds, to wait for a regular
+                        expression match. 0 to wait forever.
+        :return: Python re.MatchObject containing data on what was matched.
+        """
+        if not match_res:
+            match_res = [self.BASH_PROMPT]
+        elif not isinstance(match_res, list) or isinstance(match_res, tuple):
+            match_res = [match_res, ]
+
+        if not self.sshprocess.is_connected():
+            # sshprocess.connect() handles the authentication / login.
+            self.sshprocess.connect()
+
+        # Start channel
+        self.channel = self.sshprocess.open_interactive_channel(
+            self._term, self._term_width, self._term_height)
+
+        logging.info('Interactive channel to "%s" started' % self._host)
+
+        return self.expect(match_res)[1]
 
     def receive_all(self):
         """
@@ -125,7 +150,7 @@ class SSHChannel(Channel):
                 raise exceptions.ConnectionError(context='Channel is closed')
             bytes_sent += bytes_sent_this_time
 
-    def expect(self, match_res, timeout=60):
+    def expect(self, match_res, timeout=DEFAULT_EXPECT_TIMEOUT):
         """
         Waits for some text to be received that matches one or more regex
         patterns.

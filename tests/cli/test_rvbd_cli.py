@@ -59,23 +59,14 @@ def test_members_intialize_correctly(any_cli):
     assert any_cli._transport_type == TRANSPORT_SSH
 
 
-def test_start_raises_for_unknown_transport(any_cli):
-    any_cli._transport_type = TRANSPORT_UNKNOWN
-    with pytest.raises(NotImplementedError):
+def test_start_calls_correct_methods(any_cli):
+    with patch('pq_cmdline.cli.SSHChannel') as channel:
+        channel._verify_connect = MagicMock(name='method')
+        any_cli._run_cli_from_shell = MagicMock(name='method')
+        any_cli._disable_paging = MagicMock(name='method')
         any_cli.start()
-
-
-def test_start_initialize_telnet(any_cli):
-    any_cli._transport_type = TRANSPORT_TELNET
-    any_cli._initialize_cli_over_telnet = MagicMock(name='method')
-    any_cli.start()
-    assert any_cli._initialize_cli_over_telnet.called
-
-
-def test_start_initialize_ssh(any_cli):
-    any_cli._initialize_cli_over_ssh = MagicMock(name='method')
-    any_cli.start()
-    assert any_cli._initialize_cli_over_ssh.called
+        assert any_cli._run_cli_from_shell.called
+        assert any_cli._disable_paging.called
 
 
 def test_context_manger_enter_calls_start(any_cli):

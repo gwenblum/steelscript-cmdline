@@ -26,10 +26,13 @@ class RVBD_CLI(CLI):
 
     # Regexes for the different prompts.  Prompt start is hard - sometimes
     # there are ansi escape codes at the start, can't get them to shut off.
-    NAME_PREFIX_RE =\
-        '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+)'
+    ANSI_PREFIX_RE = '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?'
+    NAME_PREFIX_RE = '%s(?P<name>[a-zA-Z0-9_\-.:]+)' % ANSI_PREFIX_RE
 
     CLI_SHELL_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
+
+    # Amnesiac mode is how the CLI appears early on during isntalls.
+    CLI_AMNESIAC_PROMPT = '%samnesiac#' % ANSI_PREFIX_RE
     CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ' >'
     CLI_ENABLE_PROMPT = NAME_PREFIX_RE + ' #'
     CLI_CONF_PROMPT = NAME_PREFIX_RE + ' \(config\) #'
@@ -43,34 +46,16 @@ class RVBD_CLI(CLI):
     CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
     CLI_ERROR_PROMPT = '^%'
 
-    def start(self):
+    def start(self, start_prompt=None):
         """
         Initialize the underlying channel, disable paging
         """
-        super(RVBD_CLI, self).start()
+        super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
+        # Start cli if log into shell
+        self._run_cli_from_shell()
         # disable paging
         self._disable_paging()
-
-    def _initialize_cli_over_ssh(self):
-        """
-        Initialize underlying ssh transport and ssh channel. It expect ssh to
-        shell or cli. Start cli if ssh-ed to shell.
-        """
-        super(RVBD_CLI, self)._initialize_cli_over_ssh()
-
-        # Start cli if log into shell
-        self._run_cli_from_shell()
-
-    def _initialize_cli_over_telnet(self):
-        """
-        Create and inititalize telnet channel. It assume telnet to either
-        shell or cli. Start cli if telneted to shell.
-        """
-        super(RVBD_CLI, self)._initialize_cli_over_ssh()
-
-        # Start cli if log into shell
-        self._run_cli_from_shell()
 
     def _run_cli_from_shell(self):
         """

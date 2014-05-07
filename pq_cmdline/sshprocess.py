@@ -32,25 +32,25 @@ class SSHProcess(Transport):
         :param password: password to log in with
         """
 
-        ## Hostname shell connects to
+        # Hostname shell connects to
         self._host = host
 
-        ## Username shell connects with
+        # Username shell connects with
         self._user = user
 
-        ## Password shell connects with
+        # Password shell connects with
         self._password = password
 
-        ## paramiko.Transport object, the actual SSH engine.
+        # paramiko.Transport object, the actual SSH engine.
         # http://www.lag.net/paramiko/docs/
         self.transport = None
 
-        ## Logging module
+        # Logging module
         self._log = logging.getLogger(__name__)
 
     def connect(self):
         """
-        Connects to the host.
+        Connects to the host and logs in.
 
         :raises ConnectionError: on error
         """

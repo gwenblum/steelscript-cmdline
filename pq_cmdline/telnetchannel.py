@@ -64,7 +64,7 @@ class TelnetChannel(Channel):
 
         if not match_res:
             match_res = [self.BASH_PROMPT]
-        elif not isinstance(match_res, list):
+        elif not isinstance(match_res, list) or isinstance(match_res, tuple):
             match_res = [match_res, ]
 
         # Start channel
@@ -111,7 +111,7 @@ class TelnetChannel(Channel):
                                             failed_match=match_res)
         elif index in (0, 1):
             logging.info("Login failed, still waiting for %s prompt",
-                           ('username' if index == 0 else 'password'))
+                         ('username' if index == 0 else 'password'))
             raise exceptions.CmdlineTimeout(
                 timeout=timeout,
                 failed_match=reg_with_login_prompts[index])

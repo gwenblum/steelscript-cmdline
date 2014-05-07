@@ -5,17 +5,23 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import pytest
-from mock import Mock, MagicMock
+from mock import Mock, MagicMock, patch
 
 from pq_cmdline.cli import CLI
 from pq_cmdline import exceptions
+from pq_cmdline.sshprocess import SSHProcess
+from pq_cmdline.sshchannel import SSHChannel
+from pq_cmdline.telnetchannel import TelnetChannel
+from pq_cmdline.libvirtchannel import LibVirtChannel
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
 ANY_PASSWORD = 'password1'
 ANY_TERMINAL = 'console'
+ANY_DOMAIN = 'sh1domain'
 TRANSPORT_SSH = 'ssh'
 TRANSPORT_TELNET = 'telnet'
+TRANSPORT_LIBVIRT = 'libvirt'
 TRANSPORT_UNKNOWN = 'any unknown type'
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'
@@ -28,7 +34,6 @@ ANY_TIMEOUT = 120
 @pytest.fixture
 def any_cli():
     cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
-    cli.channel = Mock()
     return cli
 
 
@@ -47,7 +52,7 @@ def prompt_match():
     return fake_match
 
 
-def test_members_intialize_correctly(any_cli):
+def test_members_initialize_correctly(any_cli):
     assert any_cli._host == ANY_HOST
     assert any_cli._user == ANY_USER
     assert any_cli._password == ANY_PASSWORD
@@ -61,17 +66,32 @@ def test_start_raises_for_unknown_transport(any_cli):
         any_cli.start()
 
 
-def test_start_initialize_telnet(any_cli):
-    any_cli._transport_type = TRANSPORT_TELNET
-    any_cli._initialize_cli_over_telnet = MagicMock(name='method')
-    any_cli.start()
-    assert any_cli._initialize_cli_over_telnet.called
+def test_start_initialize_ssh(any_cli, prompt_match):
+    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
+    with patch('pq_cmdline.cli.SSHChannel.__new__') as channel_new, \
+            patch('pq_cmdline.cli.SSHProcess.__new__') as process_new:
+        cli.start()
+        process_new.assert_called_with(SSHProcess, ANY_HOST,
+                                       ANY_USER, ANY_PASSWORD)
+        channel_new.assert_called_with(SSHChannel, cli._transport,
+                                       ANY_TERMINAL)
 
 
-def test_start_initialize_ssh(any_cli):
-    any_cli._initialize_cli_over_ssh = MagicMock(name='method')
-    any_cli.start()
-    assert any_cli._initialize_cli_over_ssh.called
+def test_start_initialize_telnet():
+    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_TELNET)
+    with patch('pq_cmdline.cli.TelnetChannel.__new__') as t:
+        cli.start()
+        t.assert_called_with(TelnetChannel, ANY_HOST, ANY_USER, ANY_PASSWORD)
+
+
+def test_start_initialize_libvirt():
+    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
+              TRANSPORT_LIBVIRT, domain_name=ANY_DOMAIN)
+    with patch('pq_cmdline.cli.LibVirtChannel.__new__') as channel_new:
+        cli.start()
+        channel_new.assert_called_with(LibVirtChannel, user=ANY_USER,
+                                       password=ANY_PASSWORD,
+                                       domain_name=ANY_DOMAIN)
 
 
 def test_context_manger_enter_calls_start(any_cli):
