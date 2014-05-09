@@ -122,7 +122,8 @@ class LibVirtChannel(channel.Channel):
         logging.debug("Send an empty line to refresh the prompt.")
         # Clear the input buffer
         self.send(b'%s%s' % (DELETE_LINE, ENTER_LINE))
-        (match, output) = self.expect(prompt_list, timeout=timeout)
+        (output, match) = self.expect(prompt_list, timeout=timeout)
+        logging.error((output, match))
 
         # If we did not get a username or password prompt, we are logged in
         if match.re.pattern not in [LOGIN_PROMPT, PASSWORD_PROMPT]:
@@ -164,10 +165,10 @@ class LibVirtChannel(channel.Channel):
 
         # Now do the login.
         self.send('%s%s' % (self._username, ENTER_LINE))
-        (match, output) = self.expect([PASSWORD_PROMPT, ROOT_PROMPT])
+        (output, match) = self.expect([PASSWORD_PROMPT, ROOT_PROMPT])
         if match.re.pattern == PASSWORD_PROMPT:
             self.send('%s%s' % (self._password, ENTER_LINE))
-            (match, output) = self.expect(logged_in_res)
+            (output, match) = self.expect(logged_in_res)
         self._console_logged_in = True
         return match
 
@@ -186,7 +187,6 @@ class LibVirtChannel(channel.Channel):
 
         self._stream.recvAll(handler, None)
         return received[0]
-
 
     def send(self, text_to_send):
         """

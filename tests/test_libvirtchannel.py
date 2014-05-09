@@ -63,8 +63,8 @@ def logged_in_channel(connected_channel):
 def login_prompt_channel(connected_channel):
     connected_channel._check_console_mode = mock.Mock(return_value=MATCH_LOGIN)
     connected_channel.expect = mock.Mock(side_effect=(
-        (MATCH_PASSWORD, ''),
-        (MATCH_ROOT, ''),
+        ('', MATCH_PASSWORD),
+        ('', MATCH_ROOT),
     ))
     return connected_channel
 
@@ -73,7 +73,7 @@ def login_prompt_channel(connected_channel):
 def login_no_password_channel(connected_channel):
     connected_channel._check_console_mode = mock.Mock(return_value=MATCH_LOGIN)
     connected_channel.expect = mock.Mock(side_effect=(
-        (MATCH_ROOT, ''),
+        ('', MATCH_ROOT),
     ))
     return connected_channel
 
@@ -85,9 +85,9 @@ def password_prompt_channel(connected_channel):
     # We expect to kick off the current session and start the login process
     # again, so there's a MATCH_LOGIN to start with here.
     connected_channel.expect = mock.Mock(side_effect=(
-        (MATCH_LOGIN, ''),
-        (MATCH_PASSWORD, ''),
-        (MATCH_ROOT, ''),
+        ('', MATCH_LOGIN),
+        ('', MATCH_PASSWORD),
+        ('', MATCH_ROOT),
     ))
     return connected_channel
 
@@ -99,9 +99,9 @@ def initial_timeout_channel(connected_channel):
             timeout=libvirtchannel.DEFAULT_EXPECT_TIMEOUT))
     # We expect to restart the login prompt matching process after a timeout.
     connected_channel.expect = mock.Mock(side_effect=(
-        (MATCH_LOGIN, ''),
-        (MATCH_PASSWORD, ''),
-        (MATCH_ROOT, ''),
+        ('', MATCH_LOGIN),
+        ('', MATCH_PASSWORD),
+        ('', MATCH_ROOT),
     ))
     return connected_channel
 
@@ -130,7 +130,7 @@ def bad_username_channel(connected_channel):
 def bad_password_channel(connected_channel):
     connected_channel._check_console_mode = mock.Mock(return_value=MATCH_LOGIN)
     connected_channel.expect = mock.Mock(side_effect=(
-        (MATCH_PASSWORD, ''),
+        ('', MATCH_PASSWORD),
         exceptions.CmdlineTimeout(
             timeout=libvirtchannel.DEFAULT_EXPECT_TIMEOUT),
     ))
@@ -180,7 +180,7 @@ def test_connected(connected_channel):
 def test_check_console_mode_not_logged_in(any_libvirt_channel):
     any_libvirt_channel.send = mock.Mock()
     any_libvirt_channel.expect = mock.Mock()
-    any_libvirt_channel.expect.return_value = (MATCH_LOGIN, '')
+    any_libvirt_channel.expect.return_value = ('', MATCH_LOGIN)
     prompt_list = [libvirtchannel.LOGIN_PROMPT,
                    libvirtchannel.PASSWORD_PROMPT,
                    ANY_PROMPT_RE[0]]
@@ -200,7 +200,7 @@ def test_check_console_mode_already_logged_in(any_libvirt_channel):
     any_libvirt_channel.send = mock.Mock()
     any_libvirt_channel.expect = mock.Mock()
     m = re.search(ANY_PROMPT_RE[0], ANY_PROMPT_MATCHED)
-    any_libvirt_channel.expect.return_value = (m, '')
+    any_libvirt_channel.expect.return_value = ('', m)
 
     any_libvirt_channel._check_console_mode(ANY_PROMPT_RE, ANY_TIMEOUT)
 
@@ -298,13 +298,6 @@ def test_expect_raises_if_not_match_before_timeout(any_libvirt_channel):
 
 
 def test_expect_returns_on_success(any_libvirt_channel):
-    # any_libvirt_channel._verify_connected = MagicMock(name='method')
-    # mock_match = mock.Mock()
-    # mock_match.start.return_value = len(ANY_DATA_RECEIVED)
-    # mock_match.end.return_value =\
-        # len(ANY_DATA_RECEIVED) + len(ANY_PROMPT_MATCHED)
-    # raw_data = ANY_DATA_RECEIVED + ANY_PROMPT_MATCHED
-
     # Side effect returns elements of an iterable one call at a time,
     # and strings are iterable.  So this wil return one character at a time.
     any_libvirt_channel._stream = mock.Mock()
