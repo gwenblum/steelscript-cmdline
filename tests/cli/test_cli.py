@@ -58,6 +58,7 @@ def test_members_initialize_correctly(any_cli):
     assert any_cli._password == ANY_PASSWORD
     assert any_cli._terminal == ANY_TERMINAL
     assert any_cli._transport_type == TRANSPORT_SSH
+    assert any_cli.channel is None
 
 
 def test_start_raises_for_unknown_transport(any_cli):

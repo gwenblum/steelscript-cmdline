@@ -79,6 +79,8 @@ class CLI(object):
         self._channel_args = channel_args
         self._log = logging.getLogger(__name__)
 
+        self.channel = None
+
     def __enter__(self):
         self.start()
         return self
