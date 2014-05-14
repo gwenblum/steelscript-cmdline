@@ -32,25 +32,24 @@ class Shell(object):
         :param password: password to log in with
         """
 
-        ## Hostname shell connects to
+        # Hostname shell connects to
         self._host = host
 
-        ## Username shell connects with
+        # Username shell connects with
         self._user = user
 
-        ## Password shell connects with
+        # Password shell connects with
         self._password = password
 
         # Initialize underlying sshprocess, but do not connect automatically.
         # http://www.lag.net/paramiko/docs/
         self.sshprocess = SSHProcess(host=host, user=user, password=password)
 
-        ## Logging module
-        self._log = logging.getLogger(__name__)
-
-    def exec_command(self, command, timeout=60, expect_output=None,
-                     expect_error=False, exit_info=None, retry_count=3,
-                     retry_delay=5):
+    def exec_command(self, command, timeout=60, output_expected=None,
+                     error_expected=False, exit_info=None, retry_count=3,
+                     retry_delay=5,
+                     # Deprecated parameters.
+                     expect_output=None, expect_error=None):
         """Executes the given command statelessly.
 
         Since this is stateless, an exec_command cannot use environment
@@ -64,13 +63,18 @@ class Shell(object):
         :param expect_output: If not None, indicates whether output is
             expected (True) or no output is expected (False).
             If the opposite occurs, raise UnexpectedOutput. Default is None.
-        :type expect_output: bool or None
-        :param expect_error: If True, do not raise ShellError on a nonzero
-            exit status.  Default is False
-        :type expect_error: bool
+        :param output_expected: If not None, indicates whether output is
+            expected (True) or no output is expected (False).
+            If the opposite occurs, raise UnexpectedOutput. Default is None.
+        :type output_expected: bool or None
+        :param error_expected: If true, a nonzero exit status will **not**
+            trigger an exception as it normally would.
+            Default is False, and error_expected always
+            overrides output_expected.
+        :type error_expected: bool
         :param exit_info: If set to a dict, the exit status is added to
             the dictionary under the key 'status'.  Primarily used in
-            conjunction with ``expect_error`` when multiple nonzero statuses
+            conjunction with ``error_expected`` when multiple nonzero statuses
             are possible.
         :type exit_info: dict or None
         :param retry_count: the number of tries to reconnect if underlying
@@ -89,7 +93,16 @@ class Shell(object):
         :return: output from the command
         """
 
-        self._log.debug('Executing command "%s"' % command)
+        logging.debug('Executing command "%s"' % command)
+
+        if expect_output is not None:
+            logging.error("The 'expect_output' parameter is deprecated. "
+                          "Use 'output_expected")
+            output_expected = expect_output
+        if expect_error is not None:
+            logging.error("The 'expect_error' parameter is deprecated. "
+                          "Use 'error_expected'")
+            error_expected = expect_error
 
         # connect if ssh is not connected
         if (not self.sshprocess.is_connected()):
@@ -105,15 +118,15 @@ class Shell(object):
             exit_info['status'] = exit_status
 
         # If the command failed and the user wants an exception, do it!
-        if exit_status != 0 and not expect_error:
+        if exit_status != 0 and not error_expected:
             raise exceptions.ShellError(command=command,
                                         output=output,
                                         exit_status=exit_status)
-        if ((expect_output is not None) and (bool(output) !=
-                                             bool(expect_output))):
+        if ((output_expected is not None) and (bool(output) !=
+                                               bool(output_expected))):
             raise exceptions.UnexpectedOutput(command=command,
                                               output=output,
-                                              expected_output=expect_output)
+                                              expected_output=output_expected)
         return output
 
     def _exec_paramiko_command(self, command, timeout, retry_count,
@@ -125,7 +138,7 @@ class Shell(object):
                 re_raise(exceptions.ConnectionError)
 
             # Reconnect and try again
-            self._log.info("connection seems broken, reconnect...")
+            logging.info("connection seems broken, reconnect...")
             self._reconnect(retry_count=retry_count, retry_delay=retry_delay)
             channel = self.sshprocess.transport.open_session()
 
@@ -146,10 +159,10 @@ class Shell(object):
             if not self.sshprocess.is_connected():
                 # TODO: re_raise not compatabile with passing kwargs
                 # re_raise(SshError, "Not connected to %s" % self._host)
-                self._log.info("Not connected to %s", self._host)
+                logging.info("Not connected to %s", self._host)
                 re_raise(exceptions.ConnectionError)
             else:
-                self._log.debug(
+                logging.debug(
                     'Ignore Paramiko SSHException due to 1.7.5 bug')
 
         chan_closed = False
@@ -218,7 +231,7 @@ class Shell(object):
                 self.sshprocess.connect()
                 return
             except exceptions.ConnectionError:
-                self._log.info("sleep %d second and retry..." % retry_delay)
+                logging.info("sleep %d second and retry..." % retry_delay)
                 time.sleep(retry_delay)
 
         raise exceptions.ConnectionError("Failed to connect after "

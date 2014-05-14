@@ -68,10 +68,10 @@ def test_exec_command_raises_on_nonzero_exit(shell_mock_output):
         shell_mock_output.exec_command(ANY_COMMAND)
 
 
-def test_exec_command_error_output_on_expect_error(shell_mock_output):
+def test_exec_command_error_output_on_error_expected(shell_mock_output):
     shell_mock_output._exec_paramiko_command.return_value = ANY_ERROR
     info = {}
-    output = shell_mock_output.exec_command(ANY_COMMAND, expect_error=True,
+    output = shell_mock_output.exec_command(ANY_COMMAND, error_expected=True,
                                             exit_info=info)
     assert output == ANY_ERROR[0]
     assert info['status'] == ANY_ERROR[1]
@@ -80,10 +80,10 @@ def test_exec_command_error_output_on_expect_error(shell_mock_output):
 def test_exec_command_unexpected_output(shell_mock_output):
     shell_mock_output._exec_paramiko_command.return_value = ANY_OUTPUT
     with pytest.raises(exceptions.UnexpectedOutput):
-        shell_mock_output.exec_command(ANY_COMMAND, expect_output=False)
+        shell_mock_output.exec_command(ANY_COMMAND, output_expected=False)
 
 
 def test_exec_command_unexpected_non_output(shell_mock_output):
     shell_mock_output._exec_paramiko_command.return_value = NO_OUTPUT
     with pytest.raises(exceptions.UnexpectedOutput):
-        shell_mock_output.exec_command(ANY_COMMAND, expect_output=True)
+        shell_mock_output.exec_command(ANY_COMMAND, output_expected=True)
