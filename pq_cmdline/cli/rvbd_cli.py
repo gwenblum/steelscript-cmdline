@@ -46,16 +46,25 @@ class RVBD_CLI(CLI):
     CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
     CLI_ERROR_PROMPT = '^%'
 
-    def start(self, start_prompt=None):
+    def start(self, start_prompt=None, run_cli=True):
         """
         Initialize the underlying channel, disable paging
+
+        :param start_prompt: Allows overriding the standard initial
+            match for any reasonable CLI prompt to expect a specific
+            mode or handle an unusual situation such as the install wizard.
+        :param run_cli: If True (the default), automatically launch
+            the cli and disable paging.  This can be set to false
+            to handle situations such as installation where the cli
+            is lauched differently.
         """
         super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
-        # Start cli if log into shell
-        self._run_cli_from_shell()
-        # disable paging
-        self._disable_paging()
+        if run_cli:
+            # Start cli if log into shell
+            self._run_cli_from_shell()
+            # disable paging
+            self._disable_paging()
 
     def _run_cli_from_shell(self):
         """
@@ -224,7 +233,7 @@ class RVBD_CLI(CLI):
             self._log.info('Already at Config, doing nothing')
 
     def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
-                     output_expected=None, error_expected=False):
+                     output_expected=None, error_expected=False, prompt=None):
         """Executes the given command.
 
         This method handles detecting simple boolean conditions such as
@@ -245,6 +254,10 @@ class RVBD_CLI(CLI):
             raising a CLIError.  Default is False, and error_expected always
             overrides output_expected.
         :type error_expected: bool
+        :param prompt: Prompt regex for matching unusual promtps.  This should
+            almost never be used as the ``mode`` parameter automatically
+            hanldes all typical cases.  This parameter is for unusual
+            situations like the install config wizard.
 
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
@@ -264,13 +277,16 @@ class RVBD_CLI(CLI):
 
         self._log.debug('Executing cmd "%s"' % command)
 
+        if prompt is None:
+            prompt = self.CLI_ANY_PROMPT
         (output, match_res) = self._send_line_and_wait(command,
-                                                       self.CLI_ANY_PROMPT,
+                                                       prompt,
                                                        timeout=timeout)
 
-        # CLI adds on escape chars and such sometimes (see bug 75081), so to
-        # remove the command we just send from the output, split the output
-        # into lines, then rejoin it with the first line removed.
+        # CLI adds on escape chars and such sometimes (see bug 75081), and
+        # the result is that some part of the command that was entered
+        # shows up as an extra inital line of output.  Strip off that
+        # initial line.
         output = '\n'.join(output.splitlines()[1:])
 
         if output and (re.match(self.CLI_ERROR_PROMPT, output)):

@@ -97,7 +97,6 @@ class CLI(object):
         :param start_prompt: A non-default prompt to match, if any.
         :type start_prompt: regex pattern
         """
-        logging.error(self._transport_type)
         if self._transport_type == 'ssh':
             self._initialize_cli_over_ssh()
         elif self._transport_type == 'telnet':

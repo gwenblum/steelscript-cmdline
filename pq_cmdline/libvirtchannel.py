@@ -123,7 +123,6 @@ class LibVirtChannel(channel.Channel):
         # Clear the input buffer
         self.send(b'%s%s' % (DELETE_LINE, ENTER_LINE))
         (output, match) = self.expect(prompt_list, timeout=timeout)
-        logging.error((output, match))
 
         # If we did not get a username or password prompt, we are logged in
         if match.re.pattern not in [LOGIN_PROMPT, PASSWORD_PROMPT]:
