@@ -41,3 +41,6 @@ output/*/index.html
 
 # Sphinx
 docs/_build
+
+# auto_api_summary
+docs/_apidoc

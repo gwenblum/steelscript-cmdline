@@ -9,7 +9,7 @@ help:
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 
-clean: clean-build clean-pyc
+clean: clean-build clean-pyc clean-docs
 
 clean-build:
 	rm -fr build/
@@ -20,6 +20,9 @@ clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
+
+clean-docs:
+	$(MAKE) -C docs clean
 
 lint:
 	flake8 pq_cmdline tests
@@ -36,8 +39,5 @@ coverage:
 	coverage html
 
 docs:
-	rm -f docs/pq_cmdline.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ pq_cmdline
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
