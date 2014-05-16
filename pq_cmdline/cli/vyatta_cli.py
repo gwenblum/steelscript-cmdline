@@ -60,6 +60,7 @@ class VyattaCli(CLI):
             raise NotImplementedError(
                 "Unsupported transport type %s" % self._transport_type)
 
+        self.channel.start(self.CLI_START_PROMPT)
         # Disable paging
         self._disable_paging()
 
