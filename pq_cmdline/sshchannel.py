@@ -294,3 +294,4 @@ class SSHChannel(Channel):
                     '\n'.join(new_lines[:line_num]) + \
                     new_lines[line_num][:match.start()]
                 return output, match
+        return None, None
