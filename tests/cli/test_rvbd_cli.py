@@ -63,9 +63,11 @@ def test_start_calls_correct_methods(any_cli):
     with patch('pq_cmdline.cli.SSHChannel') as channel:
         channel._verify_connect = MagicMock(name='method')
         any_cli._run_cli_from_shell = MagicMock(name='method')
+        any_cli.enter_mode_normal = MagicMock(name='method')
         any_cli._disable_paging = MagicMock(name='method')
         any_cli.start()
         assert any_cli._run_cli_from_shell.called
+        assert any_cli.enter_mode_normal.called
         assert any_cli._disable_paging.called
 
 

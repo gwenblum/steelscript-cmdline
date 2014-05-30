@@ -56,13 +56,17 @@ class RVBD_CLI(CLI):
         :param run_cli: If True (the default), automatically launch
             the cli and disable paging.  This can be set to false
             to handle situations such as installation where the cli
-            is lauched differently.
+            is lauched differently.  The CLI will be running in normal mode.
         """
         super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
         if run_cli:
             # Start cli if log into shell
             self._run_cli_from_shell()
+
+            # Make sure we're in a known mode
+            self.enter_mode_normal()
+
             # disable paging
             self._disable_paging()
 
