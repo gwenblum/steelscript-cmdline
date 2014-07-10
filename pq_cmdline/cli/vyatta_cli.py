@@ -56,6 +56,8 @@ class VyattaCli(CLI):
         """
         if self._transport_type == 'ssh':
             self._initialize_cli_over_ssh()
+        elif self._transport_type == 'libvirt':
+            self._initialize_cli_over_libvirt()
         else:
             raise NotImplementedError(
                 "Unsupported transport type %s" % self._transport_type)
