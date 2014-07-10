@@ -44,8 +44,9 @@ class CLI(object):
     # match prompt patterns, without having a check for hostname
     # there is a possiblity there might be false positives
 
-    # catch-all regex for generic CLI
-    CLI_START_PROMPT = '(^|\n|\r)(\S+)(#|\$|>|~)(\s)?$'
+    # catch-all regex for generic CLI, including following prompts:
+    #   [root@vsh1 ~]#
+    CLI_START_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#|\$|>|~)(\s)?$'
     CLI_ANY_PROMPT = CLI_START_PROMPT
 
     def __init__(self, host, user='admin', password='', terminal='console',
