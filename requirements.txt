@@ -1,4 +1,5 @@
 -i http://pypibox.lab.nbttech.com/pq/development/
+--extra-index-url=http://pypibox/flyscript/development/
 
 # External dependencies
 paramiko
@@ -9,3 +10,4 @@ testfixtures
 # Quicksilver dependencies
 pq-runtime
 pq-libvirt
+sleepwalker

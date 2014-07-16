@@ -13,10 +13,6 @@ from pq_runtime.exceptions import re_raise
 from pq_cmdline import exceptions
 from pq_cmdline.channel import Channel
 
-LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
-PASSWORD_PROMPT = b'(^|\n|\r)(P|p)assword: '
-ENTER_LINE = b'\r'
-
 
 class PQTelnet(telnetlib.Telnet):
     def msg(self, msg, *args):
@@ -30,6 +26,10 @@ class TelnetChannel(Channel):
     Class represents a telnet channel, a two-way channel that allows send
     and receive data.
     """
+
+    LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
+    PASSWORD_PROMPT = b'(^|\n|\r)(P|p)assword: '
+    ENTER_LINE = b'\r'
 
     BASH_PROMPT = '\[\S+ \S+\]#\s*$'
 
@@ -89,8 +89,8 @@ class TelnetChannel(Channel):
         # Add login prompt and password prompt so that we can detect
         # what require for login
         reg_with_login_prompts = match_res
-        reg_with_login_prompts.insert(0, PASSWORD_PROMPT)
-        reg_with_login_prompts.insert(0, LOGIN_PROMPT)
+        reg_with_login_prompts.insert(0, self.PASSWORD_PROMPT)
+        reg_with_login_prompts.insert(0, self.LOGIN_PROMPT)
 
         (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                    timeout)
@@ -98,13 +98,13 @@ class TelnetChannel(Channel):
         if index == 0:
             # username is required for login
             logging.debug("Sending login user ...")
-            self.channel.write(self._user + ENTER_LINE)
+            self.channel.write(self._user + self.ENTER_LINE)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         if index == 1:
             # password is required for login
             logging.debug("Sending password ...")
-            self.channel.write(self._password + ENTER_LINE)
+            self.channel.write(self._password + self.ENTER_LINE)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         # At this point, we should already loged in; raises exceptions if not
