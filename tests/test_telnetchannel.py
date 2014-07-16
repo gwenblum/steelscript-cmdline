@@ -121,7 +121,6 @@ def test_receive_all_calls_appropriate_methods(any_telnet_channel):
     any_telnet_channel._verify_connected = MagicMock(name='method')
     any_telnet_channel.channel = Mock()
     any_telnet_channel.receive_all()
-    assert any_telnet_channel._verify_connected.called
     assert any_telnet_channel.channel.read_very_eager.called
 
 
@@ -129,7 +128,6 @@ def test_send_calls_appropriate_methods(any_telnet_channel):
     any_telnet_channel._verify_connected = MagicMock(name='method')
     any_telnet_channel.channel = Mock()
     any_telnet_channel.send(ANY_TEXT_TO_SEND)
-    assert any_telnet_channel._verify_connected.called
     any_telnet_channel.channel.write.assert_called_with(ANY_TEXT_TO_SEND)
 
 

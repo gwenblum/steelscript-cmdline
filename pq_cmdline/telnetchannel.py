@@ -33,13 +33,14 @@ class TelnetChannel(Channel):
 
     BASH_PROMPT = '\[\S+ \S+\]#\s*$'
 
-    def __init__(self, host, user='root', password=''):
+    def __init__(self, host, user='root', password='', port=23):
         """
         Create a Telnet Channel object.
 
         :param host: host/ip to telnet into
         :param user: username to log in with
         :param password: password to log in with
+        :param port: telnet port, defaults to 23
         """
 
         # Hostname to connects
@@ -47,6 +48,7 @@ class TelnetChannel(Channel):
 
         self._user = user
         self._password = password
+        self._port = port
 
         # PQTelnet
         self.channel = None
@@ -68,7 +70,7 @@ class TelnetChannel(Channel):
             match_res = [match_res, ]
 
         # Start channel
-        self.channel = PQTelnet(self._host)
+        self.channel = PQTelnet(self._host, self._port)
 
         return self._handle_init_login(match_res, timeout)
 
@@ -141,7 +143,7 @@ class TelnetChannel(Channel):
             logging.info('Host SSH shell has been disconnected')
             re_raise(exceptions.ConnectionError)
 
-    def receive_all(self):
+    def receive_all(self, max_tries=3):
         """
         Returns all text currently in the receive buffer, effectively flushing
         it.
@@ -149,10 +151,7 @@ class TelnetChannel(Channel):
         :return: the text that was present in the receive queue, if any.
         """
 
-        self._verify_connected()
-
         logging.debug('Receiving all data')
-
         return self.channel.read_very_eager()
 
     def send(self, text_to_send):
@@ -169,7 +168,9 @@ class TelnetChannel(Channel):
         # literals.
         text_to_send = text_to_send.encode('ascii')
 
-        self._verify_connected()
+        # This is commented out because our PowerShellHost does not
+        # understand telnet.NOP, tracked by bug 193702
+        # self._verify_connected()
 
         logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
         self.channel.write(text_to_send)
