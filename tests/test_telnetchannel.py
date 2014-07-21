@@ -5,9 +5,9 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import pytest
-from mock import (Mock, MagicMock, patch)
+from mock import Mock, MagicMock, patch
 
-from pq_cmdline.telnetchannel import (TelnetChannel, ENTER_LINE)
+from pq_cmdline.telnetchannel import TelnetChannel
 from pq_cmdline import exceptions
 
 ANY_HOST = 'my-sh1'
@@ -55,7 +55,7 @@ def test_handle_init_login_when_ask_user_only(any_telnet_channel):
     mock_match = Mock()
     mock_channel.expect.side_effect = [(0, '', ''), (2, mock_match, '')]
     match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
-    LOGIN_CMD = ANY_USERNAME + ENTER_LINE
+    LOGIN_CMD = ANY_USERNAME + any_telnet_channel.ENTER_LINE
     mock_channel.write.assert_called_with(LOGIN_CMD)
     assert match == mock_match
 
@@ -66,7 +66,7 @@ def test_handle_init_login_when_ask_password_only(any_telnet_channel):
     mock_match = Mock()
     mock_channel.expect.side_effect = [(1, '', ''), (2, mock_match, '')]
     match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
-    PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
+    PASSWORD_CMD = ANY_PASSWORD + any_telnet_channel.ENTER_LINE
     mock_channel.write.assert_called_with(PASSWORD_CMD)
     assert match == mock_match
 
@@ -78,8 +78,8 @@ def test_handle_init_login_when_ask_user_and_password(any_telnet_channel):
     mock_channel.expect.side_effect = [(0, '', ''), (1, '', ''),
                                        (2, mock_match, '')]
     match = any_telnet_channel._handle_init_login(ANY_PROMPT_RE, ANY_TIMEOUT)
-    LOGIN_CMD = ANY_USERNAME + ENTER_LINE
-    PASSWORD_CMD = ANY_PASSWORD + ENTER_LINE
+    LOGIN_CMD = ANY_USERNAME + any_telnet_channel.ENTER_LINE
+    PASSWORD_CMD = ANY_PASSWORD + any_telnet_channel.ENTER_LINE
     mock_channel.write.assert_any_call(LOGIN_CMD)
     mock_channel.write.assert_called_with(PASSWORD_CMD)
     assert match == mock_match
