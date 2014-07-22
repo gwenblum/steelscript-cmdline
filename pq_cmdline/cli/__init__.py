@@ -1,4 +1,6 @@
-# Copyright 2013 Riverbed Technology, Inc.
+# -*- coding: utf-8 -*-
+
+# Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
 from __future__ import (absolute_import, unicode_literals, print_function,
@@ -38,19 +40,27 @@ class CLI(object):
     Vendor specific CLI's can inherit from this base class. This class by
     itself will try to work on a generic CLI if vendor specific class is not
     present.
+
+    CLI_ANY_PROMPT = A regex that includes prompts for ``#|\$|>|~`` suitable
+    for most Command line Interpreters.
+
+    CLI_ROOT_PROMPT = A regex that only has the prompt for ``#`` for use
+    with consoles to POSIX systems logged into root.
     """
 
     # Presently the CLI_START_PROMPT is a generic regex which will try to
     # match prompt patterns, without having a check for hostname
-    # there is a possiblity there might be false positives
+    # there is a possibility there might be false positives
 
     # catch-all regex for generic CLI, including following prompts:
     #   [root@vsh1 ~]#
     CLI_START_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#|\$|>|~)(\s)?$'
+    CLI_ROOT_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#)(\s)?$'
     CLI_ANY_PROMPT = CLI_START_PROMPT
 
     def __init__(self, host, user='admin', password='', terminal='console',
-                 transport_type='ssh', **channel_args):
+                 transport_type='ssh', prompt=None,
+                 **channel_args):
         """
         Create a new Cli Channel object.
 
@@ -64,6 +74,8 @@ class CLI(object):
         :type terminal: string
         :param transport_type: telnet or ssh, defaults to ssh
         :type transport_type: string
+        :param prompt: A prompt to match.  Defaults to :const:`CLI_ANY_PROMPT`
+        :type prompt: regex pattern
         :param channel_args: additional ``transport_type``-dependent
             arguments, passed blindly to the transport ``start`` method.
         :type channel_args: determined by the channel's constructor
@@ -79,6 +91,9 @@ class CLI(object):
         self._transport = None
         self._channel_args = channel_args
         self._log = logging.getLogger(__name__)
+        self._prompt = prompt
+        if self._prompt is None:
+            self._prompt = self.CLI_ANY_PROMPT
 
         self.channel = None
 
@@ -111,7 +126,7 @@ class CLI(object):
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
         if start_prompt is None:
-            start_prompt = self.CLI_START_PROMPT
+            start_prompt = self._prompt
         self.channel.start(start_prompt)
 
     def _initialize_cli_over_ssh(self):
@@ -132,7 +147,7 @@ class CLI(object):
 
     def _initialize_cli_over_telnet(self):
         """
-        Create and inititalize telnet channel. It assume telnet to either
+        Create and initialize telnet channel. It assume telnet to either
         shell or cli. Start cli if telneted to shell.
         """
         # Create telnet channel
@@ -140,7 +155,7 @@ class CLI(object):
 
     def _initialize_cli_over_libvirt(self):
         """
-        Create and inititalize libvirt channel. Same general logic as telnet.
+        Create and initialize libvirt channel. Same general logic as telnet.
         """
 
         # Create libvirt channel.  self._channel_args should contain
@@ -189,7 +204,8 @@ class CLI(object):
         text_to_send = text_to_send + ENTER_LINE
         return self._send_and_wait(text_to_send, match_res, timeout)
 
-    def exec_command(self, command, timeout=60, output_expected=None):
+    def exec_command(self, command, timeout=60, output_expected=None,
+                     prompt=None):
         """
         Executes the given command.
 
@@ -203,6 +219,9 @@ class CLI(object):
             expected (True) or no output is expected (False).
             If the opposite occurs, raise UnexpectedOutput. Default is None.
         :type output_expected: bool or None
+        :param prompt: Prompt regex for matching unusual prompts.  This should
+            almost never needed.  This parameter is for unusual
+            situations like an install config wizard.
 
         :raises TypeError: if output_expected type is incorrect
         :raises CmdlineTimeout: on timeout
@@ -219,8 +238,10 @@ class CLI(object):
 
         self._log.debug('Executing cmd "%s"' % command)
 
+        if prompt is None:
+            prompt = self._prompt
         (output, match) = self._send_line_and_wait(command,
-                                                   self.CLI_ANY_PROMPT,
+                                                   prompt,
                                                    timeout=timeout)
 
         # CLI adds on escape chars and such sometimes (see bug 75081), so to

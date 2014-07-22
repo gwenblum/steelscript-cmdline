@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
@@ -23,7 +25,8 @@ ENTER_LINE = b'\r'
 PROMPT_PREFIX = b'(^|\n|\r)'
 NAME_PREFIX = '%s([-a-zA-Z0-9_.]* )?' % PROMPT_PREFIX
 LOGIN_PROMPT = b'%s(L|l)ogin: ' % NAME_PREFIX
-PASSWORD_PROMPT = b'%s(P|p)assword: ' % NAME_PREFIX
+# bsd password prompt does not have a trailing space.
+PASSWORD_PROMPT = b'%s(P|p)assword:\s*' % NAME_PREFIX
 ROOT_PROMPT = b'%s# ' % NAME_PREFIX
 
 DEFAULT_EXPECT_TIMEOUT = 300
@@ -73,8 +76,9 @@ class LibVirtChannel(channel.Channel):
 
         # Get connection and libvirt domain
         self._conn = libvirt.open(self._uri)
-        self._domain = self._conn.lookupByName(self._domain_name)
-        if self._domain is None:
+        try:
+            self._domain = self._conn.lookupByName(self._domain_name)
+        except libvirt.libvirtError:
             raise exceptions.ConnectionError(
                 context="Failed to find domain '%s' on host" %
                         self._domain_name)

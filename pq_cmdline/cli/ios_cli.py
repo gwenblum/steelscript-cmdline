@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
+
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
@@ -227,7 +230,7 @@ class IOS_CLI(CLI):
 
     def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
                      output_expected=None, error_expected=False,
-                     interface=None):
+                     interface=None, prompt=None):
         """Executes the given command.
 
         This method handles detecting simple boolean conditions such as
@@ -241,7 +244,7 @@ class IOS_CLI(CLI):
             set this parameter to None.  The default is "configure"
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
-            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+            If the opposite occurs, raise UnexpectedOutput. Default is None.
         :type output_expected: bool or None
         :param error_expected: If true, cli error output (with a leading '%')
             is expected and will be returned as regular output instead of
@@ -251,6 +254,10 @@ class IOS_CLI(CLI):
         :param interface: if mode 'subif', interface to configure 'gi0/1.666'
             or 'vlan 691'
         :type interface: string
+        :param prompt: Prompt regex for matching unusual prompts.  This should
+            almost never be used as the ``mode`` parameter automatically
+            handles all typical cases.  This parameter is for unusual
+            situations like the install config wizard.
 
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
@@ -271,8 +278,10 @@ class IOS_CLI(CLI):
 
         self._log.debug('Executing cmd "%s"' % command)
 
+        if prompt is None:
+            prompt = self._prompt
         (output, match_res) = self._send_line_and_wait(command,
-                                                       self.CLI_ANY_PROMPT,
+                                                       prompt,
                                                        timeout=timeout)
 
         output = '\n'.join(output.splitlines()[1:])

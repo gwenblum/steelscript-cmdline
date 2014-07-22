@@ -1,4 +1,6 @@
-# Copyright 2013 Riverbed Technology, Inc.
+# -*- coding: utf-8 -*-
+
+# Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 
 from __future__ import (absolute_import, unicode_literals, print_function,
@@ -31,7 +33,7 @@ class RVBD_CLI(CLI):
 
     CLI_SHELL_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
 
-    # Amnesiac mode is how the CLI appears early on during isntalls.
+    # Amnesiac mode is how the CLI appears early on during installs.
     CLI_AMNESIAC_PROMPT = '%samnesiac#' % ANSI_PREFIX_RE
     CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ' >'
     CLI_ENABLE_PROMPT = NAME_PREFIX_RE + ' #'
@@ -56,7 +58,7 @@ class RVBD_CLI(CLI):
         :param run_cli: If True (the default), automatically launch
             the cli and disable paging.  This can be set to false
             to handle situations such as installation where the cli
-            is lauched differently.  The CLI will be running in normal mode.
+            is launched differently.  The CLI will be running in normal mode.
         """
         super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
@@ -251,16 +253,16 @@ class RVBD_CLI(CLI):
             set this parameter to None.  The default is "configure"
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
-            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+            If the opposite occurs, raise UnexpectedOutput. Default is None.
         :type output_expected: bool or None
         :param error_expected: If true, cli error output (with a leading '%')
             is expected and will be returned as regular output instead of
             raising a CLIError.  Default is False, and error_expected always
             overrides output_expected.
         :type error_expected: bool
-        :param prompt: Prompt regex for matching unusual promtps.  This should
+        :param prompt: Prompt regex for matching unusual prompts.  This should
             almost never be used as the ``mode`` parameter automatically
-            hanldes all typical cases.  This parameter is for unusual
+            handles all typical cases.  This parameter is for unusual
             situations like the install config wizard.
 
         :raises CmdlineTimeout: on timeout
@@ -282,7 +284,7 @@ class RVBD_CLI(CLI):
         self._log.debug('Executing cmd "%s"' % command)
 
         if prompt is None:
-            prompt = self.CLI_ANY_PROMPT
+            prompt = self._prompt
         (output, match_res) = self._send_line_and_wait(command,
                                                        prompt,
                                                        timeout=timeout)

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2014 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
 from __future__ import (absolute_import, unicode_literals, print_function,
@@ -177,7 +179,7 @@ class VyattaCli(CLI):
             raise exceptions.UnknownCLIMode(mode=mode)
 
     def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
-                     force=False, output_expected=None):
+                     force=False, output_expected=None, prompt=None):
         """
         Executes the given command.
 
@@ -195,8 +197,12 @@ class VyattaCli(CLI):
         :type force: Boolean
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
-            If the oppossite occurs, raise UnexpectedOutput. Default is None.
+            If the opposite occurs, raise UnexpectedOutput. Default is None.
         :type output_expected: bool or None
+        :param prompt: Prompt regex for matching unusual prompts.  This should
+            almost never be used as the ``mode`` parameter automatically
+            handles all typical cases.  This parameter is for unusual
+            situations like the install config wizard.
 
         :raises TypeError: if output_expected type is incorrect
         :raises CmdlineTimeout: on timeout
@@ -214,13 +220,15 @@ class VyattaCli(CLI):
 
         self._log.debug('Executing cmd "%s"' % command)
 
+        if prompt is None:
+            prompt = self._prompt
         (output, match_res) = self._send_line_and_wait(command,
-                                                       self.CLI_ANY_PROMPT,
+                                                       prompt,
                                                        timeout=timeout)
         output = output.splitlines()[1:]
 
         # Vyatta does not have a standard error prompt
-        # In config mode, each command (errorneous or not) is
+        # In config mode, each command (erroneous or not) is
         # followed with '[edit]'. This skews the result for
         # output_expected flag
 
