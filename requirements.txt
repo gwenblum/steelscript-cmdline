@@ -10,4 +10,4 @@ testfixtures
 # Quicksilver dependencies
 pq-runtime
 pq-libvirt
-sleepwalker
+sleepwalker==0.4
