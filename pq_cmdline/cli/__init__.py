@@ -126,7 +126,7 @@ class CLI(object):
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
         if start_prompt is None:
-            start_prompt = self._prompt
+            start_prompt = self.CLI_START_PROMPT
         self.channel.start(start_prompt)
 
     def _initialize_cli_over_ssh(self):
