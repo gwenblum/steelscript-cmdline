@@ -279,7 +279,7 @@ class IOS_CLI(CLI):
         self._log.debug('Executing cmd "%s"' % command)
 
         if prompt is None:
-            prompt = self._prompt
+            prompt = self.CLI_ANY_PROMPT
         (output, match_res) = self._send_line_and_wait(command,
                                                        prompt,
                                                        timeout=timeout)
