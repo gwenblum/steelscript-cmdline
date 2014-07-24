@@ -23,7 +23,7 @@ class SSHProcess(Transport):
     # Seconds to wait for banner comming out after starting connection.
     BANNER_TIMEOUT = 5
 
-    def __init__(self, host, user='root', password=''):
+    def __init__(self, host, user='root', password='', port=22):
         """
         Initializer
 
@@ -34,6 +34,7 @@ class SSHProcess(Transport):
 
         # Hostname shell connects to
         self._host = host
+        self._port = port
 
         # Username shell connects with
         self._user = user
@@ -56,7 +57,7 @@ class SSHProcess(Transport):
         """
         self._log.info('Connecting to "%s" as "%s"' % (self._host, self._user))
         try:
-            self.transport = paramiko.Transport((self._host, 22))
+            self.transport = paramiko.Transport((self._host, self._port))
             self.transport.banner_timeout = self.BANNER_TIMEOUT
             self.transport.start_client()
             self.transport.auth_password(self._user, self._password,

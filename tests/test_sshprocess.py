@@ -13,17 +13,19 @@ from pq_cmdline import exceptions
 ANY_HOST = 'host1'
 ANY_USER = 'user1'
 ANY_PASSWORD = 'password1'
+ANY_PORT = '9090'
 
 
 @pytest.fixture
 def any_sshprocess():
-    return SSHProcess(ANY_HOST, ANY_USER, ANY_PASSWORD)
+    return SSHProcess(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_PORT)
 
 
 def test_members_initialized_correctly(any_sshprocess):
     assert any_sshprocess._host == ANY_HOST
     assert any_sshprocess._user == ANY_USER
     assert any_sshprocess._password == ANY_PASSWORD
+    assert any_sshprocess._port == ANY_PORT
     assert any_sshprocess.transport is None
 
 
