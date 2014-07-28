@@ -8,6 +8,7 @@ from collections import namedtuple
 
 import ipaddress
 import re
+from urlparse import urlparse
 
 from pq_runtime.exceptions import re_raise, UnexpectedResultError
 
@@ -371,3 +372,153 @@ def parse_ip_and_port(input):
     ip_port_dict['ip'] = ipaddress.ip_address(address)
     ip_port_dict['port'] = port
     return ip_port_dict
+
+
+def parse_url_to_host_port_protocol(input):
+    """
+    Parse url to a dictionary:
+        'http://blah.com' to
+        {'host': 'blah.com', 'port': 80,'protocol': 'http'}
+
+    :param input: url
+    :param type: string
+
+    :return: dictionary
+             Example - {'host': 'blah.com', 'port': 80, 'protocol': 'http'}
+    """
+    hpp_dict = {}
+    url_object = urlparse(input)
+    protocol = url_object.scheme
+    port = url_object.port
+    host = url_object.hostname
+
+    # urlparse does not infer port
+    if not port:
+        if protocol == "http":
+            port = 80
+        if protocol == "https":
+            port = 443
+
+    hpp_dict['host'] = host
+    hpp_dict['port'] = port
+    hpp_dict['protocol'] = protocol
+    return hpp_dict
+
+
+def parse_saasinfo_data(input):
+    """
+    Parse saasinfo data to a dictionary contained ip, port and geodns mapping
+    data structures:
+
+    =================================
+    SaaS Application
+    =================================
+    O365
+
+    =================================
+    SaaS IP
+    =================================
+    10.41.222.0/24 [0-65535]
+    111.221.112.0/21 [1-65535]
+    111.221.116.0/24 [1-65535]
+    111.221.17.160/27 [1-65535]
+    111.221.20.128/25 [0-65535]
+
+    =================================
+    SaaS Hostname
+    =================================
+    *.mail.apac.microsoftonline.com
+    *.outlook.com
+    *.sharepoint.com
+    outlook.com
+
+    =================================
+    GeoDNS
+    =================================
+    ---------------------------------
+    MBX Region
+    ---------------------------------
+    blu nam.ca.bay-area
+    apc nam.ca.bay-area
+    xyz nam.ca.bay-area
+    abc nam.tx.san-antonio
+    ---------------------------------
+    Regional IPs
+    ---------------------------------
+    nam.ca.bay-area
+    132.245.80.146
+    132.245.80.150
+    nam.tx.san-antonio
+    132.245.80.153
+    132.245.80.156
+    132.245.81.114
+
+    to
+
+
+    {'appid': 'O365',
+     'ip': ['10.41.222.0/24 [0-65535]',
+            '111.221.112.0/21 [1-65535]',
+            '111.221.116.0/24 [1-65535]',
+            '111.221.17.160/27 [1-65535]',
+            '111.221.20.128/25 [0-65535]'],
+     'host': ['*.mail.apac.microsoftonline.com',
+              '*.outlook.com',
+              '*.sharepoint.com',
+              'outlook.com'],
+     'geodns': {'nam.ca.bay-area': {'mbx': ['blu',
+                                            'apc',
+                                            'xyz'],
+                                    'ip': ['132.245.80.146',
+                                           '132.245.80.150']},
+                'nam.tx.san-antonio': {'mbx': ['abc'],
+                                       'ip': ['132.245.80.153',
+                                              '132.245.80.156',
+                                              '132.245.81.114']}}}
+
+    :param input: CLI output of saasinfo data
+    :param type: string
+
+    :return: dictionary with saasinfo data as above
+    """
+    saasdata_dict = {}
+    saasdata_dict['ip'] = []
+    saasdata_dict['host'] = []
+    saasdata_dict['geodns'] = {}
+    lines = (line.rstrip() for line in input.splitlines())
+    lines = (line for line in lines if line)
+    lines = (line for line in lines if not line[0] == '-')
+    lines = (line for line in lines if not line[0] == '=')
+    section = None
+    for line in lines:
+        if "SaaS Application" in line:
+            section = "appid"
+        elif "SaaS IP" in line:
+            section = "ip"
+        elif "SaaS Hostname" in line:
+            section = "host"
+        elif "MBX Region" in line:
+            section = "mbx"
+        elif "Regional IPs" in line:
+            section = "region"
+        elif "GeoDNS" in line:
+            section = "geodns"
+        else:
+            if section == "appid":
+                saasdata_dict['appid'] = line
+            elif section == "ip" or section == "host":
+                saasdata_dict[section].append(line)
+            elif section == "mbx":
+                (mbx, region) = line.split()
+                if region not in saasdata_dict['geodns']:
+                    saasdata_dict['geodns'][region] = {}
+                    saasdata_dict['geodns'][region]['mbx'] = []
+                    saasdata_dict['geodns'][region]['ip'] = []
+                saasdata_dict['geodns'][region]['mbx'].append(mbx)
+            else:  # we're in region
+                if line in saasdata_dict['geodns']:
+                    section = line
+                else:
+                    saasdata_dict['geodns'][section]['ip'].append(line)
+
+    return saasdata_dict

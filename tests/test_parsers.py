@@ -140,6 +140,77 @@ IP_PORT_INPUT = "1.1.1.1:2000"
 EXPECTED_IP_PORT_INPUT =\
     {'ip': ipaddress.ip_address(u'1.1.1.1'), 'port': '2000'}
 
+PARSE_URL_TO_HOST_PORT_PROTOCOL_INPUT = "http://blah.com"
+EXPECTED_PARSE_URL_TO_HOST_PORT_PROTOCOL_OUTPUT =\
+    {'host': 'blah.com', 'port': 80, 'protocol': 'http'}
+
+PARSE_SAASINFO_DATA_INPUT = '''\
+=================================
+SaaS Application
+=================================
+O365
+
+=================================
+SaaS IP
+=================================
+10.41.222.0/24 [0-65535]
+111.221.112.0/21 [1-65535]
+111.221.116.0/24 [1-65535]
+111.221.17.160/27 [1-65535]
+111.221.20.128/25 [0-65535]
+
+=================================
+SaaS Hostname
+=================================
+*.mail.apac.microsoftonline.com
+*.outlook.com
+*.sharepoint.com
+outlook.com
+
+=================================
+GeoDNS
+=================================
+---------------------------------
+MBX Region
+---------------------------------
+blu nam.ca.bay-area
+apc nam.ca.bay-area
+xyz nam.ca.bay-area
+abc nam.tx.san-antonio
+---------------------------------
+Regional IPs
+---------------------------------
+nam.ca.bay-area
+132.245.80.146
+132.245.80.150
+nam.tx.san-antonio
+132.245.80.153
+132.245.80.156
+132.245.81.114
+'''
+
+EXPECTED_PARSE_SAASINFO_DATA_OUTPUT =\
+    {'appid': 'O365',
+     'ip': ['10.41.222.0/24 [0-65535]',
+            '111.221.112.0/21 [1-65535]',
+            '111.221.116.0/24 [1-65535]',
+            '111.221.17.160/27 [1-65535]',
+            '111.221.20.128/25 [0-65535]'],
+     'host': ['*.mail.apac.microsoftonline.com',
+              '*.outlook.com',
+              '*.sharepoint.com',
+              'outlook.com'],
+     'geodns': {'nam.ca.bay-area': {'mbx': ['blu',
+                                            'apc',
+                                            'xyz'],
+                                    'ip': ['132.245.80.146',
+                                           '132.245.80.150']},
+                'nam.tx.san-antonio': {'mbx': ['abc'],
+                                       'ip': ['132.245.80.153',
+                                              '132.245.80.156',
+                                              '132.245.81.114']}}}
+
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -272,3 +343,15 @@ def test_multiple_enabled():
 def test_parse_ip_and_port():
     parsed_output = parsers.parse_ip_and_port(IP_PORT_INPUT)
     assert parsed_output == EXPECTED_IP_PORT_INPUT
+
+
+def test_parse_url_to_host_port_protocol():
+    parsed_output = parsers.parse_url_to_host_port_protocol(
+        PARSE_URL_TO_HOST_PORT_PROTOCOL_INPUT)
+    assert parsed_output == EXPECTED_PARSE_URL_TO_HOST_PORT_PROTOCOL_OUTPUT
+
+
+def test_parse_saasinfo_data():
+    parsed_output = parsers.parse_saasinfo_data(
+        PARSE_SAASINFO_DATA_INPUT)
+    assert parsed_output == EXPECTED_PARSE_SAASINFO_DATA_OUTPUT
