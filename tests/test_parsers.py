@@ -144,6 +144,8 @@ PARSE_URL_TO_HOST_PORT_PROTOCOL_INPUT = "http://blah.com"
 EXPECTED_PARSE_URL_TO_HOST_PORT_PROTOCOL_OUTPUT =\
     {'host': 'blah.com', 'port': 80, 'protocol': 'http'}
 
+PARSE_SAASINFO_DATA_GARBAGE_INPUT = "Garbage"
+
 PARSE_SAASINFO_DATA_INPUT = '''\
 =================================
 SaaS Application
@@ -355,3 +357,9 @@ def test_parse_saasinfo_data():
     parsed_output = parsers.parse_saasinfo_data(
         PARSE_SAASINFO_DATA_INPUT)
     assert parsed_output == EXPECTED_PARSE_SAASINFO_DATA_OUTPUT
+
+
+def test_parse_saasinfo_garbage_data():
+    with pytest.raises(KeyError):
+        parsers.parse_saasinfo_data(
+            PARSE_SAASINFO_DATA_GARBAGE_INPUT)

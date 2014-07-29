@@ -486,22 +486,21 @@ def parse_saasinfo_data(input):
     saasdata_dict['host'] = []
     saasdata_dict['geodns'] = {}
     lines = (line.rstrip() for line in input.splitlines())
-    lines = (line for line in lines if line)
-    lines = (line for line in lines if not line[0] == '-')
-    lines = (line for line in lines if not line[0] == '=')
+    lines = (line for line in lines if line and not line[0] in '=-')
     section = None
+    region = None
     for line in lines:
-        if "SaaS Application" in line:
+        if "SaaS Application" == line:
             section = "appid"
-        elif "SaaS IP" in line:
+        elif "SaaS IP" == line:
             section = "ip"
-        elif "SaaS Hostname" in line:
+        elif "SaaS Hostname" == line:
             section = "host"
-        elif "MBX Region" in line:
+        elif "MBX Region" == line:
             section = "mbx"
-        elif "Regional IPs" in line:
+        elif "Regional IPs" == line:
             section = "region"
-        elif "GeoDNS" in line:
+        elif "GeoDNS" == line:
             section = "geodns"
         else:
             if section == "appid":
@@ -515,10 +514,15 @@ def parse_saasinfo_data(input):
                     saasdata_dict['geodns'][region]['mbx'] = []
                     saasdata_dict['geodns'][region]['ip'] = []
                 saasdata_dict['geodns'][region]['mbx'].append(mbx)
-            else:  # we're in region
+            elif section == "region":  # we're in region
                 if line in saasdata_dict['geodns']:
-                    section = line
+                    region = line
                 else:
-                    saasdata_dict['geodns'][section]['ip'].append(line)
+                    # verify we have a valid ip address
+                    ipaddress.ip_address(line.decode())
+                    saasdata_dict['geodns'][region]['ip'].append(line)
+            else:
+                raise KeyError('Unexpected SaaS Info data CLI output')
+                # keyerror
 
     return saasdata_dict
