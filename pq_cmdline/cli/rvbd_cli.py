@@ -48,6 +48,21 @@ class RVBD_CLI(CLI):
     CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
     CLI_ERROR_PROMPT = '^%'
 
+    @property
+    def default_mode(self):
+        """
+        The default mode that exec_command issues commands in.
+        """
+        return self._default_mode
+
+    @default_mode.setter
+    def default_mode(self, value):
+        """
+        Sets the default mode that exec_command issues commands in.
+        Use :class:`CLIMode` values
+        """
+        self._default_mode = value
+
     def start(self, start_prompt=None, run_cli=True):
         """
         Initialize the underlying channel, disable paging
@@ -63,6 +78,9 @@ class RVBD_CLI(CLI):
         super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
         if run_cli:
+            # default exec_command to CLIMode.CONFIG
+            self._default_mode = CLIMode.CONFIG
+
             # Start cli if log into shell
             self._run_cli_from_shell()
 
@@ -119,14 +137,14 @@ class RVBD_CLI(CLI):
 
     def enter_mode(self, mode=CLIMode.CONFIG):
         """
-        Enter mode based on mode string ('normal', 'enable', or 'configure').
+        Enter mode based on mode string ('normal', 'enable', 'configure',
+        or 'shell').
 
         :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
-                   'configure'
-
-        :raises UnknownCLIMode: if mode is not "normal", "enable", or
-                                "configure"
-        :raises CLINotRunning: if the shell is not in the CLI.
+                   'configure'.  Use :class:`CLIMode` values.
+        :raises UnknownCLIMode: if mode is not "normal", "enable",
+                                "configure", or "shell".
+        :raises CLINotRunning: if the CLI is not running.
         """
         if mode == CLIMode.NORMAL:
             self.enter_mode_normal()
@@ -137,8 +155,29 @@ class RVBD_CLI(CLI):
         elif mode == CLIMode.CONFIG:
             self.enter_mode_config()
 
+        elif mode == CLIMode.SHELL:
+            self.enter_mode_shell()
+
         else:
             raise exceptions.UnknownCLIMode(mode=mode)
+
+    def enter_mode_shell(self):
+        """
+        Exits the CLI into shell mode.  This is a one-way transition and
+        and you will need to start a new CLI object to get back.
+        """
+        self._default_mode = None
+        self._prompt = self.CLI_SHELL_PROMPT
+        current_mode = self.current_cli_mode()
+        if current_mode == CLIMode.SHELL:
+            return
+
+        if current_mode == CLIMode.NORMAL:
+            self.enter_mode_enable()
+
+        self.exec_command('_shell',
+                          prompt=self.CLI_START_PROMPT,
+                          output_expected=False)
 
     def enter_mode_normal(self):
         """
@@ -238,7 +277,7 @@ class RVBD_CLI(CLI):
         elif mode == CLIMode.CONFIG:
             self._log.info('Already at Config, doing nothing')
 
-    def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
+    def exec_command(self, command, timeout=60, mode=CLIMode.UNDEF,
                      output_expected=None, error_expected=False, prompt=None):
         """Executes the given command.
 
@@ -248,9 +287,9 @@ class RVBD_CLI(CLI):
         :param command:  command to execute, newline appended automatically
         :param timeout:  maximum time, in seconds, to wait for the command to
             finish. 0 to wait forever.
-        :param mode:  mode to enter before running the command.  To skip this
-            step and execute directly in the cli's current mode, explicitly
-            set this parameter to None.  The default is "configure"
+        :param mode:  mode to enter before running the command. The default
+            is :func:`default_mode`.  To skip this step and execute directly
+            in the cli's current mode, explicitly set this parameter to None.
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
             If the opposite occurs, raise UnexpectedOutput. Default is None.
@@ -268,7 +307,7 @@ class RVBD_CLI(CLI):
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
             error output was not expected.
-        :raises UnexpectedOutput: if output occurrs when no output was
+        :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
 
         :return: output of the command, minus the command itself.
@@ -278,13 +317,15 @@ class RVBD_CLI(CLI):
             raise TypeError("exec_command: output_expected requires a boolean "
                             "value or None")
 
+        if mode is CLIMode.UNDEF:
+            mode = self.default_mode
         if mode is not None:
             self.enter_mode(mode)
 
         self._log.debug('Executing cmd "%s"' % command)
 
         if prompt is None:
-            prompt = self.CLI_ANY_PROMPT
+            prompt = self._prompt
         (output, match_res) = self._send_line_and_wait(command,
                                                        prompt,
                                                        timeout=timeout)

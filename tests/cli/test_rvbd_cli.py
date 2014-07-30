@@ -108,6 +108,15 @@ def test_context_manger_exit_if_not_new_transport(any_cli):
     assert any_cli._transport == mock_transport
 
 
+def test_current_cli_mode_at_shell_mode(any_cli):
+    mock_match = Mock()
+    mock_match.re.pattern = any_cli.CLI_SHELL_PROMPT
+    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+        mock.return_value = ('output', mock_match)
+        current_mode = any_cli.current_cli_mode()
+        assert current_mode == CLIMode.SHELL
+
+
 def test_current_cli_mode_at_normal_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = any_cli.CLI_NORMAL_PROMPT
@@ -178,6 +187,18 @@ def test_enter_mode_normal_raise_if_current_mode_is_unknown(any_cli):
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
             any_cli.enter_mode_normal()
+
+
+def test_enter_mode_shell_from_normal_mode(any_cli):
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.NORMAL
+    any_cli._send_line_and_wait = MagicMock(name='method')
+    any_cli._enable = MagicMock(name='method')
+    any_cli.exec_command = MagicMock()
+    any_cli.enter_mode_shell()
+    assert any_cli._enable.called
+    any_cli.exec_command.assert_called_with(
+        '_shell', output_expected=False, prompt=any_cli.CLI_START_PROMPT)
 
 
 def test_enter_mode_config_from_normal_mode(any_cli):

@@ -24,13 +24,21 @@ ENTER_LINE = b'\r'
 class CLIMode(object):
 
     """
-    Different config modes the CLI can be in
+    Different config modes a CLI can be in.  Not all CLIs support all
+    modes.
+
+    SHELL  = 'shell'     - OS shell instead of CLI.
+    NORMAL = 'normal'    - Default mode CLI starts out in.
+    ENABLE = 'enable'    - Enable some some additional commands
+    CONFIG = 'configure' - Enable all additional commands
+    SUBIF  = 'subif'     - Subinterface command mode.
     """
     SHELL = 'shell'
     NORMAL = 'normal'
     ENABLE = 'enable'
     CONFIG = 'configure'
     SUBIF = 'subif'
+    UNDEF = ''
 
 
 class CLI(object):
@@ -92,6 +100,7 @@ class CLI(object):
         self._channel_args = channel_args
         self._log = logging.getLogger(__name__)
         self._prompt = prompt
+        self._default_mode = None
         if self._prompt is None:
             self._prompt = self.CLI_ANY_PROMPT
 
