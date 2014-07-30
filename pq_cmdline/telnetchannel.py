@@ -143,7 +143,7 @@ class TelnetChannel(Channel):
             logging.info('Host SSH shell has been disconnected')
             re_raise(exceptions.ConnectionError)
 
-    def receive_all(self, max_tries=3):
+    def receive_all(self):
         """
         Returns all text currently in the receive buffer, effectively flushing
         it.
