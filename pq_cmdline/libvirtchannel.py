@@ -74,9 +74,9 @@ class LibVirtChannel(channel.Channel):
         elif not (isinstance(match_res, list) or isinstance(match_res, tuple)):
             match_res = [match_res, ]
 
-        # Get connection and libvirt domain
-        self._conn = libvirt.open(self._uri)
         try:
+            # Get connection and libvirt domain
+            self._conn = libvirt.open(self._uri)
             self._domain = self._conn.lookupByName(self._domain_name)
         except libvirt.libvirtError:
             raise exceptions.ConnectionError(
