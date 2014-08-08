@@ -98,13 +98,19 @@ class TelnetChannel(Channel):
         if index == 0:
             # username is required for login
             logging.debug("Sending login user ...")
-            self.channel.write(self._user + self.ENTER_LINE)
+            # Encode text to ascii; telnetlib does not work well with unicode
+            # literals.
+            text_to_send = (self._user + self.ENTER_LINE).encode('ascii')
+            self.channel.write(text_to_send)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         if index == 1:
             # password is required for login
             logging.debug("Sending password ...")
-            self.channel.write(self._password + self.ENTER_LINE)
+            # Encode text to ascii; telnetlib does not work well with unicode
+            # literals.
+            text_to_send = (self._password + self.ENTER_LINE).encode('ascii')
+            self.channel.write(text_to_send)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         # At this point, we should already loged in; raises exceptions if not
