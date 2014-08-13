@@ -106,11 +106,17 @@ class CLI(object):
 
         self.channel = None
 
+    def __del__(self):
+        self._cleanup_helper()
+
     def __enter__(self):
         self.start()
         return self
 
     def __exit__(self, type, value, traceback):
+        self._cleanup_helper()
+
+    def _cleanup_helper(self):
         if self._new_transport and self._transport:
             self._transport.disconnect()
             self._transport = None
