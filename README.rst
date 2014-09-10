@@ -1,12 +1,10 @@
-===============================
+======================
 PQ Command Line Access
-===============================
-
-Project Quicksilver command line interaction
-
-* Documentation: http://pq_cmdline.rtd.lab.nbttech.com
+======================
 
 Features
 --------
-
-* TODO
+This repository contains modules for interacting with a command line or shell.  
+It contains modules for interacting with different transport types, such as 
+telnet and ssh.  The repo also contains modules for common parsing of command 
+line responses.
