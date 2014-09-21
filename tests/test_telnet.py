@@ -7,7 +7,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import patch
 
-from pq_cmdline.telnetchannel import PQTelnet
+from pq_cmdline.telnetchannel import SteelScriptTelnet
 
 ANY_MSG_WITH_ARGS = 'send %s'
 ANY_STR_SENT = 'any command'
@@ -19,7 +19,7 @@ PREFIX = 'Telnet(%s,%d):' % (ANY_HOST, ANY_PORT)
 
 @pytest.fixture
 def any_telnet():
-    return PQTelnet()
+    return SteelScriptTelnet()
 
 
 def test_msg_with_args(any_telnet):

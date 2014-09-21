@@ -9,7 +9,7 @@ import select
 import logging
 import paramiko
 
-from pq_cmdline.channel import Channel
+from pq_cmdline import channel
 from pq_cmdline import exceptions
 
 DEFAULT_TERM_WIDTH = 80
@@ -17,10 +17,16 @@ DEFAULT_TERM_HEIGHT = 24
 DEFAULT_EXPECT_TIMEOUT = 60
 
 
-class SSHChannel(Channel):
+class SSHChannel(channel.Channel):
     """
-    Class represents an ssh channel, a two-way channel that allows send
-    and receive data.
+    Two-way SSH channel that allows sending and receiving data.
+
+    :param sshprocess: SSHProcess object to open a channel with.
+    :param term: terminal emulation to use; defaults to 'console'
+    :param width: width (in characters) of the terminal screen;
+        defaults to 80
+    :param height: height (in characters) of the terminal screen;
+        defaults to 24
     """
 
     # Note that for the ^, Python won't accept [^] as a valid regex?
@@ -28,21 +34,6 @@ class SSHChannel(Channel):
 
     def __init__(self, sshprocess, term='console',
                  width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT):
-        """
-        Create a new SSHChannel object from a SSHProcess object.
-
-        :param sshprocess: SSHProcess object to open a channel with.
-        :param term: terminal emulation to use; defaults to 'console'
-        :param width: width (in characters) of the terminal screen;
-                      defaults to 80
-        :param height: height (in characters) of the terminal screen;
-                      defaults to 24
-
-        """
-
-        if not sshprocess:
-            raise TypeError("Parameter 'sshprocess' is required!")
-
         self.sshprocess = sshprocess
         self._host = self.sshprocess._host
 
@@ -73,10 +64,11 @@ class SSHChannel(Channel):
         Start an interactive ssh session and logs in.
 
         :param match_res: Pattern(s) of prompts to look for.
-                          May be a single regex string, or a list of them.
+            May be a single regex string, or a list of them.
         :param timeout: maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
-        :return: Python re.MatchObject containing data on what was matched.
+            expression match. 0 to wait forever.
+        :return: Python :class:`re.MatchObject` containing data on
+            what was matched.
         """
         if not match_res:
             match_res = [self.BASH_PROMPT]
@@ -97,8 +89,7 @@ class SSHChannel(Channel):
 
     def receive_all(self):
         """
-        Returns all text currently in the receive buffer, effectively flushing
-        it.
+        Flushes the receive buffer, returning all text that was in it.
 
         :return: the text that was present in the receive queue, if any.
         """
@@ -133,11 +124,7 @@ class SSHChannel(Channel):
         Sends text to the channel immediately.  Does not wait for any response.
 
         :param text_to_send: Text to send, may be an empty string.
-        :raises TypeError: if text_to_send is None.
         """
-        if text_to_send is None:
-            raise TypeError('text_to_send should not be None')
-
         self._verify_connected()
 
         logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
@@ -152,8 +139,7 @@ class SSHChannel(Channel):
 
     def expect(self, match_res, timeout=DEFAULT_EXPECT_TIMEOUT):
         """
-        Waits for some text to be received that matches one or more regex
-        patterns.
+        Waits for text to be received that matches one or more regex patterns.
 
         Note that data may have been received before this call and is waiting
         in the buffer; you may want to call receive_all() to flush the receive
@@ -165,16 +151,19 @@ class SSHChannel(Channel):
                           Currently cannot match multiple lines.
         :param timeout: maximum time, in seconds, to wait for a regular
                         expression match. 0 to wait forever.
-        :raises TypeError: if match_res is None or empty.
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is a
-                 Python re.MatchObject containing data on what was matched.
 
-                 You may use MatchObject.string[m.start():m.end()] to recover
-                 the actual matched text.
+        :return: ``(output, match_object)`` where output is the output of
+            the command (without the matched text), and match_object is a
+            Python :class:`re.MatchObject` containing data on what was matched.
 
-                 MatchObject.re.pattern will contain the pattern that matched,
-                 which will be one of the elements of match_res passed in.
+            You may use ``MatchObject.string[m.start():m.end()]`` to recover
+            the actual matched text, which will be unicode.
+
+            ``re.MatchObject.pattern`` will contain the pattern that matched,
+            which will be one of the elements of match_res passed in.
+
+        :raises CmdlineTimeout: if no match found before timeout.
+        :raises ConnectionError: if the channel is closed.
         """
 
         match_res, safe_match_text = self._expect_init(match_res)
@@ -206,7 +195,7 @@ class SSHChannel(Channel):
             new_data = None
 
             # We did not find clear documentation in Paramiko on how to check
-            # whehter a channel is closed unexpectedly. Our current logic is
+            # whether a channel is closed unexpectedly. Our current logic is
             # that a channel is closed if:
             #   (1) read the channel and get 0 bytes, or
             #   (2) channel is not ready for reading but exit_status_ready()
@@ -276,8 +265,8 @@ class SSHChannel(Channel):
         :param match_res: The regular expressions for matching as documented
             for `expect()`
 
-        :return: (output, re.MatchObject) as described for `expect() except
-            that (None, None) is returned to indicate no match.
+        :return: ``(output, match_object)`` as described for `expect() except
+            that ``(None, None)`` is returned to indicate no match.
         """
         # Loop through all new lines and check them for matches.
         for line_num in range(len(new_lines)):

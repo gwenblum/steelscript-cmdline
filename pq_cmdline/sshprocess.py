@@ -10,28 +10,24 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import paramiko
 import logging
 
-from pq_runtime.exceptions import re_raise
+from pq_runtime import exceptions as rt_exc
 from pq_cmdline import exceptions
-from pq_cmdline.transport import Transport
+from pq_cmdline import transport
 
 
-class SSHProcess(Transport):
+class SSHProcess(transport.Transport):
     """
     SSH transport class to handle ssh connection setup.
+
+    :param host: host/ip to ssh into
+    :param user: username to log in with
+    :param password: password to log in with
     """
 
     # Seconds to wait for banner comming out after starting connection.
     BANNER_TIMEOUT = 5
 
     def __init__(self, host, user='root', password='', port=22):
-        """
-        Initializer
-
-        :param host: host/ip to ssh into
-        :param user: username to log in with
-        :param password: password to log in with
-        """
-
         # Hostname shell connects to
         self._host = host
         self._port = port
@@ -68,7 +64,7 @@ class SSHProcess(Transport):
             # TODO: re_raise not compatibile with passing kwargs
             # re_raise(SSHError, "Could not connect to %s" % self._host)
             self._log.info("Could not connect to %s", self._host)
-            re_raise(exceptions.ConnectionError)
+            rt_exc.re_raise(exceptions.ConnectionError)
 
     def disconnect(self):
         """
@@ -81,6 +77,7 @@ class SSHProcess(Transport):
     def is_connected(self):
         """
         Check whether SSH connection is established or not.
+
         :return: True if it is connected; returns False otherwise.
         """
         if self.transport and self.transport.is_active():
@@ -89,11 +86,11 @@ class SSHProcess(Transport):
 
     def open_interactive_channel(self, term='console', width=80, height=24):
         """
-        Creates and starts an interactive channel that may be used to
-        communicate with the remote end in a stateful way. This should be used
-        over exec_command whenever the channel must remain open between
+        Creates and starts a stateful interactive channel.
+
+        This should be used whenever the channel must remain open between
         commands for interactive processing, or when a terminal/tty is
-        necessary; eg, the CLI.
+        necessary; e.g., CLIs with modes.
 
         :param term: terminal type to emulate; defaults to 'console'
         :param width: width (in characters) of the terminal screen;
@@ -101,11 +98,11 @@ class SSHProcess(Transport):
         :param height: height (in characters) of the terminal screen;
             defaults to 24
 
-        :raises ConnectionError: if the SSH connection has not yet been
-                                 established.
+        :return: A Paramiko channel that communicate with the remote end in
+            a stateful way.
 
-        :return: An Paramiko channel that communicate with the remote end in
-                 a stateful way.
+        :raises ConnectionError: if the SSH connection has not yet been
+            established.
         """
 
         if (not self.is_connected()):

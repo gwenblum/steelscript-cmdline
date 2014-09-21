@@ -62,11 +62,6 @@ def test_verify_connected_raises_if_not_connected(any_ssh_channel):
         any_ssh_channel._verify_connected()
 
 
-def test_send_raises_if_text_to_send_is_None(any_ssh_channel):
-    with pytest.raises(TypeError):
-        any_ssh_channel.send(None)
-
-
 def test_expect_raises_if_match_res_is_None(any_ssh_channel):
     with pytest.raises(TypeError):
         any_ssh_channel.expect(None)

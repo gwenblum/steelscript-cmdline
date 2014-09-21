@@ -8,10 +8,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import logging
 
-from pq_cmdline.sshchannel import SSHChannel
-from pq_cmdline.sshprocess import SSHProcess
-from pq_cmdline.telnetchannel import TelnetChannel
-from pq_cmdline.libvirtchannel import LibVirtChannel
+from pq_cmdline import sshchannel
+from pq_cmdline import sshprocess
+from pq_cmdline import telnetchannel
+from pq_cmdline import libvirtchannel
 from pq_cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
@@ -22,74 +22,73 @@ ENTER_LINE = b'\r'
 
 
 class CLIMode(object):
-
     """
-    Different config modes a CLI can be in.  Not all CLIs support all
-    modes.
-
-    SHELL  = 'shell'     - OS shell instead of CLI.
-    NORMAL = 'normal'    - Default mode CLI starts out in.
-    ENABLE = 'enable'    - Enable some some additional commands
-    CONFIG = 'configure' - Enable all additional commands
-    SUBIF  = 'subif'     - Subinterface command mode.
+    Different config modes a CLI can be in.  Not all CLIs support all modes.
     """
+
     SHELL = 'shell'
-    NORMAL = 'normal'
-    ENABLE = 'enable'
-    CONFIG = 'configure'
-    SUBIF = 'subif'
-    UNDEF = ''
+    """OS shell instead of CLI"""
 
+    NORMAL = 'normal'
+    """Default mode in which the CLI starts"""
+
+    ENABLE = 'enable'
+    """Enable some additional commands"""
+
+    CONFIG = 'configure'
+    """Config mode; enables all commands"""
+
+    SUBIF = 'subif'
+    """Subinterface command mode"""
+
+    UNDEF = ''
+    """Used within the code to indicate unknown or don`t-care situations"""
 
 class CLI(object):
-
     """
     Base class CLI implementation for Network Devices
-    Vendor specific CLI's can inherit from this base class. This class by
+
+    Vendor specific CLIs can inherit from this base class. This class by
     itself will try to work on a generic CLI if vendor specific class is not
     present.
 
-    CLI_ANY_PROMPT = A regex that includes prompts for ``#|\$|>|~`` suitable
-    for most Command line Interpreters.
+    For the "should match any prompt" regular expressions, the focus was
+    mostly on common OSes in Riverbed's internal environment.  Other systems
+    may require subclassing this class and overriding the promp regexes.
 
-    CLI_ROOT_PROMPT = A regex that only has the prompt for ``#`` for use
-    with consoles to POSIX systems logged into root.
+    :param host: host/ip
+    :type host: string
+    :param user: username to log in with
+    :type user: string
+    :param password: password to log in with
+    :type password: string
+    :param terminal:  terminal emulation to use; default to 'console'
+    :type terminal: string
+    :param transport_type: telnet or ssh, defaults to ssh
+    :type transport_type: string
+    :param prompt: A prompt to match.  Defaults to :const:`CLI_ANY_PROMPT`
+    :type prompt: regex pattern
+    :param channel_args: additional ``transport_type``-dependent
+        arguments, passed blindly to the transport ``start`` method.
     """
 
-    # Presently the CLI_START_PROMPT is a generic regex which will try to
-    # match prompt patterns, without having a check for hostname
-    # there is a possibility there might be false positives
-
-    # catch-all regex for generic CLI, including following prompts:
-    #   [root@vsh1 ~]#
     CLI_START_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#|\$|>|~)(\s)?$'
+    """A regex suitable for most initial CLI prompts, root or non-root"""
+
     CLI_ROOT_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#)(\s)?$'
+    """A regex intended for use with POSIX prompts for root ending in '#'"""
+
     CLI_ANY_PROMPT = CLI_START_PROMPT
+    """
+    A regex that is suitable for most CLIs, root or regular user.
+
+    Note that this does not specificaly check hostnames, which might
+    lead to false positive matches.
+    """
 
     def __init__(self, host, user='admin', password='', terminal='console',
                  transport_type='ssh', prompt=None,
                  **channel_args):
-        """
-        Create a new Cli Channel object.
-
-        :param host: host/ip
-        :type host: string
-        :param user: username to log in with
-        :type user: string
-        :param password: password to log in with
-        :type password: string
-        :param terminal:  terminal emulation to use; default to 'console'
-        :type terminal: string
-        :param transport_type: telnet or ssh, defaults to ssh
-        :type transport_type: string
-        :param prompt: A prompt to match.  Defaults to :const:`CLI_ANY_PROMPT`
-        :type prompt: regex pattern
-        :param channel_args: additional ``transport_type``-dependent
-            arguments, passed blindly to the transport ``start`` method.
-        :type channel_args: determined by the channel's constructor
-            where appropriate.
-        """
-
         self._host = host
         self._user = user
         self._password = password
@@ -146,53 +145,57 @@ class CLI(object):
 
     def _initialize_cli_over_ssh(self):
         """
-        Initialize underlying ssh transport and ssh channel. It expect ssh to
-        shell or cli. Start cli if ssh-ed to shell.
+        Initialize underlying ssh transport and ssh channel.
+
+        The shell or CLI is expected to be on the other end of the connection.
+        The CLI will be started if we connect to the shell.
         """
 
         # Create SSHProcess
         if self._transport is None:
-            self._transport = SSHProcess(self._host,
-                                         self._user,
-                                         self._password)
+            self._transport = sshprocess.SSHProcess(self._host,
+                                                    self._user,
+                                                    self._password)
             self._new_transport = True
 
         # Create ssh channel and start channel
-        self.channel = SSHChannel(self._transport, self._terminal)
+        self.channel = sshchannel.SSHChannel(self._transport, self._terminal)
 
     def _initialize_cli_over_telnet(self):
         """
-        Create and initialize telnet channel. It assume telnet to either
-        shell or cli. Start cli if telneted to shell.
+        Initialize underlying telnet channel.
+
+        The shell or CLI is expected to be on the other end of the connection.
+        The CLI will be started if we connect to the shell.
         """
         # Create telnet channel
-        self.channel = TelnetChannel(self._host, self._user, self._password)
+        self.channel = telnetchannel.TelnetChannel(self._host, self._user,
+                                                   self._password)
 
     def _initialize_cli_over_libvirt(self):
         """
-        Create and initialize libvirt channel. Same general logic as telnet.
+        Create and initialize a libvirt channel. Same general logic as telnet.
         """
 
         # Create libvirt channel.  self._channel_args should contain
         # a 'domain_name' argument.
-        self.channel = LibVirtChannel(user=self._user,
-                                      password=self._password,
-                                      **self._channel_args)
+        self.channel = libvirtchannel.LibVirtChannel(user=self._user,
+                                                     password=self._password,
+                                                     **self._channel_args)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """
-        Discard old data in buffer, sends data, then blocks until some text is
-        received that matches one or more patterns.
+        Flushes the buffer, sends data and waits for a match to the patterns.
 
         :param text_to_send: Text to send, may be empty.  Note, you are
-                             responsible for your own command terminator!
+            responsible for your own command terminator!
         :param match_res: Pattern(s) to look for to be considered successful.
         :param timeout: Maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
+            expression match. 0 to wait forever.
 
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is
-                 a Python re.MatchObject containing data on what was matched.
+        :return: ``(output, match_object)`` where output is the output of the
+            command (without the matched text), and match_object is a Python
+            :class:`re.MatchObject` containing data on what was matched.
         """
         # TODO: There was a call to 'self.channel.receive_all()' here, which
         # appears to be used to 'flush' the buffer first.  For interactive
@@ -203,18 +206,16 @@ class CLI(object):
 
     def _send_line_and_wait(self, text_to_send, match_res, timeout=60):
         """
-        Same to _send_and_wait but automatically append a newline to data
-        before send.
+        Same as `_send_and_wait` but appends a line terminator first.
 
-        :param text_to_send: Text to send, may be empty.  Note, you are
-                             responsible for your own command terminator!
+        :param text_to_send: Text to send, may be empty.
         :param match_res: Pattern(s) to look for to be considered successful.
         :param timeout: Maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
+            expression match. 0 to wait forever.
 
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is
-                 a Python re.MatchObject containing data on what was matched.
+        :return: ``(output, match_object)`` where output is the output of the
+            command (without the matched text), and match_object is a Python
+            :class:`re.MatchObject` containing data on what was matched.
         """
         text_to_send = text_to_send + ENTER_LINE
         return self._send_and_wait(text_to_send, match_res, timeout)
@@ -238,16 +239,15 @@ class CLI(object):
             almost never needed.  This parameter is for unusual
             situations like an install config wizard.
 
+        :return: output of the command, minus the command itself.
+
         :raises TypeError: if output_expected type is incorrect
         :raises CmdlineTimeout: on timeout
         :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
-
-        :return: output of the command, minus the command itself.
         """
 
-        if output_expected is not None and not isinstance(
-                output_expected, bool):
+        if output_expected not in (True, False, None):
             raise TypeError("exec_command: output_expected requires a boolean "
                             "value or None")
 

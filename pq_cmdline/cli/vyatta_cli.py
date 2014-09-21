@@ -8,10 +8,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 
 from pq_cmdline import exceptions
-from pq_cmdline.cli import CLI, CLIMode
+from pq_cmdline import cli
 
 
-class VyattaCli(CLI):
+class VyattaCli(cli.CLI):
 
     """
     Provides an interface to interact with the CLI of a vyatta router
@@ -70,8 +70,10 @@ class VyattaCli(CLI):
 
     def _disable_paging(self):
         """
-        Disable session paging. When we run a CLI command, we want to get
-        all output instead of a page at a time.
+        Disable session paging.
+
+        When we run a CLI command, we want to get all output instead of
+        a page at a time.
         """
         self._log.debug('Disabling paging on Vyatta')
         self._send_line_and_wait(
@@ -80,8 +82,9 @@ class VyattaCli(CLI):
 
     def current_cli_mode(self):
         """
-        Determine what mode the CLI is at. This is done by sending newline on
-        the channel and check which prompt pattern matches.
+        Determine the current mode of the CLI.
+
+        This is done by sending newline and check which prompt pattern matches.
 
         :return: current CLI mode.
         :raises UnknownCLIMode: if the current mode could not be detected.
@@ -91,19 +94,19 @@ class VyattaCli(CLI):
                                                    [self.CLI_NORMAL_PROMPT,
                                                     self.CLI_CONFIG_PROMPT, ])
 
-        modes = {self.CLI_NORMAL_PROMPT: CLIMode.NORMAL,
-                 self.CLI_CONFIG_PROMPT: CLIMode.CONFIG, }
+        modes = {self.CLI_NORMAL_PROMPT: cli.CLIMode.NORMAL,
+                 self.CLI_CONFIG_PROMPT: cli.CLIMode.CONFIG, }
 
         if match.re.pattern not in modes:
             raise exceptions.UnknownCLIMode(prompt=output)
         return modes[match.re.pattern]
 
-    def enter_mode(self, mode=CLIMode.CONFIG, force=False):
+    def enter_mode(self, mode=cli.CLIMode.CONFIG, force=False):
         """
         Enter the mode based on mode string ('normal','config').
 
         :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
-                   'configure'
+            'configure'
         :type mode: string
 
         :param force: Discard commits and force enter requested mode
@@ -111,10 +114,10 @@ class VyattaCli(CLI):
 
         :raises UnknownCLIMode: if mode is not "normal", "configure"
         """
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self.enter_mode_normal(force)
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self.enter_mode_config()
 
         else:
@@ -122,26 +125,27 @@ class VyattaCli(CLI):
 
     def enter_mode_normal(self, force=False):
         """
-        Puts the CLI into the 'normal' mode. In this mode you can run commands,
-        but you cannot change the configurations.
+        Puts the CLI into the 'normal' mode.
+
+        In this mode you can run commands, but you cannot change
+        the configuration.
 
         :param force: Will force enter 'normal' mode, discarding all changes
-                     that haven't been committed.
+            that haven't been committed.
         :type force: Boolean
 
         :raises CLIError: if unable to go from "configure" mode to "normal"
-                          This happens if "commit" is not applied after config
-                          changes
+            This happens if "commit" is not applied after config changes
         :raises UnknownCLIMode: if mode is not "normal" or "configure"
         """
 
         self._log.info('Going to normal mode')
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self._log.debug('Already at normal, doing nothing')
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             if force:
                 self._log.debug('Entering normal mode, discarding all commits')
                 self._send_line_and_wait(
@@ -161,8 +165,9 @@ class VyattaCli(CLI):
 
     def enter_mode_config(self):
         """
-        Puts the CLI into config mode, if it is not there already. In this
-        mode, you can make changes in configurations.
+        Puts the CLI into config mode, if it is not there already.
+
+        In this mode, you can make changes in the configuration.
 
         :raises UnknownCLIMode: if mode is not "normal", "configure"
         """
@@ -171,14 +176,14 @@ class VyattaCli(CLI):
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self._send_line_and_wait('configure', self.CLI_CONFIG_PROMPT)
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._log.debug('Already at Config, doing nothing')
         else:
             raise exceptions.UnknownCLIMode(mode=mode)
 
-    def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
+    def exec_command(self, command, timeout=60, mode=cli.CLIMode.CONFIG,
                      force=False, output_expected=None, prompt=None):
         """
         Executes the given command.
@@ -204,12 +209,12 @@ class VyattaCli(CLI):
             handles all typical cases.  This parameter is for unusual
             situations like the install config wizard.
 
+        :return: output of the command, minus the command itself.
+
         :raises TypeError: if output_expected type is incorrect
         :raises CmdlineTimeout: on timeout
         :raises UnexpectedOutput: if output occurrs when no output was
             expected, or no output occurs when output was expected
-
-        :return: output of the command, minus the command itself.
         """
         if output_expected is not None and not isinstance(
                 output_expected, bool):
@@ -234,7 +239,7 @@ class VyattaCli(CLI):
 
         # To address this remove line with '[edit]' when in config mode
 
-        if mode == CLIMode.CONFIG:
+        if mode == cli.CLIMode.CONFIG:
             output = [line for line in output if self.DISCARD_PROMPT != line]
 
         output = '\n'.join(output)

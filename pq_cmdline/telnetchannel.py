@@ -9,22 +9,22 @@ import logging
 import telnetlib
 import socket
 
-from pq_runtime.exceptions import re_raise
+from pq_runtime import exceptions as rt_exc
 from pq_cmdline import exceptions
-from pq_cmdline.channel import Channel
+from pq_cmdline import channel
 
 
-class PQTelnet(telnetlib.Telnet):
+class SteelScriptTelnet(telnetlib.Telnet):
+    """Local subclass to facilitate logging."""
     def msg(self, msg, *args):
         """ Forward telnetlib's debug messages to log """
         context = 'Telnet(%s,%d):' % (self.host, self.port)
         logging.debug(context + msg, *args)
 
 
-class TelnetChannel(Channel):
+class TelnetChannel(channel.Channel):
     """
-    Class represents a telnet channel, a two-way channel that allows send
-    and receive data.
+    Two-way telnet channel that allows sending and receiving data.
     """
 
     LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
@@ -50,7 +50,7 @@ class TelnetChannel(Channel):
         self._password = password
         self._port = port
 
-        # PQTelnet
+        # SteelScriptTelnet
         self.channel = None
 
     def start(self, match_res=None, timeout=15):
@@ -70,20 +70,21 @@ class TelnetChannel(Channel):
             match_res = [match_res, ]
 
         # Start channel
-        self.channel = PQTelnet(self._host, self._port)
+        self.channel = SteelScriptTelnet(self._host, self._port)
 
         return self._handle_init_login(match_res, timeout)
 
     def _handle_init_login(self, match_res, timeout):
         """
-        Handle init login.
+        Handle initial login.
 
         :param match_res: Pattern(s) of prompts to look for after login.
-                          May be a single regex string, or a list of them.
+            May be a single regex string, or a list of them.
         :param timeout: maximum time, in seconds, to wait for a regular
-                        expression match. 0 to wait forever.
-        :return: Python re.MatchObject containing data on what was matched
-                 after login.
+            expression match. 0 to wait forever.
+        :return: Python :class:`re.MatchObject` containing data on what
+            was matched after login.
+        :raises CmdlineTimeout: if any step of the login exceeds the timeout.
         """
 
         # Add login prompt and password prompt so that we can detect
@@ -130,8 +131,7 @@ class TelnetChannel(Channel):
 
     def _verify_connected(self):
         """
-        Helper function that verifies the connection has been established
-        and that the transport object we are using is still connected.
+        Verifies an established connection and transport.
 
         :raises ConnectionError: if we are not connected
         """
@@ -147,12 +147,11 @@ class TelnetChannel(Channel):
             # TODO: re_raise and passing kwargs not compatible.
             # re_raise(CommandError, 'Host SSH shell has been disconnected')
             logging.info('Host SSH shell has been disconnected')
-            re_raise(exceptions.ConnectionError)
+            rt_exc.re_raise(exceptions.ConnectionError)
 
     def receive_all(self):
         """
-        Returns all text currently in the receive buffer, effectively flushing
-        it.
+        Flushes the receive buffer, returning all text that was in it.
 
         :return: the text that was present in the receive queue, if any.
         """
@@ -165,11 +164,7 @@ class TelnetChannel(Channel):
         Sends text to the channel immediately.  Does not wait for any response.
 
         :param text_to_send: Text to send, may be an empty string.
-        :raises TypeError: if text_to_send is None.
         """
-        if text_to_send is None:
-            raise TypeError('text_to_send should not be None')
-
         # Encode text to ascii; telnetlib does not work well with unicode
         # literals.
         text_to_send = text_to_send.encode('ascii')
@@ -195,16 +190,18 @@ class TelnetChannel(Channel):
                           May be a single regex string, or a list of them.
         :param timeout: maximum time, in seconds, to wait for a regular
                         expression match. 0 to wait forever.
-        :raises TypeError: if match_res is None or empty.
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is a
-                 Python re.MatchObject containing data on what was matched.
 
-                 You may use MatchObject.string[m.start():m.end()] to recover
-                 the actual matched text.
+        :return: ``(output, match_object)`` where output is the output of
+            the command (without the matched text), and match_object is a
+            Python :class:`re.MatchObject` containing data on what was matched.
 
-                 MatchObject.re.pattern will contain the pattern that matched,
-                 which will be one of the elements of match_res passed in.
+            You may use ``MatchObject.string[m.start():m.end()]`` to recover
+            the actual matched text, which will be unicode.
+
+            ``re.MatchObject.pattern`` will contain the pattern that matched,
+            which will be one of the elements of match_res passed in.
+
+        :raises CmdlineTimeout: if no match found before timeout.
         """
 
         match_res, safe_match_text = self._expect_init(match_res)

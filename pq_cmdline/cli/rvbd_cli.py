@@ -9,7 +9,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 
 from pq_cmdline import exceptions
-from pq_cmdline.cli import CLIMode, CLI
+from pq_cmdline import cli
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -18,10 +18,10 @@ DELETE_LINE = b'\x15'
 ENTER_LINE = b'\r'
 
 
-class RVBD_CLI(CLI):
+class RVBD_CLI(cli.CLI):
 
     """
-    New implementation of CLI for a Riverbed appliance.
+    Implementation of a CLI for a Riverbed appliances.
     """
 
     CLI_EXEC_PATH = '/opt/tms/bin/cli'
@@ -79,7 +79,7 @@ class RVBD_CLI(CLI):
 
         if run_cli:
             # default exec_command to CLIMode.CONFIG
-            self._default_mode = CLIMode.CONFIG
+            self._default_mode = cli.CLIMode.CONFIG
 
             # Start cli if log into shell
             self._run_cli_from_shell()
@@ -96,7 +96,7 @@ class RVBD_CLI(CLI):
         """
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.SHELL:
+        if mode == cli.CLIMode.SHELL:
             timeout = 60
             self._log.debug('At bash prompt, executing CLI')
             self._send_line_and_wait(self.CLI_EXEC_PATH,
@@ -104,8 +104,10 @@ class RVBD_CLI(CLI):
 
     def _disable_paging(self):
         """
-        Disable session paging. When we run a CLI command, we want to get
-        all output instead of a page at a time.
+        Disable session paging.
+
+        When we run a CLI command, we want to get all output instead of
+        a page at a time.
         """
         self._log.debug('Disabling paging')
         self._send_line_and_wait('no cli session paging enable',
@@ -113,8 +115,9 @@ class RVBD_CLI(CLI):
 
     def current_cli_mode(self):
         """
-        Determine what mode the CLI is at. This is done by sending newline
-        and check which prompt pattern matches.
+        Determine the current mode of the CLI.
+
+        Sends a newline and checks which prompt pattern matches.
 
         :return: current CLI mode.
         :raises UnknownCLIMode: if the current mode could not be detected.
@@ -126,36 +129,35 @@ class RVBD_CLI(CLI):
                                                     self.CLI_ENABLE_PROMPT,
                                                     self.CLI_CONF_PROMPT])
 
-        modes = {self.CLI_SHELL_PROMPT: CLIMode.SHELL,
-                 self.CLI_NORMAL_PROMPT: CLIMode.NORMAL,
-                 self.CLI_ENABLE_PROMPT: CLIMode.ENABLE,
-                 self.CLI_CONF_PROMPT: CLIMode.CONFIG}
+        modes = {self.CLI_SHELL_PROMPT: cli.CLIMode.SHELL,
+                 self.CLI_NORMAL_PROMPT: cli.CLIMode.NORMAL,
+                 self.CLI_ENABLE_PROMPT: cli.CLIMode.ENABLE,
+                 self.CLI_CONF_PROMPT: cli.CLIMode.CONFIG}
 
         if match.re.pattern not in modes:
             raise exceptions.UnknownCLIMode(prompt=output)
         return modes[match.re.pattern]
 
-    def enter_mode(self, mode=CLIMode.CONFIG):
+    def enter_mode(self, mode=cli.CLIMode.CONFIG):
         """
-        Enter mode based on mode string ('normal', 'enable', 'configure',
-        or 'shell').
+        Enter mode based on name ('normal', 'enable', 'configure', or 'shell').
 
         :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
-                   'configure'.  Use :class:`CLIMode` values.
+            'configure'.  Use :class:`CLIMode` values.
         :raises UnknownCLIMode: if mode is not "normal", "enable",
-                                "configure", or "shell".
+            "configure", or "shell".
         :raises CLINotRunning: if the CLI is not running.
         """
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self.enter_mode_normal()
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self.enter_mode_enable()
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self.enter_mode_config()
 
-        elif mode == CLIMode.SHELL:
+        elif mode == cli.CLIMode.SHELL:
             self.enter_mode_shell()
 
         else:
@@ -163,16 +165,18 @@ class RVBD_CLI(CLI):
 
     def enter_mode_shell(self):
         """
-        Exits the CLI into shell mode.  This is a one-way transition and
-        and you will need to start a new CLI object to get back.
+        Exits the CLI into shell mode.
+
+        This is a one-way transition and and you will need to start
+        a new CLI object to get back.
         """
         self._default_mode = None
         self._prompt = self.CLI_SHELL_PROMPT
         current_mode = self.current_cli_mode()
-        if current_mode == CLIMode.SHELL:
+        if current_mode == cli.CLIMode.SHELL:
             return
 
-        if current_mode == CLIMode.NORMAL:
+        if current_mode == cli.CLIMode.NORMAL:
             self.enter_mode_enable()
 
         self.exec_command('_shell',
@@ -181,66 +185,64 @@ class RVBD_CLI(CLI):
 
     def enter_mode_normal(self):
         """
-        Puts the CLI into the 'normal' mode (where it is when the CLI first
-        executes), if it is not there already.  Note this will go 'backwards'
-        if needed (e.g., exiting config mode)
+        Puts the CLI into the 'normal' mode (its initial state).
+
+        Note this will go 'backwards' if needed (e.g., exiting config mode)
 
         :raises CLINotRunning: if the shell is not in the CLI; current thinking
-                               is this indicates the CLI has crashed/exited,
-                               and it is better to open a new CliChannel than
-                               have this one log back in and potentially hide
-                               an error.
+            is this indicates the CLI has crashed/exited, and it is better
+            to open a new CliChannel than have this one log back in
+            and potentially hide an error.
         """
 
         self._log.info('Going to normal mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.SHELL:
+        if mode == cli.CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
-        elif mode == CLIMode.NORMAL:
+        elif mode == cli.CLIMode.NORMAL:
             self._log.debug('Already at normal, doing nothing')
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._send_line_and_wait('exit', self.CLI_ENABLE_PROMPT)
             self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
     def enter_mode_enable(self):
         """
-        Puts the CLI into enable mode, if it is not there already.  Note this
-        will go 'backwards' if needed (e.g., exiting config mode)
+        Puts the CLI into enable mode.
+
+        Note this will go 'backwards' if needed (e.g., exiting config mode)
 
         :raises CLINotRunning: if the shell is not in the CLI; current thinking
-                               is this indicates the CLI has crashed/exited,
-                               and it is better to open a new CliChannel than
-                               have this one log back in and potentially hide
-                               an error.
+            is this indicates the CLI has crashed/exited, and it is better
+            to open a new CliChannel than have this one log back in
+            and potentially hide an error.
         """
 
         self._log.info('Going to Enable mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.SHELL:
+        if mode == cli.CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
-        elif mode == CLIMode.NORMAL:
+        elif mode == cli.CLIMode.NORMAL:
             self._enable()
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._log.debug('Already at Enable, doing nothing')
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._send_line_and_wait('exit', self.CLI_ENABLE_PROMPT)
 
     def _enable(self):
         """
-        Run cli command to enter enable mode. It may or may not require
-        password.
+        Puts the CLI in enable mode.  This may or may not require a password.
         """
         password_prompt = '(P|p)assword:'
         (output, match) = self._send_line_and_wait('enable',
@@ -254,30 +256,29 @@ class RVBD_CLI(CLI):
         Puts the CLI into config mode, if it is not there already.
 
         :raises CLINotRunning: if the shell is not in the CLI; current thinking
-                               is this indicates the CLI has crashed/exited,
-                               and it is better to open a new CliChannel than
-                               have this one log back in and potentially hide
-                               an error.
+            is this indicates the CLI has crashed/exited, and it is better
+            to open a new CLI than have this one log back in and potentially
+            hide an error.
         """
 
         self._log.info('Going to Config mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.SHELL:
+        if mode == cli.CLIMode.SHELL:
             raise exceptions.CLINotRunning()
 
-        elif mode == CLIMode.NORMAL:
+        elif mode == cli.CLIMode.NORMAL:
             self._enable()
             self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._log.info('Already at Config, doing nothing')
 
-    def exec_command(self, command, timeout=60, mode=CLIMode.UNDEF,
+    def exec_command(self, command, timeout=60, mode=cli.CLIMode.UNDEF,
                      output_expected=None, error_expected=False, prompt=None):
         """Executes the given command.
 
@@ -304,20 +305,20 @@ class RVBD_CLI(CLI):
             handles all typical cases.  This parameter is for unusual
             situations like the install config wizard.
 
+        :return: output of the command, minus the command itself.
+
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
             error output was not expected.
         :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
-
-        :return: output of the command, minus the command itself.
         """
 
         if output_expected is not None and type(output_expected) is not bool:
             raise TypeError("exec_command: output_expected requires a boolean "
                             "value or None")
 
-        if mode is CLIMode.UNDEF:
+        if mode is cli.CLIMode.UNDEF:
             mode = self.default_mode
         if mode is not None:
             self.enter_mode(mode)
@@ -356,13 +357,19 @@ class RVBD_CLI(CLI):
 
     def get_sub_commands(self, root_cmd):
         """
-        Gets a list of commands at the current mode.  ie, it sends root_cmd
-        with ? and returns everything that is a command. This strips out
-        things in <>'s, or other free-form fields the user has to enter.
+        Gets a list of commands at the current mode.
 
-        :param root_cmd - root of the command to get subcommands for
-        :return a list of the full paths to subcommands.  eg,  if root_cmd is
-            "web ?", this returns ['web autologout', 'web auto-refresh', ...]
+        It sends root_cmd with ? and returns everything that is a command.
+        This strips out things in <>'s, or other free-form fields the user
+        has to enter.
+
+        :param root_cmd: root of the command to get subcommands for
+        :return: a list of the full paths to subcommands.  eg,  if root_cmd is
+            "web ?", this returns:
+
+        .. code-block:: python
+
+            ['web autologout', 'web auto-refresh', ...]
         """
 
         self._log.debug('Generating help for "%s"' % root_cmd)

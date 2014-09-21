@@ -22,7 +22,7 @@ ANY_ERROR = ('error message', -1)
 
 @pytest.fixture
 def any_shell():
-    with patch('pq_cmdline.shell.SSHProcess'):
+    with patch('pq_cmdline.shell.sshprocess.SSHProcess'):
         shell = Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
 
         # This will make it always appear to be unconnected,

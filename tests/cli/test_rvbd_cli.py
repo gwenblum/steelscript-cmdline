@@ -60,7 +60,7 @@ def test_members_intialize_correctly(any_cli):
 
 
 def test_start_calls_correct_methods(any_cli):
-    with patch('pq_cmdline.cli.SSHChannel') as channel:
+    with patch('pq_cmdline.cli.sshchannel.SSHChannel') as channel:
         channel._verify_connect = MagicMock(name='method')
         any_cli._run_cli_from_shell = MagicMock(name='method')
         any_cli.enter_mode_normal = MagicMock(name='method')

@@ -82,22 +82,24 @@ class Channel(object):
         return out_string
 
     def fixup_carriage_returns(self, data):
-        """
-        To work around all the different \r\n combos we are
+        # Using a raw docstring r"""...""" allows us to just use \\r and \\n
+        # instead of needing \\\\r and \\\\n escape through docutils.
+        r"""
+        To work around all the different \\r\\n combos we are
         getting from the CLI, we normalize it as:
 
-        1) Eat consecutive \r's               (a\r\r\nb -> a\r\nb)
-        2) Convert \r\n's to \n               (a\r\nb -> a\nb)
-        3) Convert \n\r to \n                 (a\r\n\rb) -> (a\n\rb) -> (a\nb)
-        4) Convert single \r's to \n, unless at
-           end of strings                     (a\rb -> a\nb)
+          1) Eat consecutive \\r's       (a\\r\\r\\nb -> a\\r\\nb)
+          2) Convert \\r\\n's to \\n     (a\\r\\nb -> a\\nb)
+          3) Convert \\n\\r to \\n       (a\\r\\n\\rb) -> (a\\n\\rb) -> (a\\nb)
+          4) Convert single \\r's to \\n,
+             unless at end of strings    (a\\rb -> a\\nb)
 
         #4 doesn't trigger at the end of the line to cover partially received
-           data; the next character that comes in may be a \n, \r, etc.
+           data; the next character that comes in may be a \\n, \\r, etc.
 
         :param data: string to convert
 
-        :return: the string data with the linefeeds converted into only \n's
+        :return: the string data with the linefeeds converted into only \\n's
         """
 
         # Not the fastest approach, but when the strings are short this should

@@ -10,6 +10,7 @@ import abc
 class Transport(object):
     """
     Abstract class to define common interfaces for a transport.
+
     A transport is used by Cli/Shell object to handle connection setup.
     """
 
@@ -29,6 +30,7 @@ class Transport(object):
     def is_connected(self):
         """
         Check whether a connection is established or not.
+
         :return: True if it is connected; returns False otherwise.
         """
         return

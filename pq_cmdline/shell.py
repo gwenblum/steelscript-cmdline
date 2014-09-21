@@ -8,30 +8,27 @@ import paramiko
 import logging
 import time
 import select
-from socket import error as socket_error
+import socket
 
-from pq_runtime.exceptions import re_raise, InvalidInput
-from pq_cmdline.sshprocess import SSHProcess
+from pq_runtime import exceptions as rt_exc
+from pq_cmdline import sshprocess
 from pq_cmdline import exceptions
 
 
 class Shell(object):
     """
-    Class for running shell command remotely. It runs commands stateless.
-    No persistent channel is maintained.
-    So an exec_command cannot use environment variables/directory
-    changes/whatever from a previous command execution.
+    Class for running shell command remotely and statelessly.
+
+    No persistent channel is maintained, so changes to
+    environment variables or other state will not be present for
+    subsequent commands.
+
+    :param host: host/ip to ssh into
+    :param user: username to log in with
+    :param password: password to log in with
     """
 
     def __init__(self, host, user='root', password=''):
-        """
-        Create a Shell object to 'host' with specified user and password.
-
-        :param host: host/ip to ssh into
-        :param user: username to log in with
-        :param password: password to log in with
-        """
-
         # Hostname shell connects to
         self._host = host
 
@@ -43,12 +40,13 @@ class Shell(object):
 
         # Initialize underlying sshprocess, but do not connect automatically.
         # http://www.lag.net/paramiko/docs/
-        self.sshprocess = SSHProcess(host=host, user=user, password=password)
+        self.sshprocess = sshprocess.SSHProcess(host=host, user=user,
+                                                password=password)
 
     def exec_command(self, command, timeout=60, output_expected=None,
                      error_expected=False, exit_info=None, retry_count=3,
                      retry_delay=5,
-                     # Deprecated parameters.
+                     # Deprecated parameters. Remove for SteelScript.
                      expect_output=None, expect_error=None):
         """Executes the given command statelessly.
 
@@ -60,9 +58,6 @@ class Shell(object):
 
         :param command: command to send
         :param timeout: seconds to wait for command to finish. None to disable
-        :param expect_output: If not None, indicates whether output is
-            expected (True) or no output is expected (False).
-            If the opposite occurs, raise UnexpectedOutput. Default is None.
         :param output_expected: If not None, indicates whether output is
             expected (True) or no output is expected (False).
             If the opposite occurs, raise UnexpectedOutput. Default is None.
@@ -84,17 +79,18 @@ class Shell(object):
             Default is 5
         :type retry_delay: int
 
+        :return: output from the command
+
         :raises ConnectionError: if the connection is lost
         :raises CmdlineTimeout: on timeout
         :raises ShellError: on an unexpected nonzero exit status
         :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
-
-        :return: output from the command
         """
 
         logging.debug('Executing command "%s"' % command)
 
+        # TODO: Remove this block of code for SteelScript.
         if expect_output is not None:
             logging.error("The 'expect_output' parameter is deprecated. "
                           "Use 'output_expected")
@@ -103,6 +99,7 @@ class Shell(object):
             logging.error("The 'expect_error' parameter is deprecated. "
                           "Use 'error_expected'")
             error_expected = expect_error
+        # TODO: End block of code to be removed.
 
         # connect if ssh is not connected
         if (not self.sshprocess.is_connected()):
@@ -133,9 +130,9 @@ class Shell(object):
                                retry_delay):
         try:
             channel = self.sshprocess.transport.open_session()
-        except socket_error:
+        except socket.error:
             if retry_count == 0:
-                re_raise(exceptions.ConnectionError)
+                rt_exc.re_raise(exceptions.ConnectionError)
 
             # Reconnect and try again
             logging.info("connection seems broken, reconnect...")
@@ -160,7 +157,7 @@ class Shell(object):
                 # TODO: re_raise not compatabile with passing kwargs
                 # re_raise(SshError, "Not connected to %s" % self._host)
                 logging.info("Not connected to %s", self._host)
-                re_raise(exceptions.ConnectionError)
+                rt_exc.re_raise(exceptions.ConnectionError)
             else:
                 logging.debug(
                     'Ignore Paramiko SSHException due to 1.7.5 bug')
@@ -222,9 +219,9 @@ class Shell(object):
 
     def _reconnect(self, retry_count, retry_delay):
         if not isinstance(retry_count, int) or retry_count < 1:
-            raise InvalidInput("retry_count should be positive int")
+            raise rt_exc.InvalidInput("retry_count should be positive int")
         if not isinstance(retry_delay, int) or retry_delay < 1:
-            raise InvalidInput("retry_delay should be positive int")
+            raise rt_exc.InvalidInput("retry_delay should be positive int")
 
         for count in range(retry_count):
             try:

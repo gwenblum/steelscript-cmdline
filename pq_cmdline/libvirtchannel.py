@@ -37,7 +37,8 @@ class LibVirtChannel(channel.Channel):
     Channel for connecting to a serial port via libvirt.
 
     :param domain_name: The libvirt domain to which to connect.
-    :param uri: The qemu uri where the domain may be found.
+    :param uri: The hypervisor uri where the domain may be found.
+        Defaults to the local qemu hypervisor.
     :param user: username for authentication
     :param password: password for authentication
     """
@@ -66,7 +67,8 @@ class LibVirtChannel(channel.Channel):
         :param timeout: maximum time, in seconds, to wait for a regular
             expression match. 0 to wait forever.
 
-        :return: Python re.MatchObject containing data on what was matched.
+        :return: Python :class:`re.MatchObject` containing data on
+            what was matched.
         """
 
         if not match_res:
@@ -139,6 +141,7 @@ class LibVirtChannel(channel.Channel):
     def _handle_init_login(self, logged_in_res, timeout):
         """
         Login to host console.
+
         :param logged_in_res: Regex list of logged in prompts.
         :type logged_in_res: list (single pattern not allowed)
         :param timeout: Time to wait for each prompt match.
@@ -218,17 +221,17 @@ class LibVirtChannel(channel.Channel):
             in seconds.  Note that the default timeout is longer than
             on most channels.
 
-        :raises Exception if no match found before timeout.
+        :return: ``(output, match_object)`` where output is the output of
+            the command (without the matched text), and match_object is a
+            Python :class:`re.MatchObject` containing data on what was matched.
 
-        :return: (output, re.MatchObject) where output is the output of
-            the command (without the matched text), and MatchObject is a
-            Python re.MatchObject containing data on what was matched.
-
-            You may use MatchObject.string[m.start():m.end()] to recover
+            You may use ``MatchObject.string[m.start():m.end()]`` to recover
             the actual matched text, which will be unicode.
 
-            MatchObject.re.pattern will contain the pattern that matched,
+            ``re.MatchObject.pattern`` will contain the pattern that matched,
             which will be one of the elements of match_res passed in.
+
+        :raises CmdlineTimeout: if no match found before timeout.
         """
 
         # Timeout handler

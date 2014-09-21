@@ -8,17 +8,16 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import re
 
-from pq_cmdline import exceptions
-from pq_cmdline.cli import CLIMode, CLI
+from pq_cmdline import cli, exceptions
 
 
-class IOS_CLI(CLI):
+class IOS_CLI(cli.CLI):
 
     """
-    Provides an interface to interact with the command-line interface (CLI) of
-    a IOS router
+    Implementation of a CLI for IOS devices.
     """
 
+    # TODO: This is VLAB specific.  Remove before SteelScript.
     # IOS are named as following:
     # tr2821-b or tsw27
     # oak-tr5 or oak-tsw5
@@ -56,16 +55,19 @@ class IOS_CLI(CLI):
 
     def _disable_paging(self):
         """
-        Disable session paging. When we run a CLI command, we want to get
-        all output instead of a page at a time.
+        Disable session paging.
+
+        When we run a CLI command, we want to get all output instead of
+        a page at a time.
         """
         self._log.debug('Disabling paging on IOS')
         self._send_line_and_wait('terminal length 0', self.CLI_NORMAL_PROMPT)
 
     def current_cli_mode(self):
         """
-        Determine what mode the CLI is at. This is done by sending newline on
-        the channel and check which prompt pattern matches.
+        Determine the current mode of the CLI.
+
+        Sends a newline and checks which prompt pattern matches.
 
         :return: current CLI mode.
         :raises UnknownCLIMode: if the current mode could not be detected.
@@ -77,16 +79,16 @@ class IOS_CLI(CLI):
                                                         self.CLI_CONFIG_PROMPT,
                                                         self.CLI_SUBIF_PROMPT])
 
-        modes = {self.CLI_NORMAL_PROMPT: CLIMode.NORMAL,
-                 self.CLI_ENABLE_PROMPT: CLIMode.ENABLE,
-                 self.CLI_CONFIG_PROMPT: CLIMode.CONFIG,
-                 self.CLI_SUBIF_PROMPT: CLIMode.SUBIF}
+        modes = {self.CLI_NORMAL_PROMPT: cli.CLIMode.NORMAL,
+                 self.CLI_ENABLE_PROMPT: cli.CLIMode.ENABLE,
+                 self.CLI_CONFIG_PROMPT: cli.CLIMode.CONFIG,
+                 self.CLI_SUBIF_PROMPT: cli.CLIMode.SUBIF}
 
         if match_res.re.pattern not in modes:
             raise exceptions.UnknownCLIMode(prompt=output)
         return modes[match_res.re.pattern]
 
-    def enter_mode(self, mode=CLIMode.CONFIG, interface=None):
+    def enter_mode(self, mode=cli.CLIMode.CONFIG, interface=None):
         """
         Enter mode based on mode string ('normal', 'enable', or 'configure').
 
@@ -97,16 +99,16 @@ class IOS_CLI(CLI):
         :raises UnknownCLIMode: if mode is not "normal", "enable", or
                                 "configure"
         """
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self.enter_mode_normal()
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self.enter_mode_enable()
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self.enter_mode_config()
 
-        elif mode == CLIMode.SUBIF:
+        elif mode == cli.CLIMode.SUBIF:
             self.enter_mode_subif(interface)
 
         else:
@@ -114,29 +116,29 @@ class IOS_CLI(CLI):
 
     def enter_mode_normal(self):
         """
-        Puts the CLI into the 'normal' mode (where it is when the CLI first
-        executes), if it is not there already.  Note this will go 'backwards'
-        if needed (e.g., exiting config mode)
+        Puts the CLI into the 'normal' mode (its initial state).
+
+        Note this will go 'backwards' if needed (e.g., exiting config mode)
 
         :raises UnknownCLIMode: if mode is not "normal", "enable", or
-                                "configure"
+            "configure"
         """
 
         self._log.debug('Going to normal mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self._log.debug('Already at normal, doing nothing')
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._send_line_and_wait('end', self.CLI_ENABLE_PROMPT)
             self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
-        elif mode == CLIMode.SUBIF:
+        elif mode == cli.CLIMode.SUBIF:
             self._send_line_and_wait('end', self.CLI_ENABLE_PROMPT)
             self._send_line_and_wait('disable', self.CLI_NORMAL_PROMPT)
 
@@ -145,27 +147,28 @@ class IOS_CLI(CLI):
 
     def enter_mode_enable(self):
         """
-        Puts the CLI into enable mode, if it is not there already.  Note this
-        will go 'backwards' if needed (e.g., exiting config mode)
+        Puts the CLI into enable mode.
+
+        Note this will go 'backwards' if needed (e.g., exiting config mode)
 
         :raises UnknownCLIMode: if mode is not "normal", "enable", or
-                                "configure"
+            "configure"
         """
 
         self._log.debug('Going to Enable mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self._enable()
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._log.debug('Already at Enable, doing nothing')
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._send_line_and_wait('end', self.CLI_ENABLE_PROMPT)
 
-        elif mode == CLIMode.SUBIF:
+        elif mode == cli.CLIMode.SUBIF:
             self._send_line_and_wait('end', self.CLI_ENABLE_PROMPT)
 
         else:
@@ -173,8 +176,7 @@ class IOS_CLI(CLI):
 
     def _enable(self):
         """
-        Run cli command to enter enable mode. It may or may not require
-        password.
+        Puts the CLI in enable mode.  This may or may not require a password.
         """
         password_prompt = '(P|p)assword:'
         (output, match_res) = self._send_line_and_wait('enable',
@@ -188,24 +190,24 @@ class IOS_CLI(CLI):
         Puts the CLI into config mode, if it is not there already.
 
         :raises UnknownCLIMode: if mode is not "normal", "enable", or
-                                "configure"
+            "configure"
         """
 
         self._log.debug('Going to Config mode')
 
         mode = self.current_cli_mode()
 
-        if mode == CLIMode.NORMAL:
+        if mode == cli.CLIMode.NORMAL:
             self._enable()
             self._send_line_and_wait('config terminal', self.CLI_CONFIG_PROMPT)
 
-        elif mode == CLIMode.ENABLE:
+        elif mode == cli.CLIMode.ENABLE:
             self._send_line_and_wait('config terminal', self.CLI_CONFIG_PROMPT)
 
-        elif mode == CLIMode.CONFIG:
+        elif mode == cli.CLIMode.CONFIG:
             self._log.debug('Already at Config, doing nothing')
 
-        elif mode == CLIMode.SUBIF:
+        elif mode == cli.CLIMode.SUBIF:
             self._send_line_and_wait('exit', self.CLI_CONFIG_PROMPT)
 
         else:
@@ -220,7 +222,7 @@ class IOS_CLI(CLI):
         if interface is None:
             raise ValueError('Cannot enter_mode_subif with Interface None')
         # enter mode config
-        self.enter_mode(CLIMode.CONFIG)
+        self.enter_mode(cli.CLIMode.CONFIG)
 
         # enter sub-interface
         self._send_line_and_wait(
@@ -228,7 +230,7 @@ class IOS_CLI(CLI):
             interface,
             self.CLI_SUBIF_PROMPT)
 
-    def exec_command(self, command, timeout=60, mode=CLIMode.CONFIG,
+    def exec_command(self, command, timeout=60, mode=cli.CLIMode.CONFIG,
                      output_expected=None, error_expected=False,
                      interface=None, prompt=None):
         """Executes the given command.

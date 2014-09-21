@@ -6,21 +6,21 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 from pprint import pformat
 
-from pq_runtime.exceptions import PQException
+from pq_runtime import exceptions
 
 
-class CmdlineException(PQException):
-    """Base exception representing an error executing the command line.
+class CmdlineException(exceptions.PQException):
+    """
+    Base exception representing an error executing the command line.
+
+    :param command: The command that produced the error.
+    :param output: The output returned, possibly None.
 
     :ivar command: The command that produced the error.
     :ivar output: The output returned.  None if the command did not return.
     """
 
     def __init__(self, command=None, output=None, _subclass_msg=None):
-        """
-        :param command: The command that produced the error.
-        :param output: The output returned, possibly None.
-        """
         self.command = command
         self.output = output
         if _subclass_msg is None:
@@ -74,11 +74,18 @@ class CmdlineException(PQException):
 
 
 class CmdlineTimeout(CmdlineException):
-    """Indicates a command was abandoned due to a timeout.
+    """
+    Indicates a command was abandoned due to a timeout.
 
     Some timeouts within a given protocol may be reported as ConnectionError
     as the third-party libraries are not always specific about causes.
     However, all timeouts triggered in PQ code will raise this exception.
+
+    :param timeout: The number of seconds that we were waiting for.
+    :param command: The command we were trying to execute.
+    :param output: Partial output received, if any.
+    :param failed_match: What we were trying to match, or None.
+    :type failed_match: Match object, pattern object, or string.
 
     :ivar command: The command we were trying to execute.
     :ivar output: Partial output received, if any.
@@ -87,13 +94,6 @@ class CmdlineTimeout(CmdlineException):
     """
 
     def __init__(self, timeout, command=None, output=None, failed_match=None):
-        """
-        :param timeout: The number of seconds that we were waiting for.
-        :param command: The command we were trying to execute.
-        :param output: Partial output received, if any.
-        :param failed_match: What we were trying to match, or None.
-        :type failed_match: Match object, pattern object, or string.
-        """
         self.timeout = timeout
         self.failed_match_pattern, match_msg = (
             self._process_failed_match(failed_match))
@@ -105,16 +105,24 @@ class CmdlineTimeout(CmdlineException):
 
 
 class ConnectionError(CmdlineException):
-    """Indicates a (probably) non-timeout error from the underlying protocol.
+    """
+    Indicates a (probably) non-timeout error from the underlying protocol.
 
     May contain a wrapped exception from a third-party library.
     In Python 3 this would be on the __cause__ attribute.
     The third-party library may not use a specific exception for timeouts,
     so certain kinds of timeouts may appear as a ConnectionError.
-    Timeouts managed by PQ code should use CmdlineTimeout instead.
+    Timeouts managed by SteelScript code should use CmdlineTimeout instead.
 
     This exceptipn should be used to propagate errors up to levels
     that should not be aware of the specific underlying protocol.
+
+    :param command: The command we were trying to execute.
+    :param output: Any output produced just before the failure.
+    :param cause: The protocol-specific exception, if any, that triggered this.
+    :param failed_match: What we were trying to match, or None.
+    :type failed_match: Match object, pattern object, or string.
+    :param context: An optional string describing the conetxt of the error.
 
     :ivar command: The command we were trying to execute.
     :ivar output: Any output produced just before the failure.
@@ -124,16 +132,6 @@ class ConnectionError(CmdlineException):
 
     def __init__(self, command=None, output=None, cause=None,
                  failed_match=None, context=None, _subclass_msg=None):
-        """
-        :param command: The command we were trying to execute.
-        :param output: Any output produced just before the failure.
-        :param cause: The protocol-specific exception, if any,
-                      that triggered this.
-        :param failed_match: What we were trying to match, or None.
-        :type failed_match: Match object, pattern object, or string.
-        :param context: An optional string describing the conetxt of the error.
-        """
-
         self.cause = cause
         if _subclass_msg is None:
             if command:
@@ -155,16 +153,17 @@ class ConnectionError(CmdlineException):
 
 
 class CLINotRunning(ConnectionError):
-    """Exception for when the CLI has crashed or could not be started.
+    """
+    Exception for when the CLI has crashed or could not be started.
+
+    :param output: Output of trying to start the CLI, or None if
+                   we expected the CLI to be there and it was not.
 
     :ivar output:  Output of trying to start the CLI, or None if we expected
                    the CLI to be there and it was not.
     """
+
     def __init__(self, output=None):
-        """
-        :param output: Output of trying to start the CLI, or None if
-                       we expected the CLI to be there and it was not.
-        """
         if output is None:
             msg = "CLI is not running."
         else:
@@ -174,7 +173,8 @@ class CLINotRunning(ConnectionError):
 
 
 class CmdlineError(CmdlineException):
-    """Base for command responses that specifically indicate an error.
+    """
+    Base for command responses that specifically indicate an error.
 
     See specific exceptions such as ``ShellError`` and ``CLIError`` for
     additional debugging fields.
@@ -183,10 +183,15 @@ class CmdlineError(CmdlineException):
 
 
 class ShellError(CmdlineError):
-    """Exception representing a nonzero exit status from the shell.
+    """
+    Exception representing a nonzero exit status from the shell.
 
     Technically, representing an unexpected exit from the shell, as some
     command, such as diff, have successful nonzero exits.
+
+    :param command: The command that produced the error.
+    :param exit_status: The exit status of the command.
+    :param output: The output as returned by the shell, if any.
 
     :ivar command: The command that produced the error.
     :ivar exit_status: The exit status of the command.
@@ -194,11 +199,6 @@ class ShellError(CmdlineError):
     """
 
     def __init__(self, command, exit_status, output=None):
-        """
-        :param command: The command that produced the error.
-        :param exit_status: The exit status of the command.
-        :param output: The output as returned by the shell, if any.
-        """
         self.exit_status = exit_status
         msg = ("Command '%s exited with status %d, output: '%s'" %
                (command, exit_status,
@@ -208,7 +208,12 @@ class ShellError(CmdlineError):
 
 
 class CLIError(CmdlineError):
-    """Exception representing an error message from the CLI.
+    """
+    Exception representing an error message from the CLI.
+
+    :param command: The command that produced the error.
+    :param mode: The CLI mode we were in when the error occurred.
+    :param output: The error string as returned by the CLI.
 
     :ivar command: The command that produced the error.
     :ivar mode: The CLI mode we were in when the error occurred.
@@ -216,11 +221,6 @@ class CLIError(CmdlineError):
     """
 
     def __init__(self, command, mode, output=None):
-        """
-        :param command: The command that produced the error.
-        :param mode: The CLI mode we were in when the error occurred.
-        :param output: The error string as returned by the CLI.
-        """
         self.mode = mode
         msg = ("Command '%s' in mode '%s' resulted in an error: '%s'" %
                (command, mode, '<no output>' if output is None else output))
@@ -237,6 +237,12 @@ class UnexpectedOutput(CmdlineException):
     This generally does not mean easily detectable error output, which is
     indicated by the appropriate subclass of ``CmdlineError``
 
+    :param command: The command that produced the error.
+    :param output: The output as returned from the command, possibly None.
+    :param expected_output: The output expected from the command,
+          possibly None.  If unspecified output was expected, set to True.
+    :type expected_output: String, possibly a regexp pattern.
+
     :ivar command: The command that produced the error.
     :ivar output: The output as returned from the command.
     :ivar expected_output: The output expected from the command, possibly None.
@@ -245,13 +251,6 @@ class UnexpectedOutput(CmdlineException):
     """
 
     def __init__(self, command, output, expected_output=None):
-        """
-        :param command: The command that produced the error.
-        :param output: The output as returned from the command, possibly None.
-        :param expected_output: The output expected from the command,
-              possibly None.  If unspecified output was expected, set to True.
-        :type expected_output: String, possibly a regexp pattern.
-        """
         self.expected_output = expected_output
 
         if output:
@@ -273,17 +272,17 @@ class UnexpectedOutput(CmdlineException):
 
 
 class UnknownCLIMode(CmdlineException):
-    """Exception for any CLI that sees or is asked for an unknown mode.
+    """
+    Exception for any CLI that sees or is asked for an unknown mode.
+
+    :param prompt: The prompt seen that cannot be mapped to a mode
+    :param mode: The mode that was requested but not recognized
 
     :ivar prompt: The prompt seen that cannot be mapped to a mode
     :ivar mode: The mode that was requested but not recognized
     """
 
     def __init__(self, prompt=None, mode=None):
-        """
-        :param prompt: The prompt seen that cannot be mapped to a mode
-        :param mode: The mode that was requested but not recognized
-        """
         self.prompt = prompt
         self.mode = mode
 

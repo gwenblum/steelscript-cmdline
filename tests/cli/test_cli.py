@@ -69,8 +69,9 @@ def test_start_raises_for_unknown_transport(any_cli):
 
 def test_start_initialize_ssh(any_cli, prompt_match):
     cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
-    with patch('pq_cmdline.cli.SSHChannel.__new__') as channel_new, \
-            patch('pq_cmdline.cli.SSHProcess.__new__') as process_new:
+    with patch('pq_cmdline.cli.sshchannel.SSHChannel.__new__') as channel_new, \
+            patch('pq_cmdline.cli.sshprocess.SSHProcess.__new__'
+                  ) as process_new:
         cli.start()
         process_new.assert_called_with(SSHProcess, ANY_HOST,
                                        ANY_USER, ANY_PASSWORD)
@@ -80,7 +81,7 @@ def test_start_initialize_ssh(any_cli, prompt_match):
 
 def test_start_initialize_telnet():
     cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_TELNET)
-    with patch('pq_cmdline.cli.TelnetChannel.__new__') as t:
+    with patch('pq_cmdline.cli.telnetchannel.TelnetChannel.__new__') as t:
         cli.start()
         t.assert_called_with(TelnetChannel, ANY_HOST, ANY_USER, ANY_PASSWORD)
 
@@ -88,7 +89,8 @@ def test_start_initialize_telnet():
 def test_start_initialize_libvirt():
     cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
               TRANSPORT_LIBVIRT, domain_name=ANY_DOMAIN)
-    with patch('pq_cmdline.cli.LibVirtChannel.__new__') as channel_new:
+    with patch('pq_cmdline.cli.libvirtchannel.LibVirtChannel.__new__'
+               ) as channel_new:
         cli.start()
         channel_new.assert_called_with(LibVirtChannel, user=ANY_USER,
                                        password=ANY_PASSWORD,
