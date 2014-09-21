@@ -14,23 +14,21 @@ ENTER_LINE = b'\r'
 
 
 class PowerShell(object):
-
     """
-    Base class PowerShell implementation for Windows Devices
+    PowerShell implementation for Windows Devices
+
+    :param channel: underlying channel
+    :type channel: :class:`pq_cmdline.Channel`
     """
 
-    # Presently the POWERSHELL_PROMPT is a generic regex which will try to
-    # match powershell prompt patterns, without having a check for hostname.
     POWERSHELL_PROMPT = '(PS.*>)'
+    """
+    A generic regex which will try to match powershell prompt patterns
+
+    Presently this does not check for the hostname.
+    """
 
     def __init__(self, channel):
-        """
-        Create a new PowerShell object.
-
-        :param channel: underlying channel
-        :type channel: pq_cmdline.Channel.
-        """
-
         self._log = logging.getLogger(__name__)
         self.channel = channel
 
@@ -59,9 +57,9 @@ class PowerShell(object):
         :param timeout: Maximum time, in seconds, to wait for a regular
                         expression match. 0 to wait forever.
 
-        :return: (output, re.MatchObject) where output is the output of the
-                 command (without the matched text), and MatchObject is
-                 a Python re.MatchObject containing data on what was matched.
+        :return: ``(output, match_object)`` where output is the output of the
+            command (without the matched text), and match_object is a
+            Python :class:`re.MatchObject` containing data on what was matched.
         """
         self.channel.receive_all()
         self.channel.send(text_to_send + ENTER_LINE)
