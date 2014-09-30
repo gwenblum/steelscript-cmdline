@@ -44,6 +44,7 @@ class CLIMode(object):
     UNDEF = ''
     """Used within the code to indicate unknown or don`t-care situations"""
 
+
 class CLI(object):
     """
     Base class CLI implementation for Network Devices
@@ -270,3 +271,59 @@ class CLI(object):
                                               output=output,
                                               expected_output=output_expected)
         return output
+
+
+# Note that CLICache must be defined after CLI in order to use the CLI
+# class object in a default parameter.
+class CLICache(object):
+    """
+    The CLI cache helps minimize open CLIs per system.
+
+    Leaving multiple CLI sessions open on some system, most notably the
+    Riverbed appliance CLI, can result in performance degradation
+    or even out-of-memory conditions.  This cache allows for sharing
+    a single CLI and easily cleaning up all CLIs on all systems.
+    """
+
+    @staticmethod
+    def attach_cache(target):
+        """
+        Add a CLI cache to the target as a data member.
+
+        This is for use in dynamic loading systems, and not for general
+        consumption.  Just assign the result of CLICache() the normal
+        way in typical code.
+        """
+        target.cli_cache = CLICache()
+
+    def __init__(self):
+        self._cli_cache = {}
+
+    def get_cli(self, resource, cli_class=CLI):
+        """Get CLI from cache, or cache a new one. """
+        if resource.uniqueid not in self._cli_cache:
+            # TODO: IP discovery may need to happen here.
+            #       For now, assume hostname or admin_ip is known.
+            cli = cli_class(host=(resource.hostname or resource.admin_ip),
+                            user=resource.username,
+                            password=resource.password)
+            cli.start()
+            self._cli_cache[resource.uniqueid] = cli
+        return self._cli_cache[resource.uniqueid]
+
+    def drop_cli(self, resource):
+        """
+        Removes the cli from the cache, allowing it to close.
+
+        If another reference is held elsewhere, the next call
+        to `get_cli` will result in multiple open CLI sessions.
+        """
+
+        try:
+            del self._cli_cache[resource.uniqueid]
+        except KeyError:
+            pass
+
+    def drop_all(self):
+        """Clean up CLI cache, disconnecting all sessions"""
+        self._cli_cache.clear()
