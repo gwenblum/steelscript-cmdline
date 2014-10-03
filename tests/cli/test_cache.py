@@ -57,7 +57,7 @@ def test_get_cli(resource):
 
     c = cache.get_cli(resource, cli_class=mock_cli_class)
 
-    mock_cli_class.assert_called_once_with(host=HOSTNAME,
+    mock_cli_class.assert_called_once_with(host=resource.admin_ip,
                                            user=USERNAME,
                                            password=PASSWORD)
     mock_cli.start.assert_called_once_with()

@@ -304,7 +304,13 @@ class CLICache(object):
         if resource.uniqueid not in self._cli_cache:
             # TODO: IP discovery may need to happen here.
             #       For now, assume hostname or admin_ip is known.
-            cli = cli_class(host=(resource.hostname or resource.admin_ip),
+            try:
+                host = resource.admin_ip
+            except IndexError as e:
+                logging.debug("Failed to get admin ip: %s" % e)
+                logging.debug("Use hostname instead.")
+                host = resource.hostname
+            cli = cli_class(host=host,
                             user=resource.username,
                             password=resource.password)
             cli.start()
