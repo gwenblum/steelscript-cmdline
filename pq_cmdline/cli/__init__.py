@@ -9,9 +9,6 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import logging
 
 from pq_cmdline import sshchannel
-from pq_cmdline import sshprocess
-from pq_cmdline import telnetchannel
-from pq_cmdline import libvirtchannel
 from pq_cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
@@ -19,6 +16,9 @@ DELETE_LINE = b'\x15'
 
 # Command terminator
 ENTER_LINE = b'\r'
+
+# Local qemu (KVM) hypervisor.
+DEFAULT_MACHINE_MANAGER_URI = 'qemu:///system'
 
 
 class CLIMode(object):
@@ -58,17 +58,23 @@ class CLI(object):
     may require subclassing this class and overriding the promp regexes.
 
     :param host: host/ip
-    :type host: string
+    :type hostname: string
     :param user: username to log in with
-    :type user: string
+    :type username: string
     :param password: password to log in with
     :type password: string
     :param terminal:  terminal emulation to use; default to 'console'
     :type terminal: string
-    :param transport_type: telnet or ssh, defaults to ssh
-    :type transport_type: string
     :param prompt: A prompt to match.  Defaults to :const:`CLI_ANY_PROMPT`
     :type prompt: regex pattern
+    :param transport_type: *DEPRECATED* (use ``channel_class``): telnet or ssh,
+        defaults to ssh
+    :type transport_type: string
+    :param user: *DEPRECATED* (use ``username``)
+    :param host: *DEPRECATED* (use ``hostname``)
+    :param channel_class: Class object to instantiate for persistent
+        communication.  Defaults to ``pq_cmdline.sshchannel.SSHChannel``
+    :type channel_class: class
     :param channel_args: additional ``transport_type``-dependent
         arguments, passed blindly to the transport ``start`` method.
     """
@@ -87,17 +93,48 @@ class CLI(object):
     lead to false positive matches.
     """
 
-    def __init__(self, host, user='admin', password='', terminal='console',
-                 transport_type='ssh', prompt=None,
-                 **channel_args):
-        self._host = host
-        self._user = user
-        self._password = password
-        self._terminal = terminal
-        self._transport_type = transport_type
-        self._new_transport = False
-        self._transport = None
-        self._channel_args = channel_args
+    def __init__(self, hostname=None, username='admin', password='',
+                 terminal='console', prompt=None, port=None,
+                 machine_name=None,
+                 machine_manager_uri=DEFAULT_MACHINE_MANAGER_URI,
+                 channel_class=sshchannel.SSHChannel, **channel_args):
+
+        self._channel_class = channel_class
+        self._channel_args = {}
+        self._channel_args['hostname'] = hostname
+        self._channel_args['username'] = username
+        self._channel_args['password'] = password
+        self._channel_args['terminal'] = terminal
+        self._channel_args['machine_name'] = machine_name
+        self._channel_args['machine_manager_uri'] = machine_manager_uri
+        self._channel_args['prompt'] = prompt
+
+        # Some channels do their own defaulting of the port number.
+        # Don't squash it by explicitly passing None.
+        if port is not None:
+            self._channel_args['port'] = port
+
+        # TODO: Compatibility for:
+        #       pq_lab/netdevice/__init__.py
+        #       pq_lab/netdevice/vyatta.py
+        #       pq_lab/netdevice/ios/__init__.py
+        if 'host' in channel_args:
+            self._channel_args['hostname'] = channel_args['host']
+            del channel_args['host']
+        if 'user' in channel_args:
+            self._channel_args['username'] = channel_args['user']
+            del channel_args['user']
+        if 'transport_type' in channel_args:
+            if channel_args['transport_type'] == 'ssh':
+                self._channel_class = sshchannel.SSHChannel
+            elif channel_args['transport_type'] == 'telnet':
+                from pq_cmdline import telnetchannel
+                self._channel_class = telnetchannel.TelnetChannel
+            del channel_args['transport_type']
+        # TODO: End compatibility section
+
+        self._channel_args.update(channel_args)
+
         self._log = logging.getLogger(__name__)
         self._prompt = prompt
         self._default_mode = None
@@ -117,9 +154,9 @@ class CLI(object):
         self._cleanup_helper()
 
     def _cleanup_helper(self):
-        if self._new_transport and self._transport:
-            self._transport.disconnect()
-            self._transport = None
+        if self.channel:
+            self.channel.close()
+        self.channel = None
 
     def start(self, start_prompt=None):
         """
@@ -128,61 +165,13 @@ class CLI(object):
         :param start_prompt: A non-default prompt to match, if any.
         :type start_prompt: regex pattern
         """
-        if self._transport_type == 'ssh':
-            self._initialize_cli_over_ssh()
-        elif self._transport_type == 'telnet':
-            self._initialize_cli_over_telnet()
-        elif self._transport_type == 'libvirt':
-            self._initialize_cli_over_libvirt()
-        else:
-            raise NotImplementedError(
-                "Unsupported transport type %s" % self._transport_type)
+        self.channel = self._channel_class(**self._channel_args)
 
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
         if start_prompt is None:
             start_prompt = self.CLI_START_PROMPT
         self.channel.start(start_prompt)
-
-    def _initialize_cli_over_ssh(self):
-        """
-        Initialize underlying ssh transport and ssh channel.
-
-        The shell or CLI is expected to be on the other end of the connection.
-        The CLI will be started if we connect to the shell.
-        """
-
-        # Create SSHProcess
-        if self._transport is None:
-            self._transport = sshprocess.SSHProcess(self._host,
-                                                    self._user,
-                                                    self._password)
-            self._new_transport = True
-
-        # Create ssh channel and start channel
-        self.channel = sshchannel.SSHChannel(self._transport, self._terminal)
-
-    def _initialize_cli_over_telnet(self):
-        """
-        Initialize underlying telnet channel.
-
-        The shell or CLI is expected to be on the other end of the connection.
-        The CLI will be started if we connect to the shell.
-        """
-        # Create telnet channel
-        self.channel = telnetchannel.TelnetChannel(self._host, self._user,
-                                                   self._password)
-
-    def _initialize_cli_over_libvirt(self):
-        """
-        Create and initialize a libvirt channel. Same general logic as telnet.
-        """
-
-        # Create libvirt channel.  self._channel_args should contain
-        # a 'domain_name' argument.
-        self.channel = libvirtchannel.LibVirtChannel(user=self._user,
-                                                     password=self._password,
-                                                     **self._channel_args)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """

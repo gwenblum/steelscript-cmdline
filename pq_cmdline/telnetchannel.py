@@ -25,6 +25,14 @@ class SteelScriptTelnet(telnetlib.Telnet):
 class TelnetChannel(channel.Channel):
     """
     Two-way telnet channel that allows sending and receiving data.
+
+    Accepts and ignores additional parameters for compatibility
+    with other channel construction interfaces.
+
+    :param hostname: host/ip to telnet into
+    :param username: username to log in with
+    :param password: password to log in with
+    :param port: telnet port, defaults to 23
     """
 
     LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
@@ -33,20 +41,13 @@ class TelnetChannel(channel.Channel):
 
     BASH_PROMPT = '\[\S+ \S+\]#\s*$'
 
-    def __init__(self, host, user='root', password='', port=23):
-        """
-        Create a Telnet Channel object.
-
-        :param host: host/ip to telnet into
-        :param user: username to log in with
-        :param password: password to log in with
-        :param port: telnet port, defaults to 23
-        """
+    def __init__(self, hostname, username='root', password='', port=23,
+                 **kwargs):
 
         # Hostname to connects
-        self._host = host
+        self._host = hostname
 
-        self._user = user
+        self._user = username
         self._password = password
         self._port = port
 
@@ -73,6 +74,10 @@ class TelnetChannel(channel.Channel):
         self.channel = SteelScriptTelnet(self._host, self._port)
 
         return self._handle_init_login(match_res, timeout)
+
+    def close(self):
+        if self.channel is not None:
+            self.channel.close()
 
     def _handle_init_login(self, match_res, timeout):
         """

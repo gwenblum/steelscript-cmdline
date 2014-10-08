@@ -36,26 +36,26 @@ class LibVirtChannel(channel.Channel):
     """
     Channel for connecting to a serial port via libvirt.
 
-    :param domain_name: The libvirt domain to which to connect.
-    :param uri: The hypervisor uri where the domain may be found.
-        Defaults to the local qemu hypervisor.
+    :param machine_name: The libvirt domain to which to connect.
+    :param machine_manager_uri: The hypervisor uri where the domain
+        may be found.  Defaults to a local qemu hypervisor.
     :param user: username for authentication
     :param password: password for authentication
     """
 
-    def __init__(self, domain_name, uri='qemu:///system',
-                 user='root', password=''):
+    def __init__(self, machine_name, machine_manager_uri='qemu:///system',
+                 username='root', password='', **kwargs):
         """
         Manages connection and authentication via libvirt.
         """
-        self._domain_name = domain_name
-        self._uri = uri
+        self._machine_name = machine_name
+        self._uri = machine_manager_uri
         self._domain = None
         self._conn = None
         self._stream = None
         self._console_logged_in = False
 
-        self._username = user
+        self._username = username
         self._password = password
 
     def start(self, match_res=(ROOT_PROMPT,), timeout=DEFAULT_EXPECT_TIMEOUT):
@@ -79,11 +79,11 @@ class LibVirtChannel(channel.Channel):
         try:
             # Get connection and libvirt domain
             self._conn = libvirt.open(self._uri)
-            self._domain = self._conn.lookupByName(self._domain_name)
+            self._domain = self._conn.lookupByName(self._machine_name)
         except libvirt.libvirtError:
             raise exceptions.ConnectionError(
                 context="Failed to find domain '%s' on host" %
-                        self._domain_name)
+                        self._machine_name)
 
         # Make sure domain is running
         self._verify_domain_running()
@@ -94,6 +94,11 @@ class LibVirtChannel(channel.Channel):
         self._domain.openConsole(None, self._stream, console_flags)
 
         return self._handle_init_login(match_res, timeout)
+
+    def close(self):
+        # For compatibility with other channels.
+        # TODO: Should we actually close this somehow?
+        pass
 
     def _verify_domain_running(self):
         """
@@ -107,7 +112,7 @@ class LibVirtChannel(channel.Channel):
         if state != libvirt.VIR_DOMAIN_RUNNING:
             raise exceptions.ConnectionError(
                 context="Domain %s is not in running state" %
-                        self._domain_name)
+                        self._machine_name)
 
     def _verify_connected(self):
         # TODO: Verify that the stream is really connected.

@@ -99,7 +99,7 @@ class CmdlineTimeout(CmdlineException):
             self._process_failed_match(failed_match))
 
         msg = ("Command '%s' timed out%s after %d seconds." %
-              (command, match_msg, timeout))
+               (command, match_msg, timeout))
 
         super(CmdlineTimeout, self).__init__(command, _subclass_msg=msg)
 

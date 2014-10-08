@@ -7,22 +7,16 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.cli import CLI
+from pq_cmdline.cli import CLI, DEFAULT_MACHINE_MANAGER_URI
 from pq_cmdline import exceptions
-from pq_cmdline.sshprocess import SSHProcess
 from pq_cmdline.sshchannel import SSHChannel
 from pq_cmdline.telnetchannel import TelnetChannel
-from pq_cmdline.libvirtchannel import LibVirtChannel
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
 ANY_PASSWORD = 'password1'
 ANY_TERMINAL = 'console'
-ANY_DOMAIN = 'sh1domain'
-TRANSPORT_SSH = 'ssh'
-TRANSPORT_TELNET = 'telnet'
-TRANSPORT_LIBVIRT = 'libvirt'
-TRANSPORT_UNKNOWN = 'any unknown type'
+ANY_MACHINE = 'sh1machine'
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'
 ANY_COMMAND_OUTPUT_DATA = '%s\n%s' % (ANY_COMMAND, ANY_COMMAND_OUTPUT)
@@ -33,7 +27,8 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_cli():
-    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
+    cli = CLI(hostname=ANY_HOST, username=ANY_USER, password=ANY_PASSWORD,
+              terminal=ANY_TERMINAL)
     return cli
 
 
@@ -53,48 +48,78 @@ def prompt_match():
 
 
 def test_members_initialize_correctly(any_cli):
-    assert any_cli._host == ANY_HOST
-    assert any_cli._user == ANY_USER
-    assert any_cli._password == ANY_PASSWORD
-    assert any_cli._terminal == ANY_TERMINAL
-    assert any_cli._transport_type == TRANSPORT_SSH
+    assert any_cli._channel_args['hostname'] == ANY_HOST
+    assert any_cli._channel_args['username'] == ANY_USER
+    assert any_cli._channel_args['password'] == ANY_PASSWORD
+    assert any_cli._channel_args['terminal'] == ANY_TERMINAL
+    assert any_cli._channel_args['machine_name'] is None
+    assert any_cli._channel_args['machine_manager_uri'] is \
+        DEFAULT_MACHINE_MANAGER_URI
+    assert any_cli._channel_class == SSHChannel
     assert any_cli.channel is None
 
 
-def test_start_raises_for_unknown_transport(any_cli):
-    any_cli._transport_type = TRANSPORT_UNKNOWN
-    with pytest.raises(NotImplementedError):
-        any_cli.start()
+def test_compatibility_code_by_name_ssh():
+    # host and user are the differing names still in use.
+    # "term" for "terminal" is not used anywhere.
+    # ssh and telnet are the only transport_types used, always passed by name.
+    cli = CLI(host=ANY_HOST, user=ANY_USER, password=ANY_PASSWORD,
+              transport_type='ssh')
+    assert cli._channel_args['hostname'] == ANY_HOST
+    assert cli._channel_args['username'] == ANY_USER
+    assert cli._channel_args['password'] == ANY_PASSWORD
+    assert cli._channel_args['terminal'] == ANY_TERMINAL
+    assert cli._channel_args['machine_name'] is None
+    assert cli._channel_args['machine_manager_uri'] is \
+        DEFAULT_MACHINE_MANAGER_URI
+    assert cli._channel_class == SSHChannel
+    assert cli.channel is None
+
+
+def test_compatibility_code_by_position_telnet():
+    # only the first three parameters are ever used positionally.
+    # ssh and telnet are the only transport_types used, always passed by name.
+    cli = CLI(ANY_HOST, ANY_USER, password=ANY_PASSWORD,
+              transport_type='telnet')
+    assert cli._channel_args['hostname'] == ANY_HOST
+    assert cli._channel_args['username'] == ANY_USER
+    assert cli._channel_args['password'] == ANY_PASSWORD
+    assert cli._channel_args['terminal'] == ANY_TERMINAL
+    assert cli._channel_args['machine_name'] is None
+    assert cli._channel_args['machine_manager_uri'] is \
+        DEFAULT_MACHINE_MANAGER_URI
+    assert cli._channel_class == TelnetChannel
+    assert cli.channel is None
 
 
 def test_start_initialize_ssh(any_cli, prompt_match):
-    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_SSH)
-    with patch('pq_cmdline.cli.sshchannel.SSHChannel.__new__') as channel_new, \
-            patch('pq_cmdline.cli.sshprocess.SSHProcess.__new__'
-                  ) as process_new:
+    cli = CLI(hostname=ANY_HOST, username=ANY_USER, password=ANY_PASSWORD,
+              terminal=ANY_TERMINAL, channel_class=SSHChannel)
+    with patch('pq_cmdline.cli.sshchannel.SSHChannel.__new__') as channel_new:
         cli.start()
-        process_new.assert_called_with(SSHProcess, ANY_HOST,
-                                       ANY_USER, ANY_PASSWORD)
-        channel_new.assert_called_with(SSHChannel, cli._transport,
-                                       ANY_TERMINAL)
-
-
-def test_start_initialize_telnet():
-    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL, TRANSPORT_TELNET)
-    with patch('pq_cmdline.cli.telnetchannel.TelnetChannel.__new__') as t:
-        cli.start()
-        t.assert_called_with(TelnetChannel, ANY_HOST, ANY_USER, ANY_PASSWORD)
-
-
-def test_start_initialize_libvirt():
-    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
-              TRANSPORT_LIBVIRT, domain_name=ANY_DOMAIN)
-    with patch('pq_cmdline.cli.libvirtchannel.LibVirtChannel.__new__'
-               ) as channel_new:
-        cli.start()
-        channel_new.assert_called_with(LibVirtChannel, user=ANY_USER,
+        channel_new.assert_called_with(SSHChannel,
+                                       hostname=ANY_HOST,
+                                       username=ANY_USER,
                                        password=ANY_PASSWORD,
-                                       domain_name=ANY_DOMAIN)
+                                       prompt=None,
+                                       machine_name=None,
+                                       machine_manager_uri='qemu:///system',
+                                       terminal=ANY_TERMINAL)
+
+
+def test_start_initialize_channel_class():
+    mock_channel_class = MagicMock()
+    mock_channel_class
+    cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
+              channel_class=mock_channel_class)
+    cli.start()
+    mock_channel_class.assert_called_with(hostname=ANY_HOST,
+                                          username=ANY_USER,
+                                          password=ANY_PASSWORD,
+                                          prompt=None,
+                                          terminal=ANY_TERMINAL,
+                                          machine_name=None,
+                                          machine_manager_uri='qemu:///system')
 
 
 def test_context_manger_enter_calls_start(any_cli):
@@ -112,26 +137,24 @@ def test_use_context_manger_twice_works(any_cli):
     assert any_cli.start.call_count == 2
 
 
-def test_context_manger_exit_close_transport(any_cli):
+def test_context_manger_exit_close_channel(any_cli):
     any_cli.start = MagicMock(name='method')
-    any_cli._new_transport = True
-    mock_transport = Mock()
-    any_cli._transport = mock_transport
+    mock_channel = Mock()
+    any_cli.channel = mock_channel
     with any_cli:
         pass
-    assert mock_transport.disconnect.called
-    assert any_cli._transport is None
+    assert mock_channel.close.called
+    assert any_cli.channel is None
 
 
-def test_context_manger_exit_if_not_new_transport(any_cli):
+def test_context_manger_exit_if_not_channel(any_cli):
     any_cli.start = MagicMock(name='method')
-    any_cli._new_transport = False
-    mock_transport = Mock()
-    any_cli._transport = mock_transport
+    mock_channel = Mock()
+    any_cli.channel = mock_channel
     with any_cli:
         pass
-    assert not mock_transport.disconnect.called
-    assert any_cli._transport == mock_transport
+    # If exiting didn't cause an exception, we're good.
+    assert any_cli.channel is None
 
 
 def test_exec_command_output(cli_mock_output, prompt_match):

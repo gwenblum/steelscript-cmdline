@@ -11,7 +11,7 @@ from pq_cmdline import exceptions
 from pq_cmdline import cli
 
 
-class VyattaCli(cli.CLI):
+class VyattaCLI(cli.CLI):
 
     """
     Provides an interface to interact with the CLI of a vyatta router
@@ -56,15 +56,8 @@ class VyattaCli(cli.CLI):
         for telnet as well, but that would involve additional config
         on Vyatta bring up during install. Ignoring for now.
         """
-        if self._transport_type == 'ssh':
-            self._initialize_cli_over_ssh()
-        elif self._transport_type == 'libvirt':
-            self._initialize_cli_over_libvirt()
-        else:
-            raise NotImplementedError(
-                "Unsupported transport type %s" % self._transport_type)
+        super(VyattaCLI, self).start(start_prompt=self.CLI_START_PROMPT)
 
-        self.channel.start(self.CLI_START_PROMPT)
         # Disable paging
         self._disable_paging()
 

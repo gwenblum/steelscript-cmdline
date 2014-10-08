@@ -41,15 +41,8 @@ class IOS_CLI(cli.CLI):
         """
         Initialize underlying channel.
         """
-        if self._transport_type == 'ssh':
-            self._initialize_cli_over_ssh()
-        elif self._transport_type == 'telnet':
-            self._initialize_cli_over_telnet()
-        else:
-            raise NotImplementedError(
-                "Unsupported transport type %s" % self._transport_type)
+        super(IOS_CLI, self).start(start_prompt=self.CLI_START_PROMPT)
 
-        self.channel.start(self.CLI_START_PROMPT)
         # Disable paging
         self._disable_paging()
 

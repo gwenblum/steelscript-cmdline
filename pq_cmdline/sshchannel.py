@@ -11,6 +11,7 @@ import paramiko
 
 from pq_cmdline import channel
 from pq_cmdline import exceptions
+from pq_cmdline import sshprocess
 
 DEFAULT_TERM_WIDTH = 80
 DEFAULT_TERM_HEIGHT = 24
@@ -21,23 +22,34 @@ class SSHChannel(channel.Channel):
     """
     Two-way SSH channel that allows sending and receiving data.
 
-    :param sshprocess: SSHProcess object to open a channel with.
-    :param term: terminal emulation to use; defaults to 'console'
+    :param hostname: hostname, fqdn, or ip address of the target
+        system.
+    :type hostname: string
+    :param port: optional port for the connection.  Default is 22.
+    :param username: account to use for authentication
+    :param password: password for authentication
+    :param terminal: terminal emulation to use; defaults to 'console'
     :param width: width (in characters) of the terminal screen;
         defaults to 80
     :param height: height (in characters) of the terminal screen;
         defaults to 24
+
+    Additional arguments are accepted and ignored for compatibility
+    with other channel implementations.
     """
 
-    # Note that for the ^, Python won't accept [^] as a valid regex?
     BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
 
-    def __init__(self, sshprocess, term='console',
-                 width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT):
-        self.sshprocess = sshprocess
-        self._host = self.sshprocess._host
-
-        self._term = term
+    def __init__(self, hostname, username, password, port=22,
+                 terminal='console',
+                 width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT,
+                 **kwargs):
+        self.sshprocess = sshprocess.SSHProcess(host=hostname,
+                                                user=username,
+                                                password=password,
+                                                port=port)
+        self._host = hostname
+        self._term = terminal
         self._term_width = width
         self._term_height = height
 
@@ -86,6 +98,13 @@ class SSHChannel(channel.Channel):
         logging.info('Interactive channel to "%s" started' % self._host)
 
         return self.expect(match_res)[1]
+
+    def close(self):
+        if self.sshprocess.is_connected():
+            # This closes the paramiko channel's underlying transport,
+            # which according to the paramiko documentation closes
+            # all channels that were using the transport.
+            self.sshprocess.disconnect()
 
     def receive_all(self):
         """

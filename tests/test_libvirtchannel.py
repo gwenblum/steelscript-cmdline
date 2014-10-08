@@ -36,7 +36,7 @@ MATCH_ROOT = re.search(libvirtchannel.ROOT_PROMPT, PROMPT_ROOT)
 
 @pytest.fixture
 def any_libvirt_channel():
-    return LibVirtChannel(domain_name=ANY_HOST, user=ANY_USERNAME,
+    return LibVirtChannel(machine_name=ANY_HOST, username=ANY_USERNAME,
                           password=ANY_PASSWORD)
 
 
@@ -138,7 +138,7 @@ def bad_password_channel(connected_channel):
 
 
 def test_members_initialized_correctly(any_libvirt_channel):
-    assert any_libvirt_channel._domain_name == ANY_HOST
+    assert any_libvirt_channel._machine_name == ANY_HOST
     assert any_libvirt_channel._username == ANY_USERNAME
     assert any_libvirt_channel._password == ANY_PASSWORD
     assert any_libvirt_channel._domain is None
@@ -224,7 +224,7 @@ def test_start_calls_appropriate_methods(any_libvirt_channel):
         assert any_libvirt_channel.start() is mock_retval
 
         mock_conn.lookupByName.assert_called_with(
-            any_libvirt_channel._domain_name)
+            any_libvirt_channel._machine_name)
         assert any_libvirt_channel._verify_domain_running.called
         mock_conn.newStream.assert_called_with(0)
         any_libvirt_channel._domain.openConsole.assert_called_with(

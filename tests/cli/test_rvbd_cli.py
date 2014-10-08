@@ -30,9 +30,16 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_cli():
-    cli = RVBD_CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
-                   TRANSPORT_SSH)
-    cli.channel = Mock()
+    # Need to ensure that cli.channel is a mock whether we've called
+    # start or not, as mocking out start is more annoying so many tests
+    # just assume a pre-existing mocked channel.  But some do call start()
+    # and need it to result in a mock as well, hence the channel_class.
+    cli = RVBD_CLI(hostname=ANY_HOST,
+                   username=ANY_USER,
+                   password=ANY_PASSWORD,
+                   terminal=ANY_TERMINAL,
+                   channel_class=MagicMock())
+    cli.channel = MagicMock()
     return cli
 
 
@@ -51,17 +58,7 @@ def config_mode_match():
     return fake_match
 
 
-def test_members_intialize_correctly(any_cli):
-    assert any_cli._host == ANY_HOST
-    assert any_cli._user == ANY_USER
-    assert any_cli._password == ANY_PASSWORD
-    assert any_cli._terminal == ANY_TERMINAL
-    assert any_cli._transport_type == TRANSPORT_SSH
-
-
 def test_start_calls_correct_methods(any_cli):
-    with patch('pq_cmdline.cli.sshchannel.SSHChannel') as channel:
-        channel._verify_connect = MagicMock(name='method')
         any_cli._run_cli_from_shell = MagicMock(name='method')
         any_cli.enter_mode_normal = MagicMock(name='method')
         any_cli._disable_paging = MagicMock(name='method')
@@ -69,43 +66,6 @@ def test_start_calls_correct_methods(any_cli):
         assert any_cli._run_cli_from_shell.called
         assert any_cli.enter_mode_normal.called
         assert any_cli._disable_paging.called
-
-
-def test_context_manger_enter_calls_start(any_cli):
-    any_cli.start = MagicMock(name='method')
-    with any_cli:
-        assert any_cli.start.called
-
-
-def test_use_context_manger_twice_works(any_cli):
-    any_cli.start = MagicMock(name='method')
-    with any_cli:
-        pass
-    with any_cli:
-        pass
-    assert any_cli.start.call_count == 2
-
-
-def test_context_manger_exit_close_transport(any_cli):
-    any_cli.start = MagicMock(name='method')
-    any_cli._new_transport = True
-    mock_transport = Mock()
-    any_cli._transport = mock_transport
-    with any_cli:
-        pass
-    assert mock_transport.disconnect.called
-    assert any_cli._transport is None
-
-
-def test_context_manger_exit_if_not_new_transport(any_cli):
-    any_cli.start = MagicMock(name='method')
-    any_cli._new_transport = False
-    mock_transport = Mock()
-    any_cli._transport = mock_transport
-    with any_cli:
-        pass
-    assert not mock_transport.disconnect.called
-    assert any_cli._transport == mock_transport
 
 
 def test_current_cli_mode_at_shell_mode(any_cli):

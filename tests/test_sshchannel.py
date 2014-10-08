@@ -6,12 +6,15 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import pytest
 import select
-from mock import Mock, MagicMock, patch
+from mock import MagicMock, patch
 from testfixtures import Replacer, test_time
 
 from pq_cmdline.sshchannel import SSHChannel
 from pq_cmdline import exceptions
 
+ANY_HOSTNAME = 'hostname'
+ANY_USERNAME = 'you'
+ANY_PASSWORD = 'pass'
 ANY_TERM = 'console'
 ANY_TERM_WIDTH = 120
 ANY_TERM_HEIGHT = 40
@@ -25,35 +28,52 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_ssh_channel():
-    mock_sshprocess = Mock()
-    mock_sshprocess.is_connected.return_value = True
-    channel = SSHChannel(mock_sshprocess)
-    # We just need to ignore the initial prompt expect at the end of start,
-    # but clients of this fixture need to do different things with expect.
-    with patch.object(channel, 'expect'):
-        channel.start()
+    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+        sshp = MagicMock()
+        sshp_module.SSHProcess.return_value = sshp
+        sshp.is_connected.return_value = True
+
+        channel = SSHChannel(hostname=ANY_HOSTNAME,
+                             username=ANY_USERNAME,
+                             password=ANY_PASSWORD)
+        # We just need to ignore the initial prompt expect at the end of start,
+        # but clients of this fixture need to do different things with expect.
+        with patch.object(channel, 'expect'):
+            channel.start()
     return channel
 
 
 def test_members_initialized_correctly():
-    mock_sshprocess = Mock()
-    mock_sshprocess.is_connected.return_value = True
-    ssh_channel = SSHChannel(mock_sshprocess, ANY_TERM, ANY_TERM_WIDTH,
-                             ANY_TERM_HEIGHT)
-    assert ssh_channel.sshprocess == mock_sshprocess
-    assert ssh_channel.channel is None
-    assert ssh_channel._term == ANY_TERM
-    assert ssh_channel._term_width == ANY_TERM_WIDTH
-    assert ssh_channel._term_height == ANY_TERM_HEIGHT
+    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+        sshp = MagicMock()
+        sshp_module.SSHProcess.return_value = sshp
+        sshp.is_connected.return_value = True
+        ssh_channel = SSHChannel(hostname=ANY_HOSTNAME,
+                                 username=ANY_USERNAME,
+                                 password=ANY_PASSWORD,
+                                 terminal=ANY_TERM,
+                                 width=ANY_TERM_WIDTH,
+                                 height=ANY_TERM_HEIGHT)
+        assert ssh_channel.sshprocess == sshp
+        assert ssh_channel.channel is None
+        assert ssh_channel._host == ANY_HOSTNAME
+        assert ssh_channel._term == ANY_TERM
+        assert ssh_channel._term_width == ANY_TERM_WIDTH
+        assert ssh_channel._term_height == ANY_TERM_HEIGHT
 
 
 def test_constructor_connects_sshprocess_if_it_is_not_connected():
-    mock_sshprocess = Mock()
-    mock_sshprocess.is_connected.return_value = False
-    ssh_channel = SSHChannel(mock_sshprocess)
-    ssh_channel.expect = MagicMock(name='method')
-    ssh_channel.start()
-    assert ssh_channel.sshprocess.connect.called
+    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+        sshp = MagicMock()
+        sshp_module.SSHProcess.return_value = sshp
+        sshp.is_connected.return_value = False
+
+        ssh_channel = SSHChannel(hostname=ANY_HOSTNAME,
+                                 username=ANY_USERNAME,
+                                 password=ANY_PASSWORD)
+        ssh_channel.expect = MagicMock(name='method')
+        ssh_channel.start()
+        assert ssh_channel.sshprocess.connect.called
 
 
 def test_verify_connected_raises_if_not_connected(any_ssh_channel):

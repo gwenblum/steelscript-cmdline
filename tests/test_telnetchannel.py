@@ -40,6 +40,19 @@ def test_start_calls_appropriate_methods(any_telnet_channel):
         assert mock.called
 
 
+def test_close(any_telnet_channel):
+    mock_channel = Mock()
+
+    any_telnet_channel.channel = mock_channel
+    any_telnet_channel.close()
+    mock_channel.close.assert_called_once_with()
+
+    mock_channel.reset_mock()
+    any_telnet_channel.channel = None
+    any_telnet_channel.close()
+    assert mock_channel.close.call_count == 0
+
+
 def test_handle_init_login_when_not_ask_user_and_password(any_telnet_channel):
     mock_channel = Mock()
     any_telnet_channel.channel = mock_channel

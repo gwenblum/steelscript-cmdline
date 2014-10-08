@@ -8,7 +8,7 @@ import pytest
 from mock import Mock, MagicMock
 
 from pq_cmdline.cli import CLIMode
-from pq_cmdline.cli.vyatta_cli import VyattaCli
+from pq_cmdline.cli.vyatta_cli import VyattaCLI
 from pq_cmdline import exceptions
 
 ANY_HOST = 'vyatta'
@@ -31,8 +31,15 @@ ANY_ERROR_PROMPT = 'Cannot exit: configuration modified.'
 
 @pytest.fixture
 def any_vyatta_cli():
-    cli = VyattaCli(ANY_HOST, ANY_USER, ANY_PASSWORD, TRANSPORT_SSH)
-    cli.channel = Mock()
+    # Need to ensure that cli.channel is a mock whether we've called
+    # start or not, as mocking out start is more annoying so many tests
+    # just assume a pre-existing mocked channel.  But some do call start()
+    # and need it to result in a mock as well, hence the channel_class.
+    cli = VyattaCLI(machine_name=ANY_HOST,
+                    username=ANY_USER,
+                    password=ANY_PASSWORD,
+                    channel_class=MagicMock())
+    cli.channel = MagicMock()
     return cli
 
 
@@ -47,70 +54,8 @@ def cli_mock_output(any_vyatta_cli):
 def config_mode_match():
     fake_match = MagicMock()
     fake_match.re = MagicMock()
-    fake_match.re.pattern = VyattaCli.CLI_CONFIG_PROMPT
+    fake_match.re.pattern = VyattaCLI.CLI_CONFIG_PROMPT
     return fake_match
-
-
-def test_members_intialize_correctly(any_vyatta_cli):
-    assert any_vyatta_cli._host == ANY_HOST
-    assert any_vyatta_cli._user == ANY_USER
-    assert any_vyatta_cli._password == ANY_PASSWORD
-    assert any_vyatta_cli._transport_type == TRANSPORT_SSH
-
-
-def test_start_raises_for_unknown_transport(any_vyatta_cli):
-    any_vyatta_cli._transport_type = TRANSPORT_UNKNOWN
-    with pytest.raises(NotImplementedError):
-        any_vyatta_cli.start()
-
-
-def test_start_raises_for_transport_telnet(any_vyatta_cli):
-    any_vyatta_cli._transport_type = TRANSPORT_TELNET
-    with pytest.raises(NotImplementedError):
-        any_vyatta_cli.start()
-
-
-def test_start_initialize_ssh(any_vyatta_cli):
-    any_vyatta_cli._initialize_cli_over_ssh = MagicMock(name='method')
-    any_vyatta_cli.start()
-    assert any_vyatta_cli._initialize_cli_over_ssh.called
-
-
-def test_context_manger_enter_calls_start(any_vyatta_cli):
-    any_vyatta_cli.start = MagicMock(name='method')
-    with any_vyatta_cli:
-        assert any_vyatta_cli.start.called
-
-
-def test_use_context_manger_twice_works(any_vyatta_cli):
-    any_vyatta_cli.start = MagicMock(name='method')
-    with any_vyatta_cli:
-        pass
-    with any_vyatta_cli:
-        pass
-    assert any_vyatta_cli.start.call_count == 2
-
-
-def test_context_manger_exit_close_transport(any_vyatta_cli):
-    any_vyatta_cli.start = MagicMock(name='method')
-    any_vyatta_cli._new_transport = True
-    mock_transport = Mock()
-    any_vyatta_cli._transport = mock_transport
-    with any_vyatta_cli:
-        pass
-    assert mock_transport.disconnect.called
-    assert any_vyatta_cli._transport is None
-
-
-def test_context_manger_exit_if_not_new_transport(any_vyatta_cli):
-    any_vyatta_cli.start = MagicMock(name='method')
-    any_vyatta_cli._new_transport = False
-    mock_transport = Mock()
-    any_vyatta_cli._transport = mock_transport
-    with any_vyatta_cli:
-        pass
-    assert not mock_transport.disconnect.called
-    assert any_vyatta_cli._transport == mock_transport
 
 
 def test_current_cli_mode_at_normal_mode(any_vyatta_cli):
