@@ -7,11 +7,20 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 import pytest
 import mock
-import libvirt
 
-from pq_cmdline import libvirtchannel
-from pq_cmdline.libvirtchannel import LibVirtChannel
-from pq_cmdline import exceptions
+import_libvirt = True
+try:
+    import libvirt
+except ImportError:
+    import_libvirt = False
+
+
+pytestmark = pytest.mark.skipif(not import_libvirt,
+                                reason="can not import libvirt")
+
+from steelscript.cmdline import libvirtchannel
+from steelscript.cmdline.libvirtchannel import LibVirtChannel
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'my-sh1'
 ANY_USERNAME = 'user1'
@@ -208,7 +217,8 @@ def test_check_console_mode_already_logged_in(any_libvirt_channel):
 
 
 def test_start_calls_appropriate_methods(any_libvirt_channel):
-    with mock.patch('pq_cmdline.libvirtchannel.libvirt.open') as lvopen:
+    module = 'steelscript.cmdline.libvirtchannel.libvirt.open'
+    with mock.patch(module) as lvopen:
         mock_conn = mock.Mock()
         mock_stream = mock.Mock()
         mock_retval = mock.Mock()

@@ -7,7 +7,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 import mock
 
-from pq_cmdline import cli
+from steelscript.cmdline import cli
 
 
 UNIQUE_ID = 1234

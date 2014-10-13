@@ -7,8 +7,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import re
 
-from pq_cmdline import exceptions
-from pq_cmdline import cli
+from steelscript.cmdline import exceptions
+from steelscript.cmdline import cli
 
 
 class VyattaCLI(cli.CLI):

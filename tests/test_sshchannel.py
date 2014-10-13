@@ -9,8 +9,8 @@ import select
 from mock import MagicMock, patch
 from testfixtures import Replacer, test_time
 
-from pq_cmdline.sshchannel import SSHChannel
-from pq_cmdline import exceptions
+from steelscript.cmdline.sshchannel import SSHChannel
+from steelscript.cmdline import exceptions
 
 ANY_HOSTNAME = 'hostname'
 ANY_USERNAME = 'you'
@@ -28,7 +28,7 @@ ANY_TIMEOUT = 120
 
 @pytest.fixture
 def any_ssh_channel():
-    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+    with patch('steelscript.cmdline.sshchannel.sshprocess') as sshp_module:
         sshp = MagicMock()
         sshp_module.SSHProcess.return_value = sshp
         sshp.is_connected.return_value = True
@@ -44,7 +44,7 @@ def any_ssh_channel():
 
 
 def test_members_initialized_correctly():
-    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+    with patch('steelscript.cmdline.sshchannel.sshprocess') as sshp_module:
         sshp = MagicMock()
         sshp_module.SSHProcess.return_value = sshp
         sshp.is_connected.return_value = True
@@ -63,7 +63,7 @@ def test_members_initialized_correctly():
 
 
 def test_constructor_connects_sshprocess_if_it_is_not_connected():
-    with patch('pq_cmdline.sshchannel.sshprocess') as sshp_module:
+    with patch('steelscript.cmdline.sshchannel.sshprocess') as sshp_module:
         sshp = MagicMock()
         sshp_module.SSHProcess.return_value = sshp
         sshp.is_connected.return_value = False
@@ -151,7 +151,7 @@ def test_expect_if_not_ready_before_timeout(any_ssh_channel):
     any_ssh_channel.channel.exit_status_ready.return_value = False
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
-        r.replace('pq_cmdline.sshchannel.time.time', mock_time)
+        r.replace('steelscript.cmdline.sshchannel.time.time', mock_time)
         with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 
@@ -161,7 +161,7 @@ def test_expect_timeout_if_no_matched_prompt(any_ssh_channel):
     any_ssh_channel.channel.recv.return_value = ANY_DATA_RECEIVED
     with Replacer() as r:
         mock_time = test_time(delta=(ANY_TIMEOUT+1), delta_type='seconds')
-        r.replace('pq_cmdline.sshchannel.time.time', mock_time)
+        r.replace('steelscript.cmdline.sshchannel.time.time', mock_time)
         with pytest.raises(exceptions.CmdlineTimeout):
             any_ssh_channel.expect(ANY_PROMPT_RE, ANY_TIMEOUT)
 

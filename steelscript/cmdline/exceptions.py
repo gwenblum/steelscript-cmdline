@@ -6,10 +6,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 from pprint import pformat
 
-from pq_runtime import exceptions
+from steelscript.common import exceptions
 
 
-class CmdlineException(exceptions.PQException):
+class CmdlineException(exceptions.RvbdException):
     """
     Base exception representing an error executing the command line.
 
@@ -241,16 +241,20 @@ class UnexpectedOutput(CmdlineException):
     :param output: The output as returned from the command, possibly None.
     :param expected_output: The output expected from the command,
           possibly None.  If unspecified output was expected, set to True.
+    :param notes: Some extra information related with the error, possibly None.
     :type expected_output: String, possibly a regexp pattern.
+    :type notes: List of strings
 
     :ivar command: The command that produced the error.
     :ivar output: The output as returned from the command.
     :ivar expected_output: The output expected from the command, possibly None.
                            If unspecified output was expected, set to True.
+    :ivar notes: Some extra information related with the error, possibly None.
     :type expected_output: String, possibly a regexp pattern.
+    :type notes: List of strings
     """
 
-    def __init__(self, command, output, expected_output=None):
+    def __init__(self, command, output, expected_output=None, notes=[]):
         self.expected_output = expected_output
 
         if output:
@@ -266,6 +270,14 @@ class UnexpectedOutput(CmdlineException):
                    (msg, "where this output was expected:\n", expected_output))
         else:
             msg = "%s%s" % (msg, "where none was expected.")
+
+        if notes:
+            if len(notes) == 1:
+                msg = "%s%s%s" % (msg, "\n Note that ", notes[0])
+            else:
+                msg += "\n Note that: "
+                for cnt in range(len(notes)):
+                    msg += '\n%s. %s' % (cnt + 1, notes[cnt])
 
         super(UnexpectedOutput, self).__init__(command, output=output,
                                                _subclass_msg=msg)

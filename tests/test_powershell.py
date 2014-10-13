@@ -7,8 +7,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock
 
-from pq_cmdline import exceptions
-from pq_cmdline.powershell import PowerShell
+from steelscript.cmdline import exceptions
+from steelscript.cmdline.powershell import PowerShell
 
 ANY_COMMAND = 'show date'
 ANY_COMMAND_OUTPUT = 'Thu Sep 12 19:50:51 GMT 2013'

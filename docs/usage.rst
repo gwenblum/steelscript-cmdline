@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use PQ Command Line Access in a project::
+To use SteelScript Command Line Access in a project::
 
-	import pq_cmdline
+	import steelscript.cmdline

@@ -7,8 +7,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.telnetchannel import TelnetChannel
-from pq_cmdline import exceptions
+from steelscript.cmdline.telnetchannel import TelnetChannel
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'my-sh1'
 ANY_USERNAME = 'user1'
@@ -34,7 +34,7 @@ def test_members_initialized_correctly(any_telnet_channel):
 
 def test_start_calls_appropriate_methods(any_telnet_channel):
     any_telnet_channel._handle_init_login = MagicMock(name='method')
-    with patch('pq_cmdline.telnetchannel.SteelScriptTelnet') as mock:
+    with patch('steelscript.cmdline.telnetchannel.SteelScriptTelnet') as mock:
         any_telnet_channel.start()
         assert any_telnet_channel._handle_init_login.called
         assert mock.called

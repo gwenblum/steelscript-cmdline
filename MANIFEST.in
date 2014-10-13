@@ -2,4 +2,4 @@ include AUTHORS.rst
 include README.rst
 include requirements.txt
 include version.txt
-recursive-include pq_cmdline *.yaml
+recursive-include steelscript/cmdline *.yaml

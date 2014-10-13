@@ -7,9 +7,9 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.cli.rvbd_cli import RVBD_CLI
-from pq_cmdline.cli import CLIMode
-from pq_cmdline import exceptions
+from steelscript.cmdline.cli.rvbd_cli import RVBD_CLI
+from steelscript.cmdline.cli import CLIMode
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
@@ -71,7 +71,7 @@ def test_start_calls_correct_methods(any_cli):
 def test_current_cli_mode_at_shell_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = any_cli.CLI_SHELL_PROMPT
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         current_mode = any_cli.current_cli_mode()
         assert current_mode == CLIMode.SHELL
@@ -80,7 +80,7 @@ def test_current_cli_mode_at_shell_mode(any_cli):
 def test_current_cli_mode_at_normal_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = any_cli.CLI_NORMAL_PROMPT
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         current_mode = any_cli.current_cli_mode()
         assert current_mode == CLIMode.NORMAL
@@ -89,7 +89,7 @@ def test_current_cli_mode_at_normal_mode(any_cli):
 def test_current_cli_mode_at_enable_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = any_cli.CLI_ENABLE_PROMPT
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         current_mode = any_cli.current_cli_mode()
         assert current_mode == CLIMode.ENABLE
@@ -98,7 +98,7 @@ def test_current_cli_mode_at_enable_mode(any_cli):
 def test_current_cli_mode_at_config_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = any_cli.CLI_CONF_PROMPT
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         current_mode = any_cli.current_cli_mode()
         assert current_mode == CLIMode.CONFIG
@@ -107,7 +107,7 @@ def test_current_cli_mode_at_config_mode(any_cli):
 def test_current_cli_mode_raise_at_unknown_mode(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
             any_cli.current_cli_mode()
@@ -143,7 +143,7 @@ def test_enter_mode_normal_when_already_at_normal_mode(any_cli):
 def test_enter_mode_normal_raise_if_current_mode_is_unknown(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
             any_cli.enter_mode_normal()
@@ -192,7 +192,7 @@ def test_enter_mode_config_when_already_at_config_mode(any_cli):
 def test_enter_mode_config_raise_if_current_mode_is_unknown(any_cli):
     mock_match = Mock()
     mock_match.re.pattern = ANY_UNKNOWN_LEVEL
-    with patch('pq_cmdline.cli.CLI._send_line_and_wait') as mock:
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
             any_cli.enter_mode_config()

@@ -8,10 +8,10 @@ from __future__ import (absolute_import, print_function, division)
 import logging
 import telnetlib
 import socket
+import traceback
 
-from pq_runtime import exceptions as rt_exc
-from pq_cmdline import exceptions
-from pq_cmdline import channel
+from steelscript.cmdline import exceptions
+from steelscript.cmdline import channel
 
 
 class SteelScriptTelnet(telnetlib.Telnet):
@@ -152,7 +152,8 @@ class TelnetChannel(channel.Channel):
             # TODO: re_raise and passing kwargs not compatible.
             # re_raise(CommandError, 'Host SSH shell has been disconnected')
             logging.info('Host SSH shell has been disconnected')
-            rt_exc.re_raise(exceptions.ConnectionError)
+            logging.error("Socket error %s" % traceback.format_exc())
+            raise exceptions.ConnectionError
 
     def receive_all(self):
         """

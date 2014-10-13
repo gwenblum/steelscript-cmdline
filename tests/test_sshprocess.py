@@ -7,8 +7,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, patch
 
-from pq_cmdline.sshprocess import SSHProcess
-from pq_cmdline import exceptions
+from steelscript.cmdline.sshprocess import SSHProcess
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'host1'
 ANY_USER = 'user1'
@@ -30,7 +30,7 @@ def test_members_initialized_correctly(any_sshprocess):
 
 
 def test_connect(any_sshprocess):
-    with patch('pq_cmdline.sshprocess.paramiko.Transport') as mock:
+    with patch('steelscript.cmdline.sshprocess.paramiko.Transport') as mock:
         mock_transport = mock.return_value
         any_sshprocess.connect()
         assert any_sshprocess.transport == mock_transport

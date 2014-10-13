@@ -9,9 +9,12 @@ from __future__ import (unicode_literals, print_function, division,
 import logging
 import signal
 
-import libvirt
+try:
+    import libvirt
+except:
+    pass
 
-from pq_cmdline import exceptions, channel
+from steelscript.cmdline import exceptions, channel
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -84,6 +87,9 @@ class LibVirtChannel(channel.Channel):
             raise exceptions.ConnectionError(
                 context="Failed to find domain '%s' on host" %
                         self._machine_name)
+        except NameError as e:
+            if str(e) == "name 'libvirt' is not defined":
+                raise ImportError("Can not import libvirt")
 
         # Make sure domain is running
         self._verify_domain_running()

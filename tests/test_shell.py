@@ -8,8 +8,8 @@ import pytest
 from mock import patch, Mock, MagicMock
 from paramiko import SSHException
 
-from pq_cmdline.shell import Shell
-from pq_cmdline import exceptions
+from steelscript.cmdline.shell import Shell
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'host1'
 ANY_USER = 'user1'
@@ -22,7 +22,7 @@ ANY_ERROR = ('error message', -1)
 
 @pytest.fixture
 def any_shell():
-    with patch('pq_cmdline.shell.sshprocess.SSHProcess'):
+    with patch('steelscript.cmdline.shell.sshprocess.SSHProcess'):
         shell = Shell(ANY_HOST, ANY_USER, ANY_PASSWORD)
 
         # This will make it always appear to be unconnected,

@@ -7,7 +7,7 @@ from __future__ import absolute_import, print_function, division
 
 import logging
 
-from pq_cmdline import exceptions
+from steelscript.cmdline import exceptions
 
 # Command terminator
 ENTER_LINE = b'\r'
@@ -18,7 +18,7 @@ class PowerShell(object):
     PowerShell implementation for Windows Devices
 
     :param channel: underlying channel
-    :type channel: :class:`pq_cmdline.Channel`
+    :type channel: :class:`steelscript.cmdline.Channel`
     """
 
     POWERSHELL_PROMPT = '(PS.*>)'

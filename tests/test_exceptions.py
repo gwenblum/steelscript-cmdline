@@ -7,7 +7,7 @@ import re
 
 import pytest
 
-from pq_cmdline.exceptions import (
+from steelscript.cmdline.exceptions import (
     CmdlineException, CmdlineTimeout, UnexpectedOutput, UnknownCLIMode,
     ShellError, CLIError, ConnectionError, CLINotRunning,
 )

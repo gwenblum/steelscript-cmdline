@@ -25,7 +25,7 @@ clean-docs:
 	$(MAKE) -C docs clean
 
 lint:
-	flake8 pq_cmdline tests
+	flake8 steelscript/cmdline tests
 
 test:
 	python setup.py test
@@ -34,7 +34,7 @@ test-all:
 	tox
 
 coverage:
-	coverage run --source pq_cmdline setup.py test
+	coverage run --source steelscript/cmdline setup.py test
 	coverage report -m
 	coverage html
 

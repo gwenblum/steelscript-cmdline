@@ -9,9 +9,9 @@ import select
 import logging
 import paramiko
 
-from pq_cmdline import channel
-from pq_cmdline import exceptions
-from pq_cmdline import sshprocess
+from steelscript.cmdline import channel
+from steelscript.cmdline import exceptions
+from steelscript.cmdline import sshprocess
 
 DEFAULT_TERM_WIDTH = 80
 DEFAULT_TERM_HEIGHT = 24

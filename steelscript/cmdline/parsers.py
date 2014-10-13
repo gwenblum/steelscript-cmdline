@@ -10,7 +10,7 @@ import ipaddress
 import re
 import urlparse
 
-from pq_runtime import exceptions
+from steelscript.cmdline import exceptions
 
 """
 CLI parsers for the Riverbed appliance CLI
@@ -145,8 +145,10 @@ def cli_parse_table(input_string, headers):
     # Validate the header
     header_line = lines.next().lower()
     if not all(x in header_line for x in headers):
-        raise exceptions.UnexpectedResultError(
-            "headers not found in header: '%s'" % header_line)
+        raise exceptions.UnexpectedOutput('Unknown', header_line,
+                                          expected_output=True,
+                                          notes=["not all headers found "
+                                                 "in: '%s'" % header_line])
 
     # Get the header 'domains' (left,right indexes) for each header.
     last_index = 0
@@ -184,55 +186,65 @@ def cli_parse_table(input_string, headers):
             if leftmost < rightmost:
                 # Splitting with double spaces spanned too many columns, split
                 # into single-spaced strings and try again.
-                try:
-                    extra_words = [Column(m.group(0), m.start(), m.end()-1)
-                                   for m in re.finditer(r'\S+', column.data)]
-                    for word in extra_words:
-                        # We have to add column.left to get the position
-                        # in the original string.
-                        (word_leftmost, word_rightmost) =\
-                            _find_left_right_headers(
-                                left_index=word.left + column.left,
-                                right_index=word.right + column.left,
-                                domains=domains)
+                extra_words = [Column(m.group(0), m.start(), m.end()-1)
+                               for m in re.finditer(r'\S+', column.data)]
+                for word in extra_words:
+                    # We have to add column.left to get the position
+                    # in the original string.
+                    (word_leftmost, word_rightmost) =\
+                        _find_left_right_headers(
+                            left_index=word.left + column.left,
+                            right_index=word.right + column.left,
+                            domains=domains)
 
-                        if word_leftmost < word_rightmost:
-                            raise exceptions.UnexpectedResultError(
-                                "Word '%s' crosses headers '%s' and '%s'" %
-                                (word.data, headers[word_leftmost],
-                                 headers[word_rightmost]))
-                        if word_leftmost > word_rightmost:
-                            raise exceptions.UnexpectedResultError(
-                                "Word '%s' does not fall under a header" %
-                                word.data)
+                    if word_leftmost < word_rightmost:
+                        raise exceptions.UnexpectedOutput(
+                            'Unknown', '%s\n%s' % (header_line, line),
+                            expected_output=True,
+                            notes=["Data item '%s' crosses headers "
+                                   "'%s' and '%s'." % (column.data,
+                                                       headers[leftmost],
+                                                       headers[rightmost]),
+                                   "Word '%s' crosses headers "
+                                   "'%s' and '%s'" % (word.data,
+                                                      headers[word_leftmost],
+                                                      headers[word_rightmost])]
+                            )
+                    if word_leftmost > word_rightmost:
+                        raise exceptions.UnexpectedOutput(
+                            'Unknown', '%s\n%s' % (header_line, line),
+                            expected_output=True,
+                            notes=["Data item '%s' crosses headers "
+                                   "'%s' and '%s'." % (column.data,
+                                                       headers[leftmost],
+                                                       headers[rightmost]),
+                                   "Word '%s' does not fall under a header" %
+                                   word.data])
 
-                        # This word falls under 1 header, we append all the
-                        # words together that fall under 1 header.
-                        key = headers[word_leftmost].lower()
-                        if key in row:
-                            row[key] += " " + word.data
-                        else:
-                            row[key] = word.data
-                except exceptions.UnexpectedResultError:
-                    # re_raise, the inner error message will be appended
-                    exceptions.re_raise(
-                        exceptions.UnexpectedResultError,
-                        "Data item '%s' crosses headers '%s' and '%s'." %
-                        (column.data, headers[leftmost],
-                         headers[rightmost]))
+                    # This word falls under 1 header, we append all the
+                    # words together that fall under 1 header.
+                    key = headers[word_leftmost].lower()
+                    if key in row:
+                        row[key] += " " + word.data
+                    else:
+                        row[key] = word.data
 
             elif leftmost > rightmost:
                 # This data item didn't fall within any header
-                raise exceptions.UnexpectedResultError(
-                    "Data item '%s' does not fall under a header" %
-                    column.data)
+                raise exceptions.UnexpectedOutput(
+                    'Unknown', '%s\n%s' % (header_line, line),
+                    expected_output=True,
+                    notes=["Data item '%s' does not fall under a header" %
+                           column.data])
             else:
                 # Now we know this data item crosses 1 header.
                 key = headers[leftmost].lower()
                 if key in row:
-                    raise exceptions.UnexpectedResultError(
-                        "Multiple items under the same header: '%s' and '%s'" %
-                        (row[key], column.data))
+                    raise exceptions.UnexpectedOutput(
+                        'Unknown', '%s\n%s' % (header_line, line),
+                        expected_output=True,
+                        notes=["Multiple items under the same header: "
+                               "'%s' and '%s'" % (row[key], column.data)])
                 else:
                     row[key] = column.data
 

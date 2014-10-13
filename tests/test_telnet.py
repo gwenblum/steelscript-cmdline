@@ -7,7 +7,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import patch
 
-from pq_cmdline.telnetchannel import SteelScriptTelnet
+from steelscript.cmdline.telnetchannel import SteelScriptTelnet
 
 ANY_MSG_WITH_ARGS = 'send %s'
 ANY_STR_SENT = 'any command'
@@ -25,7 +25,7 @@ def any_telnet():
 def test_msg_with_args(any_telnet):
     any_telnet.host = ANY_HOST
     any_telnet.port = ANY_PORT
-    with patch('pq_cmdline.telnetchannel.logging') as mock:
+    with patch('steelscript.cmdline.telnetchannel.logging') as mock:
         any_telnet.msg(ANY_MSG_WITH_ARGS, ANY_STR_SENT)
         msg = PREFIX + EXPECT_MSG
         assert mock.debug.called_with(msg)
@@ -34,7 +34,7 @@ def test_msg_with_args(any_telnet):
 def test_msg_without_args(any_telnet):
     any_telnet.host = ANY_HOST
     any_telnet.port = ANY_PORT
-    with patch('pq_cmdline.telnetchannel.logging') as mock:
+    with patch('steelscript.cmdline.telnetchannel.logging') as mock:
         any_telnet.msg(ANY_STR_SENT)
         msg = PREFIX + ANY_STR_SENT
         assert mock.debug.called_with(msg)

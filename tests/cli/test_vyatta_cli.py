@@ -7,9 +7,9 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock
 
-from pq_cmdline.cli import CLIMode
-from pq_cmdline.cli.vyatta_cli import VyattaCLI
-from pq_cmdline import exceptions
+from steelscript.cmdline.cli import CLIMode
+from steelscript.cmdline.cli.vyatta_cli import VyattaCLI
+from steelscript.cmdline import exceptions
 
 ANY_HOST = 'vyatta'
 ANY_USER = 'user1'

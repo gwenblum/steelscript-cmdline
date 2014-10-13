@@ -8,7 +8,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import re
 
-from pq_cmdline import cli, exceptions
+from steelscript.cmdline import cli, exceptions
 
 
 class IOS_CLI(cli.CLI):

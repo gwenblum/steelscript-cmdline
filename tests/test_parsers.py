@@ -5,8 +5,8 @@
 
 import pytest
 
-from pq_cmdline import parsers
-from pq_runtime.exceptions import UnexpectedResultError
+from steelscript.cmdline import parsers
+from steelscript.cmdline.exceptions import UnexpectedOutput
 
 import ipaddress
 import logging
@@ -247,14 +247,13 @@ def test_cli_parse_table_bounds():
 
 
 def test_cli_parse_table_long_item_fails():
-    with pytest.raises(UnexpectedResultError) as e:
+    with pytest.raises(UnexpectedOutput) as e:
         parsers.cli_parse_table(INVALID_TABLE, INVALID_TABLE_HEADERS)
     assert "under two headers" in e.value.message
-    assert "Previous exception" in e.value.message
 
 
 def test_cli_parse_table_not_under_header_fails():
-    with pytest.raises(UnexpectedResultError) as e:
+    with pytest.raises(UnexpectedOutput) as e:
         parsers.cli_parse_table(INVALID_TABLE2, INVALID_TABLE2_HEADERS)
     assert "not under anything" in e.value.message
 

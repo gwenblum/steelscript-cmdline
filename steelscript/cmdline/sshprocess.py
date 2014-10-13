@@ -9,10 +9,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import paramiko
 import logging
+import traceback
 
-from pq_runtime import exceptions as rt_exc
-from pq_cmdline import exceptions
-from pq_cmdline import transport
+from steelscript.cmdline import exceptions
+from steelscript.cmdline import transport
 
 
 class SSHProcess(transport.Transport):
@@ -64,7 +64,8 @@ class SSHProcess(transport.Transport):
             # TODO: re_raise not compatibile with passing kwargs
             # re_raise(SSHError, "Could not connect to %s" % self._host)
             self._log.info("Could not connect to %s", self._host)
-            rt_exc.re_raise(exceptions.ConnectionError)
+            self._log.error("SSHException %s" % traceback.format_exc())
+            raise exceptions.ConnectionError
 
     def disconnect(self):
         """

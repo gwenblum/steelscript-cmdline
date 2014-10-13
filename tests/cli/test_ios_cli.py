@@ -3,9 +3,9 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-from pq_cmdline.cli.ios_cli import IOS_CLI
-from pq_cmdline.cli import CLIMode
-from pq_cmdline import exceptions
+from steelscript.cmdline.cli.ios_cli import IOS_CLI
+from steelscript.cmdline.cli import CLIMode
+from steelscript.cmdline import exceptions
 
 import pytest
 from mock import Mock, MagicMock

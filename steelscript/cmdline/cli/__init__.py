@@ -8,8 +8,8 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import logging
 
-from pq_cmdline import sshchannel
-from pq_cmdline import exceptions
+from steelscript.cmdline import sshchannel
+from steelscript.cmdline import exceptions
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -73,7 +73,8 @@ class CLI(object):
     :param user: *DEPRECATED* (use ``username``)
     :param host: *DEPRECATED* (use ``hostname``)
     :param channel_class: Class object to instantiate for persistent
-        communication.  Defaults to ``pq_cmdline.sshchannel.SSHChannel``
+        communication.  Defaults to
+        ``steelscript.cmdline.sshchannel.SSHChannel``
     :type channel_class: class
     :param channel_args: additional ``transport_type``-dependent
         arguments, passed blindly to the transport ``start`` method.
@@ -128,7 +129,7 @@ class CLI(object):
             if channel_args['transport_type'] == 'ssh':
                 self._channel_class = sshchannel.SSHChannel
             elif channel_args['transport_type'] == 'telnet':
-                from pq_cmdline import telnetchannel
+                from steelscript.cmdline import telnetchannel
                 self._channel_class = telnetchannel.TelnetChannel
             del channel_args['transport_type']
         # TODO: End compatibility section

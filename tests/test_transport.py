@@ -5,7 +5,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import pytest
-from pq_cmdline.transport import Transport
+from steelscript.cmdline.transport import Transport
 
 
 def test_subclass_with_all_required_methods():

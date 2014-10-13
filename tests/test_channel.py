@@ -4,7 +4,7 @@
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
-from pq_cmdline.channel import Channel
+from steelscript.cmdline.channel import Channel
 
 
 def test_subclass_with_all_required_methods():

@@ -7,10 +7,10 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import pytest
 from mock import Mock, MagicMock, patch
 
-from pq_cmdline.cli import CLI, DEFAULT_MACHINE_MANAGER_URI
-from pq_cmdline import exceptions
-from pq_cmdline.sshchannel import SSHChannel
-from pq_cmdline.telnetchannel import TelnetChannel
+from steelscript.cmdline.cli import CLI, DEFAULT_MACHINE_MANAGER_URI
+from steelscript.cmdline import exceptions
+from steelscript.cmdline.sshchannel import SSHChannel
+from steelscript.cmdline.telnetchannel import TelnetChannel
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
@@ -95,7 +95,8 @@ def test_compatibility_code_by_position_telnet():
 def test_start_initialize_ssh(any_cli, prompt_match):
     cli = CLI(hostname=ANY_HOST, username=ANY_USER, password=ANY_PASSWORD,
               terminal=ANY_TERMINAL, channel_class=SSHChannel)
-    with patch('pq_cmdline.cli.sshchannel.SSHChannel.__new__') as channel_new:
+    module = 'steelscript.cmdline.cli.sshchannel.SSHChannel.__new__'
+    with patch(module) as channel_new:
         cli.start()
         channel_new.assert_called_with(SSHChannel,
                                        hostname=ANY_HOST,

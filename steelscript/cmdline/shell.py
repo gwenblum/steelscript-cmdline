@@ -9,10 +9,10 @@ import logging
 import time
 import select
 import socket
+import traceback
 
-from pq_runtime import exceptions as rt_exc
-from pq_cmdline import sshprocess
-from pq_cmdline import exceptions
+from steelscript.cmdline import sshprocess
+from steelscript.cmdline import exceptions
 
 
 class Shell(object):
@@ -132,7 +132,8 @@ class Shell(object):
             channel = self.sshprocess.transport.open_session()
         except socket.error:
             if retry_count == 0:
-                rt_exc.re_raise(exceptions.ConnectionError)
+                logging.error("Socket Error %s" % traceback.format_exc())
+                raise exceptions.ConnectionError
 
             # Reconnect and try again
             logging.info("connection seems broken, reconnect...")
@@ -157,7 +158,8 @@ class Shell(object):
                 # TODO: re_raise not compatabile with passing kwargs
                 # re_raise(SshError, "Not connected to %s" % self._host)
                 logging.info("Not connected to %s", self._host)
-                rt_exc.re_raise(exceptions.ConnectionError)
+                logging.error("SSHException %s" % traceback.format_exc())
+                raise exceptions.ConnectionError
             else:
                 logging.debug(
                     'Ignore Paramiko SSHException due to 1.7.5 bug')
@@ -219,9 +221,9 @@ class Shell(object):
 
     def _reconnect(self, retry_count, retry_delay):
         if not isinstance(retry_count, int) or retry_count < 1:
-            raise rt_exc.InvalidInput("retry_count should be positive int")
+            raise TypeError("retry_count should be positive int")
         if not isinstance(retry_delay, int) or retry_delay < 1:
-            raise rt_exc.InvalidInput("retry_delay should be positive int")
+            raise TypeError("retry_delay should be positive int")
 
         for count in range(retry_count):
             try:
