@@ -2,63 +2,60 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
-import os
-import pip
 import sys
+import itertools
 
 from setuptools.command.test import test as TestCommand
+from gitpy_versioning import get_version
+
 from setuptools import find_packages
-from pip.req import parse_requirements
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
+
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
+
     def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
+        # import here, cause outside the eggs aren't loaded
         import pytest
         errno = pytest.main("%s tests" % " ".join(self.test_args))
         sys.exit(errno)
-    
-def requirements():
-    return [str(ir.req) for ir in parse_requirements('requirements.txt')]
-
-def get_version():
-    try:
-        # pip-installed packages can get the version from the 'version.txt'
-        # file, since it is included in the package MANIFEST.
-        with open('version.txt', 'r') as f:
-            return f.read().strip()
-    except IOError:
-        # since 'version.txt' is .gitignored, running setup.py (install|develop)
-        # from a git repo requires a bit of bootstrapping. in this case, we use
-        # the raw .git tag as the version.
-        pip.main(['install', '-U', '-i',
-                  'http://pypibox.lab.nbttech.com/pq/development/', 'pq-ci'])
-        from pq_ci import git
-        tag = git.parse_tag()
-        return '-'.join([tag['version'], tag['commits'], tag['sha']])
 
 readme = open('README.rst').read()
 
+test = ['pytest', 'testfixtures', 'mock']
+
+doc = ['sphinx']
+
 setup(
-    name='pq_cmdline',
+    name='steelscript.cmdline',
+    namespace_packages=['steelscript'],
     version=get_version(),
-    description='Project Quicksilver command line interaction',
+    description='Steelscript command line interaction',
     long_description=readme,
-    author='Project Quicksilver Team',
-    author_email='eng-quicksilver@riverbed.com',
-    packages=find_packages(),
-    package_dir={'pq_cmdline': 'pq_cmdline'},
+    author='Riverbed Technology',
+    author_email='eng-github@riverbed.com',
+    packages=find_packages(exclude=('gitpy_versioning',)),
     include_package_data=True,
-    install_requires=requirements(),
-    keywords='pq_cmdline',
-    tests_require=["pytest"],
+    install_requires=['paramiko',
+                      'pytest',
+                      'scp',
+                      'testfixtures',
+                      'steelscript',
+                      ],
+    extras_require={'test': test,
+                    'doc': doc,
+                    'dev': [p for p in itertools.chain(test, doc)],
+                    'all': ['libvirt']
+                    },
+    tests_require = test,
+    keywords='steelscript.cmdline',
     cmdclass = {'test': PyTest},
 )
