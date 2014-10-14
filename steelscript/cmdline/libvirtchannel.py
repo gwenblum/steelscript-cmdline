@@ -11,10 +11,9 @@ import signal
 
 try:
     import libvirt
-    has_libvirt = True
+    HAS_LIBVIRT = True
 except:
-    logging.exception("Failed to import libvirt.")
-    has_libvirt = False
+    HAS_LIBVIRT = False
 
 from steelscript.cmdline import exceptions, channel
 
@@ -76,7 +75,7 @@ class LibVirtChannel(channel.Channel):
             what was matched.
         """
 
-        if not has_libvirt:
+        if not HAS_LIBVIRT:
             raise ImportError("Failed to import libvirt")
 
         if not match_res:
