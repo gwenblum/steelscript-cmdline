@@ -8,15 +8,13 @@ from __future__ import (unicode_literals, print_function, division,
 
 import logging
 import signal
-import sys
 
 try:
     import libvirt
+    has_libvirt = True
 except:
-    # it is expected that import libvirt can fail
-    # thus exit, skip the rest of module
-    logging.exception("Failed to import libvirt")
-    sys.exit(0)
+    logging.exception("Failed to import libvirt.")
+    has_libvirt = False
 
 from steelscript.cmdline import exceptions, channel
 
@@ -77,6 +75,9 @@ class LibVirtChannel(channel.Channel):
         :return: Python :class:`re.MatchObject` containing data on
             what was matched.
         """
+
+        if not has_libvirt:
+            raise ImportError("Failed to import libvirt")
 
         if not match_res:
             match_res = [self.ROOT_PROMPT]
