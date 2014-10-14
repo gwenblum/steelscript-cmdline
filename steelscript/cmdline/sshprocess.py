@@ -9,7 +9,6 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 
 import paramiko
 import logging
-import traceback
 
 from steelscript.cmdline import exceptions
 from steelscript.cmdline import transport
@@ -61,10 +60,7 @@ class SSHProcess(transport.Transport):
         except paramiko.ssh_exception.SSHException:
             # Close the session, or the child thread apparently hangs
             self.disconnect()
-            # TODO: re_raise not compatibile with passing kwargs
-            # re_raise(SSHError, "Could not connect to %s" % self._host)
-            self._log.info("Could not connect to %s", self._host)
-            self._log.error("SSHException %s" % traceback.format_exc())
+            self._log.exception("Could not connect to %s", self._host)
             raise exceptions.ConnectionError
 
     def disconnect(self):

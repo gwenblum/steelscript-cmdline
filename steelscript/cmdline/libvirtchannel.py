@@ -8,11 +8,15 @@ from __future__ import (unicode_literals, print_function, division,
 
 import logging
 import signal
+import sys
 
 try:
     import libvirt
 except:
-    pass
+    # it is expected that import libvirt can fail
+    # thus exit, skip the rest of module
+    logging.exception("Failed to import libvirt")
+    sys.exit(0)
 
 from steelscript.cmdline import exceptions, channel
 
@@ -87,9 +91,6 @@ class LibVirtChannel(channel.Channel):
             raise exceptions.ConnectionError(
                 context="Failed to find domain '%s' on host" %
                         self._machine_name)
-        except NameError as e:
-            if str(e) == "name 'libvirt' is not defined":
-                raise ImportError("Can not import libvirt")
 
         # Make sure domain is running
         self._verify_domain_running()

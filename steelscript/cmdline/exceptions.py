@@ -254,7 +254,7 @@ class UnexpectedOutput(CmdlineException):
     :type notes: List of strings
     """
 
-    def __init__(self, command, output, expected_output=None, notes=[]):
+    def __init__(self, command, output, expected_output=None, notes=None):
         self.expected_output = expected_output
 
         if output:

@@ -155,8 +155,6 @@ class Shell(object):
             channel.exec_command(command)
         except paramiko.SSHException:
             if not self.sshprocess.is_connected():
-                # TODO: re_raise not compatabile with passing kwargs
-                # re_raise(SshError, "Not connected to %s" % self._host)
                 logging.info("Not connected to %s", self._host)
                 logging.error("SSHException %s" % traceback.format_exc())
                 raise exceptions.ConnectionError
