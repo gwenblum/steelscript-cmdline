@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # Copyright 2009-2013 Riverbed Technology, Inc.
 # All Rights Reserved. Confidential.
-from __future__ import print_function
+from __future__ import (absolute_import, unicode_literals, print_function,
+                        division)
 
 from steelscript.common.app import Application
 from steelscript.cmdline import cli
@@ -34,7 +35,7 @@ class BasicInfoCLI(cli.CLI):
                         unmatch='Filesystem')
         ret = []
         for ln in output.split('\n'):
-            fs = ln.rstrip('\r').split()
+            fs = ln.split()
             # fs follows pattern as "/dev/sda3 862G  183G  637G  23% /"
             # as "filesystem total used available percentage mount-point"
             ret.append(' '.join([fs[-1], fs[-5], fs[-2]]))
@@ -42,12 +43,11 @@ class BasicInfoCLI(cli.CLI):
 
     def time_info(self):
         """return time/timezone info by running 'date' command"""
-        return filter(self.exec_command('date\n'), match=':', unmatch='Last')
+        return self.exec_command('date\n')
 
     def cpu_load(self):
         """return the cpu load for the last minute, 5 minutes and 15 minutes"""
-        output = filter(self.exec_command('uptime\n'), match='load average')
-        return ' '.join(output.split(' ')[-5:])
+        return ' '.join(self.exec_command('uptime\n').split(' ')[-5:])
 
 
 class BasicInfoApp(Application):
