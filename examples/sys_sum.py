@@ -47,6 +47,8 @@ class BasicInfoCLI(cli.CLI):
 
     def cpu_load(self):
         """return the cpu load for the last minute, 5 minutes and 15 minutes"""
+        # uptime returns as
+        # 16:45  up 11 days,  6:49, 8 users, load averages: 2.00 1.75 1.67
         return ' '.join(self.exec_command('uptime\n').split(' ')[-5:])
 
 
