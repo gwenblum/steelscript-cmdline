@@ -5,6 +5,11 @@
 # as set forth in the License.
 
 
+"""
+This script presents a python example of logging into a Linux/Unix-based
+machine to print a simple system status.
+"""
+
 from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
@@ -12,7 +17,7 @@ from steelscript.common.app import Application
 from steelscript.cmdline import cli
 
 
-def filter(input_string, match=None, unmatch=None):
+def filter_input(input_string, match=None, unmatch=None):
     """Filter input_string on a per-line basis
 
     :param input_string: the input string to be filtered
@@ -27,33 +32,33 @@ def filter(input_string, match=None, unmatch=None):
     return '\n'.join(ret)
 
 
-class BasicInfoCLI(cli.CLI):
+def disk_usage(cli):
+    """Parse the output of 'df -h' and return a list of 3-element lists
+    each list consist of mount point, use percentage and total size
 
-    def disk_usage(self):
-        """Parse the output of 'df -h' and return a list of 3-element lists
-        each list consist of mount point, use percentage and total size
+    :param input_string: the output of df -h
+    """
+    output = filter_input(cli.exec_command('df -h\n'), match='%',
+                          unmatch='Filesystem')
+    ret = []
+    for line in output.split('\n'):
+        fs = line.split()
+        # fs follows pattern as "/dev/sda3 862G  183G  637G  23% /"
+        # as "filesystem total used available percentage mount-point"
+        ret.append(' '.join([fs[-1], fs[-5], fs[-2]]))
+    return '\n'.join(ret)
 
-        :param input_string: the output of df -h
-        """
-        output = filter(self.exec_command('df -h\n'), match='%',
-                        unmatch='Filesystem')
-        ret = []
-        for line in output.split('\n'):
-            fs = line.split()
-            # fs follows pattern as "/dev/sda3 862G  183G  637G  23% /"
-            # as "filesystem total used available percentage mount-point"
-            ret.append(' '.join([fs[-1], fs[-5], fs[-2]]))
-        return '\n'.join(ret)
 
-    def time_info(self):
-        """Return time/timezone info by running 'date' command"""
-        return self.exec_command('date\n')
+def time_info(cli):
+    """Return time/timezone info by running 'date' command"""
+    return cli.exec_command('date\n')
 
-    def cpu_load(self):
-        """Return the cpu load for the last minute, 5 minutes and 15 minutes"""
-        # uptime returns as
-        # 16:45  up 11 days,  6:49, 8 users, load averages: 2.00 1.75 1.67
-        return ' '.join(self.exec_command('uptime\n').split(' ')[-5:])
+
+def cpu_load(cli):
+    """Return the cpu load for the last minute, 5 minutes and 15 minutes"""
+    # uptime returns as
+    # 16:45  up 11 days,  6:49, 8 users, load averages: 2.00 1.75 1.67
+    return ' '.join(cli.exec_command('uptime\n').split()[-5:])
 
 
 class BasicInfoApp(Application):
@@ -79,12 +84,13 @@ class BasicInfoApp(Application):
             self.parser.error("Password needs to be specified")
 
     def main(self):
-        with BasicInfoCLI(hostname=self.options.host,
+        cli_obj = cli.CLI(hostname=self.options.host,
                           username=self.options.username,
-                          password=self.options.password) as cli:
-            print(cli.time_info())
-            print(cli.cpu_load())
-            print(cli.disk_usage())
+                          password=self.options.password)
+        cli_obj.start()
+        print(time_info(cli_obj))
+        print(cpu_load(cli_obj))
+        print(disk_usage(cli_obj))
 
 
 if __name__ == '__main__':
