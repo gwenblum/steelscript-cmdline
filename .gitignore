@@ -18,6 +18,7 @@ develop-eggs
 lib
 lib64
 version.txt
+RELEASE-VERSION
 
 # Installer logs
 pip-log.txt
@@ -34,6 +35,8 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+.idea/
+.tox/
 
 # Complexity
 output/*.html
@@ -44,3 +47,8 @@ docs/_build
 
 # auto_api_summary
 docs/_apidoc
+
+# temp files
+*~
+*.swp
+.DS_Store
