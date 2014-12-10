@@ -26,6 +26,11 @@ ANY_COMMAND_ERROR_DATA = '%s\n%s' % (ANY_COMMAND, ANY_COMMAND_ERROR)
 ANY_ROOT_COMMAND = 'show'
 ANY_UNKNOWN_LEVEL = 'unknown'
 ANY_TIMEOUT = 120
+ENTER_MODE_CONFIGURE_ERROR_OUTPUT = """
+% Unrecognized command "configure".
+Type "?" for help.
+il-sh54 #
+"""
 
 
 @pytest.fixture
@@ -164,21 +169,23 @@ def test_enter_mode_shell_from_normal_mode(any_cli):
 def test_enter_mode_config_from_normal_mode(any_cli):
     any_cli.current_cli_mode = MagicMock(name='method')
     any_cli.current_cli_mode.return_value = CLIMode.NORMAL
+    any_cli.exec_command = MagicMock(name='method')
     any_cli._send_line_and_wait = MagicMock(name='method')
     any_cli._enable = MagicMock(name='method')
     any_cli.enter_mode_config()
     assert any_cli._enable.called
-    any_cli._send_line_and_wait.assert_called_with(
-        'config terminal', any_cli.CLI_CONF_PROMPT)
+    any_cli.exec_command.assert_called_with(
+        'configure terminal', prompt=any_cli.CLI_ANY_PROMPT, mode=None)
 
 
 def test_enter_mode_config_from_enable_mode(any_cli):
     any_cli.current_cli_mode = MagicMock(name='method')
     any_cli.current_cli_mode.return_value = CLIMode.ENABLE
+    any_cli.exec_command = MagicMock(name='method')
     any_cli._send_line_and_wait = MagicMock(name='method')
     any_cli.enter_mode_config()
-    any_cli._send_line_and_wait.assert_called_with(
-        'config terminal', any_cli.CLI_CONF_PROMPT)
+    any_cli.exec_command.assert_called_with(
+        'configure terminal', prompt=any_cli.CLI_ANY_PROMPT, mode=None)
 
 
 def test_enter_mode_config_when_already_at_config_mode(any_cli):
@@ -195,6 +202,19 @@ def test_enter_mode_config_raise_if_current_mode_is_unknown(any_cli):
     with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
         mock.return_value = ('output', mock_match)
         with pytest.raises(exceptions.UnknownCLIMode):
+            any_cli.enter_mode_config()
+
+
+def test_enter_mode_config_blocked(any_cli):
+    """
+    Test that read-only users (such as monitor) fail gracefully when
+    trying to enter 'config' mode, which appears non-existant to them.
+    """
+    any_cli.current_cli_mode = MagicMock(name='method')
+    any_cli.current_cli_mode.return_value = CLIMode.ENABLE
+    with patch('steelscript.cmdline.cli.CLI._send_line_and_wait') as mock:
+        mock.return_value = (ENTER_MODE_CONFIGURE_ERROR_OUTPUT, Mock())
+        with pytest.raises(exceptions.CLIError):
             any_cli.enter_mode_config()
 
 

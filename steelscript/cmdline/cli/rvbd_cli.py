@@ -270,10 +270,14 @@ class RVBD_CLI(cli.CLI):
 
         elif mode == cli.CLIMode.NORMAL:
             self._enable()
-            self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
+            self.exec_command('configure terminal',
+                              prompt=self.CLI_ANY_PROMPT,
+                              mode=None)
 
         elif mode == cli.CLIMode.ENABLE:
-            self._send_line_and_wait('config terminal', self.CLI_CONF_PROMPT)
+            self.exec_command('configure terminal',
+                              prompt=self.CLI_ANY_PROMPT,
+                              mode=None)
 
         elif mode == cli.CLIMode.CONFIG:
             self._log.info('Already at Config, doing nothing')
