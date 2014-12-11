@@ -78,8 +78,10 @@ class RVBD_CLI(cli.CLI):
         super(RVBD_CLI, self).start(start_prompt=start_prompt)
 
         if run_cli:
-            # default exec_command to CLIMode.CONFIG
-            self._default_mode = cli.CLIMode.CONFIG
+            # default exec_command to CLIMode.ENABLE; we can't make any
+            # assumptions that the running user has config-level
+            # authorization
+            self._default_mode = cli.CLIMode.ENABLE
 
             # Start cli if log into shell
             self._run_cli_from_shell()
@@ -138,7 +140,7 @@ class RVBD_CLI(cli.CLI):
             raise exceptions.UnknownCLIMode(prompt=output)
         return modes[match.re.pattern]
 
-    def enter_mode(self, mode=cli.CLIMode.CONFIG):
+    def enter_mode(self, mode=cli.CLIMode.ENABLE):
         """
         Enter mode based on name ('normal', 'enable', 'configure', or 'shell').
 

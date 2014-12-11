@@ -68,9 +68,16 @@ def test_start_calls_correct_methods(any_cli):
         any_cli.enter_mode_normal = MagicMock(name='method')
         any_cli._disable_paging = MagicMock(name='method')
         any_cli.start()
+        assert any_cli.default_mode == CLIMode.ENABLE
         assert any_cli._run_cli_from_shell.called
         assert any_cli.enter_mode_normal.called
         assert any_cli._disable_paging.called
+
+
+def test_enter_mode_chooses_default_mode(any_cli):
+    any_cli.enter_mode_enable = MagicMock(name='method')
+    any_cli.enter_mode()
+    assert any_cli.enter_mode_enable.called
 
 
 def test_current_cli_mode_at_shell_mode(any_cli):
