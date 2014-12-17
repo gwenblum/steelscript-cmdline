@@ -337,10 +337,9 @@ class RVBD_CLI(cli.CLI):
                                                        prompt,
                                                        timeout=timeout)
 
-        # CLI adds on escape chars and such sometimes (see bug 75081), and
-        # the result is that some part of the command that was entered
-        # shows up as an extra inital line of output.  Strip off that
-        # initial line.
+        # CLI adds on escape chars and such sometimes and the result is that
+        # some part of the command that was entered shows up as an extra
+        # initial line of output.  Strip off that initial line.
         output = '\n'.join(output.splitlines()[1:])
 
         if output and (re.match(self.CLI_ERROR_PROMPT, output)):
@@ -384,7 +383,7 @@ class RVBD_CLI(cli.CLI):
                                                 self.CLI_ANY_PROMPT)
 
         # Split the output into a list of lines. The first one will be the
-        # command we sent, teh last two will be an escape code and the prompt,
+        # command we sent, the last two will be an escape code and the prompt,
         # So remove those.
         lines = output.splitlines()
         lines = lines[1:]
@@ -402,7 +401,7 @@ class RVBD_CLI(cli.CLI):
                     mode = '<unrecognized>'
                 raise exceptions.CLIError(root_cmd, output=output, mode=mode)
 
-            # If this is a user-input field, skip it. Most are surronded by
+            # If this is a user-input field, skip it. Most are surrounded by
             # <>, but not all. If the command contains anything other than
             # letters or numbers, we assume it is a user field.
             if command.isalnum():

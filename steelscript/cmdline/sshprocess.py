@@ -23,7 +23,7 @@ class SSHProcess(transport.Transport):
     :param password: password to log in with
     """
 
-    # Seconds to wait for banner comming out after starting connection.
+    # Seconds to wait for banner coming out after starting connection.
     BANNER_TIMEOUT = 5
 
     def __init__(self, host, user='root', password='', port=22):

@@ -118,7 +118,7 @@ class TelnetChannel(channel.Channel):
             self.channel.write(text_to_send)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
-        # At this point, we should already loged in; raises exceptions if not
+        # At this point, we should already logged in; raises exceptions if not
         if index < 0:
             raise exceptions.CmdlineTimeout(timeout=timeout,
                                             failed_match=match_res)
@@ -170,10 +170,6 @@ class TelnetChannel(channel.Channel):
         # Encode text to ascii; telnetlib does not work well with unicode
         # literals.
         text_to_send = text_to_send.encode('ascii')
-
-        # This is commented out because our PowerShellHost does not
-        # understand telnet.NOP, tracked by bug 193702
-        # self._verify_connected()
 
         logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
         self.channel.write(text_to_send)

@@ -20,7 +20,7 @@ duplication in model methods, and other methods which interact with the
 CLI on Riverbed appliances.
 
 All parsers should be written as functions with no state.  When performing
-more complicated parsing operations it should be prefered to chain together
+more complicated parsing operations it should be preferred to chain together
 independent parsing actions.
 
 Where parsing actions do not exist for specific CLI outputs, it
@@ -43,7 +43,7 @@ def cli_parse_basic(input_string):
 
     This parser goes through all the lines in the input string and returns a
     dictionary of parsed output.  In addition to splitting the output into
-    key value pairs, the values will be fed through parse_booelan to turn
+    key value pairs, the values will be fed through parse_boolean to turn
     strings such as ``yes`` and ``true`` into boolean objects, leaving other
     strings alone.
 
@@ -108,7 +108,7 @@ def cli_parse_table(input_string, headers):
     Data fields are initially divided by 2 spaces.  This allows single spaces
     within the data fields.  However, if the data crosses more than 1 header,
     it is then divided by single spaces and each piece will be part of whatever
-    header it falls under.  If any part doesn't fall undernearth a header, an
+    header it falls under.  If any part doesn't fall underneath a header, an
     error is raised.
 
     The example output above would produce the following structure:
@@ -255,7 +255,7 @@ def cli_parse_table(input_string, headers):
 def _find_left_right_headers(left_index, right_index, domains):
     # Find the leftmost and rightmost matching header.
     # leftmost = first header with a right index > column's left index.
-    # similiarly for rightmost, only we must reverse the list.
+    # similarly for rightmost, only we must reverse the list.
     leftmost = next((x[0] for x in enumerate(domains) if left_index < x[1][1]),
                     len(domains))
     rightmost = next((x[0] for x in reversed(list(enumerate(domains)))
@@ -459,7 +459,7 @@ def parse_saasinfo_data(input):
         =================================
         SaaS Application
         =================================
-        O365
+        SAMPLEAPP 
 
         =================================
         SaaS IP
@@ -473,10 +473,10 @@ def parse_saasinfo_data(input):
         =================================
         SaaS Hostname
         =================================
-        *.mail.apac.microsoftonline.com
-        *.outlook.com
-        *.sharepoint.com
-        outlook.com
+        *.mail.apac.example.com
+        *.example1.com
+        *.example2.com
+        example1.com
 
         =================================
         GeoDNS
@@ -504,7 +504,7 @@ def parse_saasinfo_data(input):
     .. code-block:: python
 
         {
-            'appid': 'O365',
+            'appid': 'SAMPLEAPP',
             'ip': [
                 '10.41.222.0/24 [0-65535]',
                 '111.221.112.0/21 [1-65535]',
@@ -513,10 +513,10 @@ def parse_saasinfo_data(input):
                 '111.221.20.128/25 [0-65535]',
             ],
             'host': [
-                '*.mail.apac.microsoftonline.com',
-                '*.outlook.com',
-                '*.sharepoint.com',
-                'outlook.com',
+                '*.mail.apac.example.com',
+                '*.example1.com',
+                '*.example2.com',
+                'example1.com',
             ],
             'geodns': {
                 'nam.ca.bay-area': {

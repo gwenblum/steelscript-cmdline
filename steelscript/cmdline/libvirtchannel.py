@@ -104,7 +104,6 @@ class LibVirtChannel(channel.Channel):
 
     def close(self):
         # For compatibility with other channels.
-        # TODO: Should we actually close this somehow?
         pass
 
     def _verify_domain_running(self):
@@ -122,7 +121,6 @@ class LibVirtChannel(channel.Channel):
                         self._machine_name)
 
     def _verify_connected(self):
-        # TODO: Verify that the stream is really connected.
         return self._stream is not None
 
     def _check_console_mode(self, logged_in_res, timeout):

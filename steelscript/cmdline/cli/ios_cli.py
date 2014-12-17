@@ -17,13 +17,6 @@ class IOS_CLI(cli.CLI):
     Implementation of a CLI for IOS devices.
     """
 
-    # TODO: This is VLAB specific.  Remove before SteelScript.
-    # IOS are named as following:
-    # tr2821-b or tsw27
-    # oak-tr5 or oak-tsw5
-    # 365-tr3 or 365-tsw27
-    # and so forth
-
     NAME_PREFIX_RE = '(^|\n|\r)(?P<name>(\S+\-)?t[a-zA-Z0-9_\-]+)'
 
     CLI_NORMAL_PROMPT = NAME_PREFIX_RE + '>'
@@ -257,7 +250,7 @@ class IOS_CLI(cli.CLI):
         :raises CmdlineTimeout: on timeout
         :raises CLIError: if the output matches the cli's error format, and
             error output was not expected.
-        :raises UnexpectedOutput: if output occurrs when no output was
+        :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
 
         :return: output of the command, minus the command itself.

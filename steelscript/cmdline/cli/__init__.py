@@ -90,7 +90,7 @@ class CLI(object):
     """
     A regex that is suitable for most CLIs, root or regular user.
 
-    Note that this does not specificaly check hostnames, which might
+    Note that this does not specifically check hostnames, which might
     lead to false positive matches.
     """
 
@@ -114,25 +114,6 @@ class CLI(object):
         # Don't squash it by explicitly passing None.
         if port is not None:
             self._channel_args['port'] = port
-
-        # TODO: Compatibility for:
-        #       pq_lab/netdevice/__init__.py
-        #       pq_lab/netdevice/vyatta.py
-        #       pq_lab/netdevice/ios/__init__.py
-        if 'host' in channel_args:
-            self._channel_args['hostname'] = channel_args['host']
-            del channel_args['host']
-        if 'user' in channel_args:
-            self._channel_args['username'] = channel_args['user']
-            del channel_args['user']
-        if 'transport_type' in channel_args:
-            if channel_args['transport_type'] == 'ssh':
-                self._channel_class = sshchannel.SSHChannel
-            elif channel_args['transport_type'] == 'telnet':
-                from steelscript.cmdline import telnetchannel
-                self._channel_class = telnetchannel.TelnetChannel
-            del channel_args['transport_type']
-        # TODO: End compatibility section
 
         self._channel_args.update(channel_args)
 
@@ -250,9 +231,9 @@ class CLI(object):
                                                    prompt,
                                                    timeout=timeout)
 
-        # CLI adds on escape chars and such sometimes (see bug 75081), so to
-        # remove the command we just send from the output, split the output
-        # into lines, then rejoin it with the first line removed.
+        # CLI adds on escape chars and such sometimes, so to remove the
+        # command we just send from the output, split the output into lines,
+        # then rejoin it with the first line removed.
         output = '\n'.join(output.splitlines()[1:])
 
         if ((output_expected is not None) and (bool(output) !=
@@ -292,8 +273,7 @@ class CLICache(object):
     def get_cli(self, resource, cli_class=CLI):
         """Get CLI from cache, or cache a new one. """
         if resource.uniqueid not in self._cli_cache:
-            # TODO: IP discovery may need to happen here.
-            #       For now, assume hostname or admin_ip is known.
+            # assume hostname or admin_ip is known.
             try:
                 host = resource.admin_ip
             except IndexError as e:

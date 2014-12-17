@@ -79,7 +79,8 @@ class CmdlineTimeout(CmdlineException):
 
     Some timeouts within a given protocol may be reported as ConnectionError
     as the third-party libraries are not always specific about causes.
-    However, all timeouts triggered in PQ code will raise this exception.
+    However, all timeouts triggered in SteelScript code will raise this
+    exception.
 
     :param timeout: The number of seconds that we were waiting for.
     :param command: The command we were trying to execute.
@@ -114,7 +115,7 @@ class ConnectionError(CmdlineException):
     so certain kinds of timeouts may appear as a ConnectionError.
     Timeouts managed by SteelScript code should use CmdlineTimeout instead.
 
-    This exceptipn should be used to propagate errors up to levels
+    This exception should be used to propagate errors up to levels
     that should not be aware of the specific underlying protocol.
 
     :param command: The command we were trying to execute.
@@ -122,7 +123,7 @@ class ConnectionError(CmdlineException):
     :param cause: The protocol-specific exception, if any, that triggered this.
     :param failed_match: What we were trying to match, or None.
     :type failed_match: Match object, pattern object, or string.
-    :param context: An optional string describing the conetxt of the error.
+    :param context: An optional string describing the context of the error.
 
     :ivar command: The command we were trying to execute.
     :ivar output: Any output produced just before the failure.
@@ -232,7 +233,7 @@ class UnexpectedOutput(CmdlineException):
     """Exception for when output does not match expectations.
 
     This could include output where none was expected, no output where
-    some was expected, or differiing output than expected.
+    some was expected, or differing output than expected.
 
     This generally does not mean easily detectable error output, which is
     indicated by the appropriate subclass of ``CmdlineError``
@@ -300,10 +301,10 @@ class UnknownCLIMode(CmdlineException):
 
         if prompt is not None:
             if mode is not None:
-                msg = ("Unknown mode '%s' seen or reqested, prompt is '%s'" %
+                msg = ("Unknown mode '%s' seen or requested, prompt is '%s'" %
                        (mode, prompt))
             else:
-                msg = "Unkonwn mode seen, prompt is '%s'" % prompt
+                msg = "Unknown mode seen, prompt is '%s'" % prompt
         elif mode is not None:
             msg = "Unknown mode '%s' requested." % mode
         else:

@@ -206,7 +206,7 @@ class VyattaCLI(cli.CLI):
 
         :raises TypeError: if output_expected type is incorrect
         :raises CmdlineTimeout: on timeout
-        :raises UnexpectedOutput: if output occurrs when no output was
+        :raises UnexpectedOutput: if output occurs when no output was
             expected, or no output occurs when output was expected
         """
         if output_expected is not None and not isinstance(

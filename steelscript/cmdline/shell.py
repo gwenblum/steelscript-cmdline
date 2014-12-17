@@ -90,17 +90,6 @@ class Shell(object):
 
         logging.debug('Executing command "%s"' % command)
 
-        # TODO: Remove this block of code for SteelScript.
-        if expect_output is not None:
-            logging.error("The 'expect_output' parameter is deprecated. "
-                          "Use 'output_expected")
-            output_expected = expect_output
-        if expect_error is not None:
-            logging.error("The 'expect_error' parameter is deprecated. "
-                          "Use 'error_expected'")
-            error_expected = expect_error
-        # TODO: End block of code to be removed.
-
         # connect if ssh is not connected
         if (not self.sshprocess.is_connected()):
             self.sshprocess.connect()
@@ -145,7 +134,7 @@ class Shell(object):
 
         starttime = time.time()
 
-        # XXX/tsinclair  Paramiko 1.7.5 has a bug in its internal event system
+        # Paramiko 1.7.5 has a bug in its internal event system
         # that can cause it to sometimes throw a 'not connected' exception when
         # running exec_command.  If we get that exception here, but we're still
         # connected, then just eat the exception and go on, since that's the
@@ -193,8 +182,7 @@ class Shell(object):
                     chan_closed = True
 
             elif channel.exit_status_ready():
-                # XXX/tsinclair - I don't fully understand what's going on, but
-                # this seems to work.  If no readers were available, see if the
+                # If no readers were available, see if the
                 # exit status is ready - if so, the channel must be closed.
                 # exit_status_ready can return true before we've read all the
                 # data.  Problem is, I know I've seen it return true when there

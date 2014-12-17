@@ -123,7 +123,7 @@ class Channel(object):
         """
         Perform common setup tasks for expect methods.
 
-        Raise any necessary exceptions due to paramaters or bad
+        Raise any necessary exceptions due to parameters or bad
         state (unconnected), adjust parameters as needed.
         See the expect() docstring for further details.
 

@@ -99,9 +99,9 @@ class PowerShell(object):
                                                    [self.POWERSHELL_PROMPT],
                                                    timeout=timeout)
 
-        # CLI adds on escape chars and such sometimes (see bug 75081), so to
-        # remove the command we just send from the output, split the output
-        # into lines, then rejoin it with the first line removed.
+        # CLI adds on escape chars and such sometimes, so to remove the command
+        # we just send from the output, split the output into lines, then
+        # rejoin it with the first line removed.
         output = '\n'.join(output.splitlines()[1:])
 
         if ((output_expected is not None) and (bool(output) !=
