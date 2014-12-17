@@ -459,7 +459,7 @@ def parse_saasinfo_data(input):
         =================================
         SaaS Application
         =================================
-        SAMPLEAPP 
+        SAMPLEAPP
 
         =================================
         SaaS IP
