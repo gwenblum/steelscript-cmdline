@@ -104,7 +104,7 @@ class LibVirtChannel(channel.Channel):
 
     def close(self):
         # For compatibility with other channels.
-        # Should we actually close this somehow?
+        # TODO: Should we actually close this somehow?
         pass
 
     def _verify_domain_running(self):

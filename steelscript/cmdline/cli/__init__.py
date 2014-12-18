@@ -169,6 +169,10 @@ class CLI(object):
             command (without the matched text), and match_object is a Python
             :class:`re.MatchObject` containing data on what was matched.
         """
+        # TODO: There was a call to 'self.channel.receive_all()' here, which
+        # appears to be used to 'flush' the buffer first.  For interactive
+        # prompts on libvirtchannel, this was causing an endless blocking call.
+        # We still probably want to figure out an alternative.
         self.channel.send(text_to_send)
         return self.channel.expect(match_res, timeout)
 
