@@ -55,7 +55,7 @@ class CLI(object):
 
     For the "should match any prompt" regular expressions, the focus was
     mostly on common OSes in Riverbed's internal environment.  Other systems
-    may require subclassing this class and overriding the promp regexes.
+    may require subclassing this class and overriding the prompt regexes.
 
     :param host: host/ip
     :type hostname: string
@@ -169,10 +169,6 @@ class CLI(object):
             command (without the matched text), and match_object is a Python
             :class:`re.MatchObject` containing data on what was matched.
         """
-        # TODO: There was a call to 'self.channel.receive_all()' here, which
-        # appears to be used to 'flush' the buffer first.  For interactive
-        # prompts on libvirtchannel, this was causing an endless blocking call.
-        # We still probably want to figure out an alternative.
         self.channel.send(text_to_send)
         return self.channel.expect(match_res, timeout)
 
@@ -273,7 +269,8 @@ class CLICache(object):
     def get_cli(self, resource, cli_class=CLI):
         """Get CLI from cache, or cache a new one. """
         if resource.uniqueid not in self._cli_cache:
-            # assume hostname or admin_ip is known.
+            # TODO: IP discovery may need to happen here.
+            #       For now, assume hostname or admin_ip is known.
             try:
                 host = resource.admin_ip
             except IndexError as e:

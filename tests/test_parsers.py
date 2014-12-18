@@ -164,10 +164,10 @@ SaaS IP
 =================================
 SaaS Hostname
 =================================
-*.mail.apac.microsoftonline.com
-*.outlook.com
-*.sharepoint.com
-outlook.com
+*.mail.apac.example.com
+*.example1.com
+*.example2.com
+example1.com
 
 =================================
 GeoDNS
@@ -198,10 +198,10 @@ EXPECTED_PARSE_SAASINFO_DATA_OUTPUT =\
             '111.221.116.0/24 [1-65535]',
             '111.221.17.160/27 [1-65535]',
             '111.221.20.128/25 [0-65535]'],
-     'host': ['*.mail.apac.microsoftonline.com',
-              '*.outlook.com',
-              '*.sharepoint.com',
-              'outlook.com'],
+     'host': ['*.mail.apac.example.com',
+              '*.example1.com',
+              '*.example2.com',
+              'example1.com'],
      'geodns': {'nam.ca.bay-area': {'mbx': ['blu',
                                             'apc',
                                             'xyz'],

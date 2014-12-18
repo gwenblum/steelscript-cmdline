@@ -10,7 +10,6 @@ from mock import Mock, MagicMock, patch
 from steelscript.cmdline.cli import CLI, DEFAULT_MACHINE_MANAGER_URI
 from steelscript.cmdline import exceptions
 from steelscript.cmdline.sshchannel import SSHChannel
-from steelscript.cmdline.telnetchannel import TelnetChannel
 
 ANY_HOST = 'sh1'
 ANY_USER = 'user1'
@@ -57,39 +56,6 @@ def test_members_initialize_correctly(any_cli):
         DEFAULT_MACHINE_MANAGER_URI
     assert any_cli._channel_class == SSHChannel
     assert any_cli.channel is None
-
-
-def test_compatibility_code_by_name_ssh():
-    # host and user are the differing names still in use.
-    # "term" for "terminal" is not used anywhere.
-    # ssh and telnet are the only transport_types used, always passed by name.
-    cli = CLI(host=ANY_HOST, user=ANY_USER, password=ANY_PASSWORD,
-              transport_type='ssh')
-    assert cli._channel_args['hostname'] == ANY_HOST
-    assert cli._channel_args['username'] == ANY_USER
-    assert cli._channel_args['password'] == ANY_PASSWORD
-    assert cli._channel_args['terminal'] == ANY_TERMINAL
-    assert cli._channel_args['machine_name'] is None
-    assert cli._channel_args['machine_manager_uri'] is \
-        DEFAULT_MACHINE_MANAGER_URI
-    assert cli._channel_class == SSHChannel
-    assert cli.channel is None
-
-
-def test_compatibility_code_by_position_telnet():
-    # only the first three parameters are ever used positionally.
-    # ssh and telnet are the only transport_types used, always passed by name.
-    cli = CLI(ANY_HOST, ANY_USER, password=ANY_PASSWORD,
-              transport_type='telnet')
-    assert cli._channel_args['hostname'] == ANY_HOST
-    assert cli._channel_args['username'] == ANY_USER
-    assert cli._channel_args['password'] == ANY_PASSWORD
-    assert cli._channel_args['terminal'] == ANY_TERMINAL
-    assert cli._channel_args['machine_name'] is None
-    assert cli._channel_args['machine_manager_uri'] is \
-        DEFAULT_MACHINE_MANAGER_URI
-    assert cli._channel_class == TelnetChannel
-    assert cli.channel is None
 
 
 def test_start_initialize_ssh(any_cli, prompt_match):
