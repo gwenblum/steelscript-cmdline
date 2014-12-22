@@ -47,6 +47,7 @@ setup(
     install_requires=['paramiko',
                       'scp',
                       'steelscript',
+                      'ipaddress'
                       ],
     extras_require={'test': test,
                     'doc': doc,
