@@ -58,6 +58,11 @@ responses.
 For a complete guide to installation, see:
 
 http://pythonhosted.org/steelscript/
+
+For installation on Windows, this package depends on `pycrypto`,
+see more information about installing this pre-requisite here:
+
+https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
     """,
 
     platforms='Linux, Mac OS, Windows',
