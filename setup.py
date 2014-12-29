@@ -85,7 +85,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         ('share/doc/steelscript/examples/cmdline', glob('examples/*')),
     ),
 
-    install_requires=['paramiko', 'scp', 'steelscript', 'ipaddress'],
+    install_requires=['paramiko', 'scp', 'steelscript>=0.9.6', 'ipaddress'],
     extras_require={'test': test,
                     'doc': doc,
                     'dev': [p for p in itertools.chain(test, doc)],

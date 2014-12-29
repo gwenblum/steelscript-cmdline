@@ -45,7 +45,11 @@ def disk_usage(cli):
         fs = line.split()
         # fs follows pattern as "/dev/sda3 862G  183G  637G  23% /"
         # as "filesystem total used available percentage mount-point"
-        ret.append(' '.join([fs[-1], fs[-5], fs[-2]]))
+        try:
+            ret.append(' '.join([fs[-1], fs[-5], fs[-2]]))
+        except IndexError:
+            return 'Error, `df -h` returned invalid data!'
+
     return '\n'.join(ret)
 
 
@@ -58,7 +62,12 @@ def cpu_load(cli):
     """Return the cpu load for the last minute, 5 minutes and 15 minutes"""
     # uptime returns as
     # 16:45  up 11 days,  6:49, 8 users, load averages: 2.00 1.75 1.67
-    return ' '.join(cli.exec_command('uptime\n').split()[-5:])
+    uptime = cli.exec_command('uptime\n')
+
+    if uptime:
+        return ' '.join(uptime.split()[-5:])
+    else:
+        return 'Error, `uptime` returned empty results!'
 
 
 class BasicInfoApp(Application):
