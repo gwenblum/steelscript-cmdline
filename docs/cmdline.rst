@@ -50,7 +50,7 @@ SteelScript Command Line Sources
 
 .. autoclass:: Channel
    :members:
-   
+
 .. automodule:: steelscript.cmdline.exceptions
 
 .. currentmodule:: steelscript.cmdline.exceptions
@@ -134,16 +134,6 @@ SteelScript Command Line Sources
 ------------------------------------
 
 .. autoclass:: LibVirtChannel
-   :members:
-
-.. automodule:: steelscript.cmdline.powershell
-
-.. currentmodule:: steelscript.cmdline.powershell
-
-:py:class:`PowerShell` Objects
-------------------------------------
-
-.. autoclass:: PowerShell
    :members:
 
 .. automodule:: steelscript.cmdline.shell
