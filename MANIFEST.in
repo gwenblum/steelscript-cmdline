@@ -1,5 +1,6 @@
-include AUTHORS.rst
+include RELEASE-VERSION
+include AUTHORS
+include LICENSE
 include README.rst
-include requirements.txt
-include version.txt
-recursive-include steelscript/cmdline *.yaml
+include examples/*.py
+include gitpy_versioning/__init__.py

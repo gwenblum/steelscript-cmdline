@@ -1,19 +1,26 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# Copyright (c) 2014 Riverbed Technology, Inc.
+#
+# This software is licensed under the terms and conditions of the MIT License
+# accompanying the software ("License").  This software is distributed "AS IS"
+# as set forth in the License.
+
 from __future__ import print_function, division
 
 import sys
 import itertools
-
-from setuptools.command.test import test as TestCommand
-from gitpy_versioning import get_version
-
-from setuptools import find_packages
+from glob import glob
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
+    from setuptools.command.test import test as TestCommand
 except ImportError:
-    from distutils.core import setup
+    raise ImportError(
+        'The setuptools package is required to install this library. See '
+        '"https://pypi.python.org/pypi/setuptools#installation-instructions" '
+        'for further instructions.'
+    )
+
+from gitpy_versioning import get_version
 
 
 class PyTest(TestCommand):
@@ -28,33 +35,57 @@ class PyTest(TestCommand):
         errno = pytest.main("%s tests" % " ".join(self.test_args))
         sys.exit(errno)
 
-readme = open('README.rst').read()
-
 test = ['pytest', 'testfixtures', 'mock']
-
 doc = ['sphinx']
 
 setup(
     name='steelscript.cmdline',
     namespace_packages=['steelscript'],
     version=get_version(),
-    description='SteelScript command line interaction',
-    long_description=readme,
     author='Riverbed Technology',
     author_email='eng-github@riverbed.com',
+    url='http://pythonhosted.org/steelscript',
+    license='MIT',
+    description='SteelScript support for command-line interaction',
+    long_description="""SteelScript for Command-Line Access
+===================================
+
+This package contains modules for interacting with a command line or shell.
+It contains modules for interacting with different transport types, such as
+telnet and ssh, and also contains modules for common parsing of command line
+responses.
+
+For a complete guide to installation, see:
+
+http://pythonhosted.org/steelscript/
+    """,
+
+    platforms='Linux, Mac OS, Windows',
+    classifiers=(
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: System :: Networking',
+    ),
+
     packages=find_packages(exclude=('gitpy_versioning',)),
     include_package_data=True,
-    install_requires=['paramiko',
-                      'scp',
-                      'steelscript',
-                      'ipaddress'
-                      ],
+
+    data_files=(
+        ('share/doc/steelscript/docs/cmdline', glob('docs/*')),
+        ('share/doc/steelscript/examples/cmdline', glob('examples/*')),
+    ),
+
+    install_requires=['paramiko', 'scp', 'steelscript', 'ipaddress'],
     extras_require={'test': test,
                     'doc': doc,
                     'dev': [p for p in itertools.chain(test, doc)],
                     'all': ['libvirt']
                     },
-    tests_require = test,
-    keywords='steelscript.cmdline',
-    cmdclass = {'test': PyTest},
+    tests_require=test,
+    cmdclass={'test': PyTest},
 )
