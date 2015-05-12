@@ -81,7 +81,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
     include_package_data=True,
 
     data_files=(
-        ('share/doc/steelscript/docs/cmdline', glob('docs/*')),
+        ('share/doc/steelscript/docs/cmdline', glob('docs/*.rst')),
         ('share/doc/steelscript/examples/cmdline', glob('examples/*')),
     ),
 
