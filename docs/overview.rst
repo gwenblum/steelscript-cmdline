@@ -7,7 +7,6 @@ ssh. The repo also contains modules for common parsing of command line responses
 
 Documentation available in this module:
 
-* :doc:`tutorial`
 * Class Reference
 
   * :doc:`cmdline`
