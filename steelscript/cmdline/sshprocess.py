@@ -24,12 +24,18 @@ class SSHProcess(transport.Transport):
     :param host: host/ip to ssh into
     :param user: username to log in with
     :param password: password to log in with
+    :param private_key: paramiko private key (Pkey) object
+
+    If a private_key is passed, it will take precendence over a password,
+    no fallback attempt will be made if the private key connection fails,
+    however.
     """
 
     # Seconds to wait for banner coming out after starting connection.
     BANNER_TIMEOUT = 5
 
-    def __init__(self, host, user='root', password='', port=22):
+    def __init__(self, host, user='root', password=None, private_key=None,
+                 port=22):
         # Hostname shell connects to
         self._host = host
         self._port = port
@@ -39,6 +45,9 @@ class SSHProcess(transport.Transport):
 
         # Password shell connects with
         self._password = password
+
+        # Private key as paramiko.pkey.PKey
+        self._private_key = private_key
 
         # paramiko.Transport object, the actual SSH engine.
         # http://www.lag.net/paramiko/docs/
@@ -58,8 +67,12 @@ class SSHProcess(transport.Transport):
             self.transport = paramiko.Transport((self._host, self._port))
             self.transport.banner_timeout = self.BANNER_TIMEOUT
             self.transport.start_client()
-            self.transport.auth_password(self._user, self._password,
-                                         fallback=True)
+
+            if self._private_key:
+                self.transport.auth_publickey(self._user, self._private_key)
+            else:
+                self.transport.auth_password(self._user, self._password,
+                                             fallback=True)
         except paramiko.ssh_exception.SSHException:
             # Close the session, or the child thread apparently hangs
             self.disconnect()

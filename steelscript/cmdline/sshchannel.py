@@ -31,11 +31,16 @@ class SSHChannel(channel.Channel):
     :param port: optional port for the connection.  Default is 22.
     :param username: account to use for authentication
     :param password: password for authentication
+    :param private_key_path: absolute system path to private key file
     :param terminal: terminal emulation to use; defaults to 'console'
     :param width: width (in characters) of the terminal screen;
         defaults to 80
     :param height: height (in characters) of the terminal screen;
         defaults to 24
+
+    Both password and private_key_path may be passed, but private keys
+    will take precedence for authentication, with no fallback to password
+    attempt.
 
     Additional arguments are accepted and ignored for compatibility
     with other channel implementations.
@@ -43,13 +48,25 @@ class SSHChannel(channel.Channel):
 
     BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
 
-    def __init__(self, hostname, username, password, port=22,
+    def __init__(self, hostname, username, password=None,
+                 private_key_path=None, port=22,
                  terminal='console',
                  width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT,
                  **kwargs):
+
+        if password is None and private_key_path is None:
+            cause = 'Either password or path to private key must be included.'
+            raise exceptions.ConnectionError(cause=cause)
+
+        pkey = None
+        if private_key_path is not None:
+            with open(private_key_path, 'r') as f:
+                pkey = paramiko.rsakey.RSAKey.from_private_key(f)
+
         self.sshprocess = sshprocess.SSHProcess(host=hostname,
                                                 user=username,
                                                 password=password,
+                                                private_key=pkey,
                                                 port=port)
         self._host = hostname
         self._term = terminal

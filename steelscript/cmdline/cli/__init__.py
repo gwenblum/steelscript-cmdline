@@ -66,6 +66,9 @@ class CLI(object):
     :type username: string
     :param password: password to log in with
     :type password: string
+    :param private_key_path: absolute path to RSA private key,
+        used instead of password
+    :type private_key_path: string
     :param terminal:  terminal emulation to use; default to 'console'
     :type terminal: string
     :param prompt: A prompt to match.  Defaults to :const:`CLI_ANY_PROMPT`
@@ -97,7 +100,8 @@ class CLI(object):
     lead to false positive matches.
     """
 
-    def __init__(self, hostname=None, username='admin', password='',
+    def __init__(self, hostname=None, username='admin', password=None,
+                 private_key_path=None,
                  terminal='console', prompt=None, port=None,
                  machine_name=None,
                  machine_manager_uri=DEFAULT_MACHINE_MANAGER_URI,
@@ -108,6 +112,7 @@ class CLI(object):
         self._channel_args['hostname'] = hostname
         self._channel_args['username'] = username
         self._channel_args['password'] = password
+        self._channel_args['private_key_path'] = private_key_path
         self._channel_args['terminal'] = terminal
         self._channel_args['machine_name'] = machine_name
         self._channel_args['machine_manager_uri'] = machine_manager_uri
