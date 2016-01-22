@@ -1,6 +1,9 @@
 CHANGELOG
 =========
 
+[0.6.1]
+ * Add support for SSHChannel to use RSA private key
+
 [0.6.0]
  * Packaging and documentation updates
 
