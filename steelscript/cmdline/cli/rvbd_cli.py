@@ -10,6 +10,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
                         division)
 
 import re
+import socket
 
 from steelscript.cmdline import exceptions
 from steelscript.cmdline import cli
@@ -143,30 +144,44 @@ class RVBD_CLI(cli.CLI):
             raise exceptions.UnknownCLIMode(prompt=output)
         return modes[match.re.pattern]
 
-    def enter_mode(self, mode=cli.CLIMode.ENABLE):
+    def enter_mode(self, mode=cli.CLIMode.ENABLE, reinit=True):
         """
         Enter mode based on name ('normal', 'enable', 'configure', or 'shell').
 
         :param mode: The CLI mode to enter. It must be 'normal', 'enable', or
             'configure'.  Use :class:`CLIMode` values.
+        :param reinit: bool should this function attempt to repair connection.
         :raises UnknownCLIMode: if mode is not "normal", "enable",
             "configure", or "shell".
         :raises CLINotRunning: if the CLI is not running.
         """
-        if mode == cli.CLIMode.NORMAL:
-            self.enter_mode_normal()
+        try:
+            if mode == cli.CLIMode.NORMAL:
+                self.enter_mode_normal()
 
-        elif mode == cli.CLIMode.ENABLE:
-            self.enter_mode_enable()
+            elif mode == cli.CLIMode.ENABLE:
+                self.enter_mode_enable()
 
-        elif mode == cli.CLIMode.CONFIG:
-            self.enter_mode_config()
+            elif mode == cli.CLIMode.CONFIG:
+                self.enter_mode_config()
 
-        elif mode == cli.CLIMode.SHELL:
-            self.enter_mode_shell()
+            elif mode == cli.CLIMode.SHELL:
+                self.enter_mode_shell()
 
-        else:
-            raise exceptions.UnknownCLIMode(mode=mode)
+            else:
+                raise exceptions.UnknownCLIMode(mode=mode)
+        except socket.error as e:
+            if reinit:
+                self._log.info('Socket Error raised in RVBD_CLI.enter_mode():'
+                               ' {error}'.format(error=e))
+                self._log.info('RVBD_CLI.enter_mode() - Attempting to '
+                               'reinitialize connection')
+                self._cleanup_helper()
+                self.start()
+                # assuming all is well now. Recursively calling enter_mode()
+                self.enter_mode(mode=mode, reinit=False)
+            else:
+                raise e
 
     def enter_mode_shell(self):
         """
@@ -336,9 +351,19 @@ class RVBD_CLI(cli.CLI):
 
         if prompt is None:
             prompt = self._prompt
-        (output, match_res) = self._send_line_and_wait(command,
-                                                       prompt,
-                                                       timeout=timeout)
+
+        try:
+            (output, match_res) = self._send_line_and_wait(command,
+                                                           prompt,
+                                                           timeout=timeout)
+        except exceptions.ConnectionError as e:
+            self._log.info("Connection channel in unexpected state. Flushing "
+                           "and restarting. Error was {error}".format(error=e))
+            self._cleanup_helper()
+            self.start()
+            (output, match_res) = self._send_line_and_wait(command,
+                                                           prompt,
+                                                           timeout=timeout)
 
         # CLI adds on escape chars and such sometimes and the result is that
         # some part of the command that was entered shows up as an extra
