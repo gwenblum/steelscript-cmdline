@@ -338,9 +338,13 @@ class RVBD_CLI(cli.CLI):
             expected, or no output occurs when output was expected
         """
 
-        if output_expected is not None and type(output_expected) is not bool:
-            raise TypeError("exec_command: output_expected requires a boolean "
-                            "value or None")
+        if not (output_expected is None or isinstance(output_expected, bool)):
+            err_text = ("exec_command: output_expected requires a boolean "
+                        "value or None. {cmd} called with output_expected "
+                        "type:{type}, value:{val}")
+            raise TypeError(err_text.format(cmd=command,
+                                            type=type(output_expected),
+                                            val=output_expected))
 
         if mode is cli.CLIMode.UNDEF:
             mode = self.default_mode
