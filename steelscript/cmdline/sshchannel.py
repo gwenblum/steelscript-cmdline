@@ -47,12 +47,15 @@ class SSHChannel(channel.Channel):
     """
 
     BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
+    DEFAULT_PORT = 22
 
     def __init__(self, hostname, username, password=None,
-                 private_key_path=None, port=22,
+                 private_key_path=None, port=DEFAULT_PORT,
                  terminal='console',
                  width=DEFAULT_TERM_WIDTH, height=DEFAULT_TERM_HEIGHT,
                  **kwargs):
+
+        self.conn_port = port
 
         if password is None and private_key_path is None:
             cause = 'Either password or path to private key must be included.'
@@ -67,7 +70,7 @@ class SSHChannel(channel.Channel):
                                                 user=username,
                                                 password=password,
                                                 private_key=pkey,
-                                                port=port)
+                                                port=self.conn_port)
         self._host = hostname
         self._term = terminal
         self._term_width = width

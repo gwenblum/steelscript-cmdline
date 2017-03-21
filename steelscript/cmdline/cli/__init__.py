@@ -13,6 +13,7 @@ import logging
 
 from steelscript.cmdline import sshchannel
 from steelscript.cmdline import exceptions
+from steelscript.common.connection import test_tcp_conn
 
 # Control-u clears any entered text.  Neat.
 DELETE_LINE = b'\x15'
@@ -108,7 +109,7 @@ class CLI(object):
                  channel_class=sshchannel.SSHChannel, **channel_args):
 
         self._channel_class = channel_class
-        self._channel_args = {}
+        self._channel_args = dict()
         self._channel_args['hostname'] = hostname
         self._channel_args['username'] = username
         self._channel_args['password'] = password
@@ -155,13 +156,20 @@ class CLI(object):
         :param start_prompt: A non-default prompt to match, if any.
         :type start_prompt: regex pattern
         """
+
         self.channel = self._channel_class(**self._channel_args)
 
         # Wait for a prompt, try and figure out where we are.  It's a new
         # channel so we should only be at bash or the main CLI prompt.
         if start_prompt is None:
             start_prompt = self.CLI_START_PROMPT
-        self.channel.start(start_prompt)
+
+        # will raise an exception if it fails.
+        if test_tcp_conn(self._channel_args['hostname'],
+                         self._channel_args.get('port',
+                                                self.channel.conn_port)):
+            self._log.info("test_tcp_conn passed")
+            self.channel.start(start_prompt)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):
         """
@@ -181,8 +189,13 @@ class CLI(object):
         # appears to be used to 'flush' the buffer first.  For interactive
         # prompts on libvirtchannel, this was causing an endless blocking call.
         # We still probably want to figure out an alternative.
-        self.channel.send(text_to_send)
-        return self.channel.expect(match_res, timeout)
+
+        # will raise an exception if it fails.
+        if test_tcp_conn(self._channel_args['hostname'],
+                         self._channel_args.get('port',
+                                                self.channel.conn_port)):
+            self.channel.send(text_to_send)
+            return self.channel.expect(match_res, timeout)
 
     def _send_line_and_wait(self, text_to_send, match_res, timeout=60):
         """

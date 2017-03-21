@@ -12,6 +12,7 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 import socket
 
+from steelscript.cmdline import sshchannel
 from steelscript.cmdline import exceptions
 from steelscript.cmdline import cli
 
@@ -51,6 +52,21 @@ class RVBD_CLI(cli.CLI):
     # prompt expected on login to device. Either telnet or ssh.
     CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
     CLI_ERROR_PROMPT = '^%'
+
+    def __init__(self, hostname=None, username='admin', password=None,
+                 private_key_path=None,
+                 terminal='console', prompt=None, port=None,
+                 machine_name=None,
+                 machine_manager_uri=cli.DEFAULT_MACHINE_MANAGER_URI,
+                 channel_class=sshchannel.SSHChannel, **channel_args):
+        super(RVBD_CLI, self).__init__(hostname=hostname, username=username,
+                                       password=password,
+                                       private_key_path=private_key_path,
+                                       terminal=terminal, prompt=prompt,
+                                       port=port, machine_name=machine_name,
+                                       machine_manager_uri=machine_manager_uri,
+                                       channel_class=channel_class,
+                                       **channel_args)
 
     @property
     def default_mode(self):
