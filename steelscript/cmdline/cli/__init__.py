@@ -164,11 +164,12 @@ class CLI(object):
         if start_prompt is None:
             start_prompt = self.CLI_START_PROMPT
 
+        host = self._channel_args['hostname']
+        port = self._channel_args.get('port', self.channel.conn_port)
         # will raise an exception if it fails.
-        if test_tcp_conn(self._channel_args['hostname'],
-                         self._channel_args.get('port',
-                                                self.channel.conn_port)):
-            self._log.info("test_tcp_conn passed")
+        if test_tcp_conn(host, port):
+            self._log.info("test_tcp_conn to {0}:{1} passed"
+                           "".format(host, port))
             self.channel.start(start_prompt)
 
     def _send_and_wait(self, text_to_send, match_res, timeout=60):

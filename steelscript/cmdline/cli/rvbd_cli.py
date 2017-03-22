@@ -12,7 +12,6 @@ from __future__ import (absolute_import, unicode_literals, print_function,
 import re
 import socket
 
-from steelscript.cmdline import sshchannel
 from steelscript.cmdline import exceptions
 from steelscript.cmdline import cli
 
@@ -52,21 +51,6 @@ class RVBD_CLI(cli.CLI):
     # prompt expected on login to device. Either telnet or ssh.
     CLI_START_PROMPT = [CLI_NORMAL_PROMPT, CLI_SHELL_PROMPT]
     CLI_ERROR_PROMPT = '^%'
-
-    def __init__(self, hostname=None, username='admin', password=None,
-                 private_key_path=None,
-                 terminal='console', prompt=None, port=None,
-                 machine_name=None,
-                 machine_manager_uri=cli.DEFAULT_MACHINE_MANAGER_URI,
-                 channel_class=sshchannel.SSHChannel, **channel_args):
-        super(RVBD_CLI, self).__init__(hostname=hostname, username=username,
-                                       password=password,
-                                       private_key_path=private_key_path,
-                                       terminal=terminal, prompt=prompt,
-                                       port=port, machine_name=machine_name,
-                                       machine_manager_uri=machine_manager_uri,
-                                       channel_class=channel_class,
-                                       **channel_args)
 
     @property
     def default_mode(self):
@@ -186,12 +170,13 @@ class RVBD_CLI(cli.CLI):
 
             else:
                 raise exceptions.UnknownCLIMode(mode=mode)
-        except socket.error as e:
+        except (socket.error, exceptions.ConnectionError) as e:
             if reinit:
-                self._log.info('Socket Error raised in RVBD_CLI.enter_mode():'
-                               ' {error}'.format(error=e))
-                self._log.info('RVBD_CLI.enter_mode() - Attempting to '
-                               'reinitialize connection')
+                self._log.debug('Socket or connection error raised in '
+                                'RVBD_CLI.enter_mode():'
+                                ' {error}'.format(error=e))
+                self._log.debug('RVBD_CLI.enter_mode() - Attempting to '
+                                'reinitialize connection')
                 self._cleanup_helper()
                 self.start()
                 # assuming all is well now. Recursively calling enter_mode()
