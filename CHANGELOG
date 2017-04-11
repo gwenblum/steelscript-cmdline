@@ -1,6 +1,9 @@
 CHANGELOG
 =========
 
+[0.6.2]
+ * Make RVBD_CLI more survivable
+
 [0.6.1]
  * Add support for SSHChannel to use RSA private key
 
