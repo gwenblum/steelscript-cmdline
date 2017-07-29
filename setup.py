@@ -66,7 +66,8 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
     """,
 
     platforms='Linux, Mac OS, Windows',
-    classifiers=(
+
+    classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
@@ -75,7 +76,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: System :: Networking',
-    ),
+    ],
 
     packages=find_packages(exclude=('gitpy_versioning',)),
     include_package_data=True,
