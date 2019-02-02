@@ -4,11 +4,9 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
-from mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 from steelscript.cmdline.cli.rvbd_cli import RVBD_CLI
 from steelscript.cmdline.cli import CLIMode
@@ -70,7 +68,12 @@ def test_start_calls_correct_methods(any_cli):
         any_cli._run_cli_from_shell = MagicMock(name='method')
         any_cli.enter_mode_normal = MagicMock(name='method')
         any_cli._disable_paging = MagicMock(name='method')
-        any_cli.start()
+
+        module = 'steelscript.cmdline.cli.test_tcp_conn'
+        with patch(module) as mock_test:
+            mock_test.return_value = True
+            any_cli.start()
+
         assert any_cli.default_mode == CLIMode.ENABLE
         assert any_cli._run_cli_from_shell.called
         assert any_cli.enter_mode_normal.called

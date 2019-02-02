@@ -4,8 +4,6 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 import re
 
 import pytest
@@ -22,7 +20,7 @@ ANY_NONZERO_STATUS = -1
 ANY_MODE = 'config'
 ANY_TIMEOUT = 60
 ANY_CONTEXT = "blah explanation whatever"
-ANY_UNKNOWN_CLI_PROMPT = "C:\ "
+ANY_UNKNOWN_CLI_PROMPT = r"C:\ "
 ANY_CLI_CRASH_TEXT = 'whoops'
 ANY_SIMPLE_MATCH = 'match this'
 ANY_MATCH_FROM_PATTERN = '^a compiled pattern$'
@@ -41,7 +39,7 @@ def test_cmdline_exception_no_args():
     e = CmdlineException()
     assert e.command is None
     assert e.output is None
-    assert unicode(e) == 'Unknown command line error'
+    assert str(e) == 'Unknown command line error'
 
 
 def test_cmdline_exception():
@@ -49,7 +47,7 @@ def test_cmdline_exception():
     assert e.command is ANY_COMMAND
     assert e.output is ANY_OUTPUT
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.output in msg
 
@@ -61,9 +59,9 @@ def test_timeout():
     assert e.timeout == ANY_TIMEOUT
     assert e.failed_match_pattern is None
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
-    assert unicode(e.timeout) in msg
+    assert str(e.timeout) in msg
 
 
 def test_timeout_output_complex_failed_match(any_complex_match):
@@ -75,9 +73,9 @@ def test_timeout_output_complex_failed_match(any_complex_match):
     for m in (ANY_MATCH_FROM_PATTERN, ANY_MATCH_FROM_RESULT):
         assert m in e.failed_match_pattern
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
-    assert unicode(e.timeout) in msg
+    assert str(e.timeout) in msg
     assert e.failed_match_pattern in msg
 
 
@@ -86,7 +84,7 @@ def test_connection_error():
     assert e.command is ANY_COMMAND
     assert e.cause is None
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert ANY_CONTEXT in msg
 
@@ -97,7 +95,7 @@ def test_connection_error_with_simple_failed_match():
     assert e.cause is None
     assert ANY_SIMPLE_MATCH in e.failed_match_pattern
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert ANY_SIMPLE_MATCH in msg
 
@@ -111,21 +109,21 @@ def test_connection_no_command_with_cause():
         assert e.cause is ex
         assert e.failed_match_pattern is None
 
-        msg = unicode(e)
-        ex_msg = unicode(ex)
+        msg = str(e)
+        ex_msg = str(ex)
         assert ex_msg in msg
 
 
 def test_cli_could_not_start():
     e = CLINotRunning(output=ANY_CLI_CRASH_TEXT)
-    msg = unicode(e)
+    msg = str(e)
     assert 'not start' in msg
     assert ANY_CLI_CRASH_TEXT in msg
 
 
 def test_cli_not_running():
     e = CLINotRunning()
-    assert 'not running' in unicode(e)
+    assert 'not running' in str(e)
 
 
 def test_shell_error():
@@ -135,10 +133,10 @@ def test_shell_error():
     assert e.output is ANY_OUTPUT
     assert e.exit_status is ANY_NONZERO_STATUS
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.output in msg
-    assert unicode(e.exit_status) in msg
+    assert str(e.exit_status) in msg
 
 
 def test_shell_error_no_output():
@@ -147,9 +145,9 @@ def test_shell_error_no_output():
     assert e.output is None
     assert e.exit_status is ANY_NONZERO_STATUS
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
-    assert unicode(e.exit_status) in msg
+    assert str(e.exit_status) in msg
 
 
 def test_cli_error():
@@ -158,7 +156,7 @@ def test_cli_error():
     assert e.output is ANY_OUTPUT
     assert e.mode is ANY_MODE
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.output in msg
     assert e.mode in msg
@@ -170,7 +168,7 @@ def test_cli_error_no_output():
     assert e.output is None
     assert e.mode is ANY_MODE
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.mode in msg
 
@@ -181,7 +179,7 @@ def test_unexpected_output_vs_none():
     assert e.output is ANY_OUTPUT
     assert e.expected_output is None
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.output in msg
     assert 'none was expected' in msg
@@ -194,7 +192,7 @@ def test_unexpected_output_none_vs_expected():
     assert e.output is None
     assert e.expected_output is ANY_EXPECTED_OUTPUT
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert 'no output' in msg
     assert e.expected_output in msg
@@ -207,7 +205,7 @@ def test_unexpected_output_none_vs_unspecified():
     assert e.output is None
     assert e.expected_output is True
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert 'no output' in msg
     assert 'unspecified output' in msg
@@ -220,7 +218,7 @@ def test_unexpected_output():
     assert e.output is ANY_OUTPUT
     assert e.expected_output is ANY_EXPECTED_OUTPUT
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.command in msg
     assert e.output in msg
     assert e.expected_output in msg
@@ -232,5 +230,5 @@ def test_unknown_cli_mode():
     assert e.output is None
     assert e.prompt is ANY_UNKNOWN_CLI_PROMPT
 
-    msg = unicode(e)
+    msg = str(e)
     assert e.prompt in msg

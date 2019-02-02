@@ -4,14 +4,11 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (unicode_literals, print_function, division,
-                        absolute_import)
-
 import collections
 
 import ipaddress
 import re
-import urlparse
+import urllib.parse
 
 from steelscript.cmdline import exceptions
 
@@ -143,10 +140,10 @@ def cli_parse_table(input_string, headers):
     if len(headers) != len(set(headers)):
         raise ValueError("You cannot have duplicate headers!")
 
-    lines = (x for x in input_string.splitlines() if re.search('\w', x))
+    lines = (x for x in input_string.splitlines() if re.search(r'\w', x))
 
     # Validate the header
-    header_line = lines.next().lower()
+    header_line = next(lines).lower()
     if not all(x in header_line for x in headers):
         raise exceptions.UnexpectedOutput('Unknown', header_line,
                                           expected_output=True,
@@ -263,7 +260,7 @@ def _find_left_right_headers(left_index, right_index, domains):
                     len(domains))
     rightmost = next((x[0] for x in reversed(list(enumerate(domains)))
                      if right_index > x[1][0]), -1)
-    return (leftmost, rightmost)
+    return leftmost, rightmost
 
 
 def check_numeric(value_string):
@@ -313,7 +310,7 @@ def enable_squash(input):
                     just "enabled"
     """
     result = {}
-    for key, value in input.iteritems():
+    for key, value in input.items():
         if key.endswith('enabled'):
             if 'enabled' in result:
                 raise KeyError('Duplicate key exists')
@@ -405,8 +402,7 @@ def parse_ip_and_port(input):
 
         {'ip': IPv4Address('1.1.1.1'), 'port': 2000}
 
-    :param input: IP and port
-    :param type: string
+    :param string input: IP and port
 
     :return: dictionary with keys ``ip`` and ``port``
     """
@@ -430,13 +426,12 @@ def parse_url_to_host_port_protocol(input):
 
         {'host': 'blah.com', 'port': 80, 'protocol': 'http'}
 
-    :param input: url
-    :param type: string
+    :param string input: url
 
     :return: dict with port always specified
     """
     hpp_dict = {}
-    url_object = urlparse.urlparse(input)
+    url_object = urllib.parse.urlparse(input)
     protocol = url_object.scheme
     port = url_object.port
     host = url_object.hostname
@@ -537,8 +532,7 @@ def parse_saasinfo_data(input):
             },
         }
 
-    :param input: CLI output of saasinfo data
-    :param type: string
+    :param string input: CLI output of saasinfo data
 
     :return: dictionary with saasinfo data as above
     """
@@ -580,7 +574,7 @@ def parse_saasinfo_data(input):
                     region = line
                 else:
                     # verify we have a valid ip address
-                    ipaddress.ip_address(line.decode())
+                    ipaddress.ip_address(line)
                     saasdata_dict['geodns'][region]['ip'].append(line)
             else:
                 raise KeyError('Unexpected SaaS Info data CLI output')

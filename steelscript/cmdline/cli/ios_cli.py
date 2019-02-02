@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import re
 
@@ -20,18 +16,18 @@ class IOS_CLI(cli.CLI):
     Implementation of a CLI for IOS devices.
     """
 
-    NAME_PREFIX_RE = '(^|\n|\r)(?P<name>(\S+\-)?t[a-zA-Z0-9_\-]+)'
+    NAME_PREFIX_RE = r'(^|\n|\r)(?P<name>(\S+\-)?t[a-zA-Z0-9_\-]+)'
 
     CLI_NORMAL_PROMPT = NAME_PREFIX_RE + '>'
     CLI_ENABLE_PROMPT = NAME_PREFIX_RE + '#'
-    CLI_CONFIG_PROMPT = NAME_PREFIX_RE + '\(config\)#'
-    CLI_SUBIF_PROMPT = NAME_PREFIX_RE + '\(config-subif\)#'
-    CLI_ANY_PROMPT = NAME_PREFIX_RE + '(>|#|\(config\)#|\(config-subif\)#)'
+    CLI_CONFIG_PROMPT = NAME_PREFIX_RE + r'\(config\)#'
+    CLI_SUBIF_PROMPT = NAME_PREFIX_RE + r'\(config-subif\)#'
+    CLI_ANY_PROMPT = NAME_PREFIX_RE + r'(>|#|\(config\)#|\(config-subif\)#)'
 
     # CLI_START_PROMPT is needed by base CLI class for the first
     # prompt expected on login to device. Either telnet or ssh.
     CLI_START_PROMPT = CLI_NORMAL_PROMPT
-    CLI_ERROR_PROMPT = '(\s+)?(\^|%)'
+    CLI_ERROR_PROMPT = r'(\s+)?(\^|%)'
 
     def start(self):
         """
@@ -167,7 +163,7 @@ class IOS_CLI(cli.CLI):
         """
         Puts the CLI in enable mode.  This may or may not require a password.
         """
-        password_prompt = '(P|p)assword:'
+        password_prompt = r'(P|p)assword:'
         (output, match_res) = self._send_line_and_wait('enable',
                                                        [self.CLI_ENABLE_PROMPT,
                                                         password_prompt])

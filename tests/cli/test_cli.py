@@ -4,11 +4,9 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
-from mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 from steelscript.cmdline.cli import CLI, DEFAULT_MACHINE_MANAGER_URI
 from steelscript.cmdline import exceptions
@@ -64,13 +62,17 @@ def test_members_initialize_correctly(any_cli):
 def test_start_initialize_ssh(any_cli, prompt_match):
     cli = CLI(hostname=ANY_HOST, username=ANY_USER, password=ANY_PASSWORD,
               terminal=ANY_TERMINAL, channel_class=SSHChannel)
-    module = 'steelscript.cmdline.cli.sshchannel.SSHChannel.__new__'
+    module = 'steelscript.cmdline.sshchannel.SSHChannel.__new__'
     with patch(module) as channel_new:
-        cli.start()
+        module = 'steelscript.cmdline.cli.test_tcp_conn'
+        with patch(module) as mock_test:
+            mock_test.return_value = True
+            cli.start()
         channel_new.assert_called_with(SSHChannel,
                                        hostname=ANY_HOST,
                                        username=ANY_USER,
                                        password=ANY_PASSWORD,
+                                       private_key_path=None,
                                        prompt=None,
                                        machine_name=None,
                                        machine_manager_uri='qemu:///system',
@@ -79,13 +81,17 @@ def test_start_initialize_ssh(any_cli, prompt_match):
 
 def test_start_initialize_channel_class():
     mock_channel_class = MagicMock()
-    mock_channel_class
+    #mock_channel_class
     cli = CLI(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_TERMINAL,
               channel_class=mock_channel_class)
-    cli.start()
+    module = 'steelscript.cmdline.cli.test_tcp_conn'
+    with patch(module) as mock_test:
+        mock_test.return_value = True
+        cli.start()
     mock_channel_class.assert_called_with(hostname=ANY_HOST,
                                           username=ANY_USER,
                                           password=ANY_PASSWORD,
+                                          private_key_path='console',
                                           prompt=None,
                                           terminal=ANY_TERMINAL,
                                           machine_name=None,

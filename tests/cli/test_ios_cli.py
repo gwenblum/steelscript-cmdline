@@ -3,15 +3,13 @@
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 from steelscript.cmdline.cli.ios_cli import IOS_CLI
 from steelscript.cmdline.cli import CLIMode
 from steelscript.cmdline import exceptions
 
 import pytest
-from mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock
 
 ANY_HOST = 'cisco-router1'
 ANY_USER = 'user1'

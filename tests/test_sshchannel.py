@@ -4,12 +4,10 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
 import select
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 from testfixtures import Replacer, test_time
 
 from steelscript.cmdline.sshchannel import SSHChannel
@@ -22,7 +20,7 @@ ANY_TERM = 'console'
 ANY_TERM_WIDTH = 120
 ANY_TERM_HEIGHT = 40
 ANY_TEXT_TO_SEND = 'show service\r'
-ANY_PROMPT_RE = '^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >'
+ANY_PROMPT_RE = r'^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >'
 ANY_NON_PROMPT_RE = '^[A-Z]+ ####'
 ANY_MATCHED_PROMPT = 'il-sh1 >'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'

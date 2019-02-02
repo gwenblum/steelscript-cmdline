@@ -4,12 +4,10 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
-
 import re
 import pytest
-import mock
+from unittest import mock
+
 
 import_libvirt = True
 try:
@@ -28,18 +26,18 @@ from steelscript.cmdline import exceptions
 ANY_HOST = 'my-sh1'
 ANY_USERNAME = 'user1'
 ANY_PASSWORD = 'password1'
-ANY_TEXT_TO_SEND_UNICODE = 'show service\r'
-ANY_TEXT_TO_SEND_UTF8 = b'show service\r'
-PROMPT_PREFIX = b''
-ANY_PROMPT_RE = ['(^|\n|\r)[a-zA-Z0-9_\-.:]+ >']
+ANY_TEXT_TO_SEND_UNICODE = r'show service\r'
+ANY_TEXT_TO_SEND_UTF8 = r'show service\r'
+PROMPT_PREFIX = r''
+ANY_PROMPT_RE = [r'(^|\n|\r)[a-zA-Z0-9_\-.:]+ >']
 ANY_PROMPT_MATCHED = '\namnesiac >'
 ANY_DATA_CHAR = 'a'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
 ANY_TIMEOUT = 120
 
-PROMPT_LOGIN = b'\nlogin: '
-PROMPT_PASSWORD = b'\npassword: '
-PROMPT_ROOT = b'\n# '
+PROMPT_LOGIN = r'\nlogin: '
+PROMPT_PASSWORD = r'\npassword: '
+PROMPT_ROOT = r'\n# '
 
 MATCH_LOGIN = re.search(libvirtchannel.LOGIN_PROMPT, PROMPT_LOGIN)
 MATCH_PASSWORD = re.search(libvirtchannel.PASSWORD_PROMPT, PROMPT_PASSWORD)
@@ -249,11 +247,11 @@ def test_start_calls_appropriate_methods(any_libvirt_channel):
 # Parametrize does not seem to understand additional fixture magic,
 # so unroll the fixture calls.
 @pytest.mark.parametrize('channel', [
-    login_prompt_channel(connected_channel(any_libvirt_channel())),
-    login_no_password_channel(connected_channel(any_libvirt_channel())),
-    password_prompt_channel(connected_channel(any_libvirt_channel())),
-    initial_timeout_channel(connected_channel(any_libvirt_channel())),
-    logged_in_channel(connected_channel(any_libvirt_channel())),
+    login_prompt_channel,
+    login_no_password_channel,
+    password_prompt_channel,
+    initial_timeout_channel,
+    logged_in_channel,
 ])
 def test_handle_init_login(channel):
     m = channel._handle_init_login([libvirtchannel.ROOT_PROMPT],
@@ -263,9 +261,9 @@ def test_handle_init_login(channel):
 
 
 @pytest.mark.parametrize('channel', [
-    double_timeout_channel(connected_channel(any_libvirt_channel())),
-    bad_username_channel(connected_channel(any_libvirt_channel())),
-    bad_password_channel(connected_channel(any_libvirt_channel())),
+    double_timeout_channel,
+    bad_username_channel,
+    bad_password_channel,
 ])
 def test_init_login_raises(channel):
     with pytest.raises(exceptions.CmdlineTimeout):

@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
-
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import logging
 
@@ -87,10 +82,10 @@ class CLI(object):
         arguments, passed blindly to the transport ``start`` method.
     """
 
-    CLI_START_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#|\$|>|~)(\s)?$'
+    CLI_START_PROMPT = r'(^|\n|\r)(\[?\S+\s?\S+\]?)(#|\$|>|~)(\s)?$'
     """A regex suitable for most initial CLI prompts, root or non-root"""
 
-    CLI_ROOT_PROMPT = '(^|\n|\r)(\[?\S+\s?\S+\]?)(#)(\s)?$'
+    CLI_ROOT_PROMPT = r'(^|\n|\r)(\[?\S+\s?\S+\]?)(#)(\s)?$'
     """A regex intended for use with POSIX prompts for root ending in '#'"""
 
     CLI_ANY_PROMPT = CLI_START_PROMPT

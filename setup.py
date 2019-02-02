@@ -4,7 +4,6 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import print_function, division
 
 import sys
 import itertools
@@ -34,6 +33,7 @@ class PyTest(TestCommand):
         import pytest
         errno = pytest.main("%s tests" % " ".join(self.test_args))
         sys.exit(errno)
+
 
 test = ['pytest', 'testfixtures', 'mock']
 doc = ['sphinx']

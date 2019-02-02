@@ -4,11 +4,9 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
-from mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 from steelscript.cmdline.telnetchannel import TelnetChannel
 from steelscript.cmdline import exceptions
@@ -16,9 +14,9 @@ from steelscript.cmdline import exceptions
 ANY_HOST = 'my-sh1'
 ANY_USERNAME = 'user1'
 ANY_PASSWORD = 'password1'
-ANY_TEXT_TO_SEND = 'show service\r'
-ANY_PROMPT_RE = ['^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >']
-ANY_PROMPT_MATCHED = 'my-sh1 >'
+ANY_TEXT_TO_SEND = r'show service\r'
+ANY_PROMPT_RE = [r'^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >']
+ANY_PROMPT_MATCHED = r'my-sh1 >'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
 ANY_TIMEOUT = 120
 

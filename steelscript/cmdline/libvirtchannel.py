@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (unicode_literals, print_function, division,
-                        absolute_import)
 
 import logging
 import signal
@@ -27,14 +23,14 @@ DELETE_LINE = b'\x15'
 DISCONNECT_SESSION = b'\x04'
 
 # Command terminator
-ENTER_LINE = b'\r'
+ENTER_LINE = r'\r'
 
-PROMPT_PREFIX = b'(^|\n|\r)'
-NAME_PREFIX = '%s([-a-zA-Z0-9_.]* )?' % PROMPT_PREFIX
-LOGIN_PROMPT = b'%s(L|l)ogin: ' % NAME_PREFIX
+PROMPT_PREFIX = r'(^|\n|\r)'
+NAME_PREFIX = r'%s([-a-zA-Z0-9_.]* )?' % PROMPT_PREFIX
+LOGIN_PROMPT = r'%s(L|l)ogin: ' % NAME_PREFIX
 # bsd password prompt does not have a trailing space.
-PASSWORD_PROMPT = b'%s(P|p)assword:\s*' % NAME_PREFIX
-ROOT_PROMPT = b'%s# ' % NAME_PREFIX
+PASSWORD_PROMPT = r'%s(P|p)assword:\s*' % NAME_PREFIX
+ROOT_PROMPT = r'%s# ' % NAME_PREFIX
 
 DEFAULT_EXPECT_TIMEOUT = 300
 

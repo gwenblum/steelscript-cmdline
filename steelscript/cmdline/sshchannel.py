@@ -4,8 +4,6 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (unicode_literals, print_function, division,
-                        absolute_import)
 
 import time
 import select
@@ -46,7 +44,7 @@ class SSHChannel(channel.Channel):
     with other channel implementations.
     """
 
-    BASH_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
+    BASH_PROMPT = r'(^|\n|\r)\[\S+ \S+\]#'
     DEFAULT_PORT = 22
 
     def __init__(self, hostname, username, password=None,

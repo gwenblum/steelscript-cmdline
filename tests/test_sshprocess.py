@@ -4,11 +4,9 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from steelscript.cmdline.sshprocess import SSHProcess
 from steelscript.cmdline import exceptions
@@ -21,7 +19,7 @@ ANY_PORT = '9090'
 
 @pytest.fixture
 def any_sshprocess():
-    return SSHProcess(ANY_HOST, ANY_USER, ANY_PASSWORD, ANY_PORT)
+    return SSHProcess(ANY_HOST, ANY_USER, ANY_PASSWORD, port=ANY_PORT)
 
 
 def test_members_initialized_correctly(any_sshprocess):
