@@ -157,6 +157,9 @@ class SSHChannel(channel.Channel):
             m.add_int(ack)
             self.channel.transport._send_user_message(m)
 
+        # translate return data to string
+        data = data.decode()
+
         return data
 
     def send(self, text_to_send):
@@ -170,9 +173,12 @@ class SSHChannel(channel.Channel):
         logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
 
         bytes_sent = 0
+        bytes_to_send = text_to_send.encode()
 
-        while bytes_sent < len(text_to_send):
-            bytes_sent_this_time = self.channel.send(text_to_send[bytes_sent:])
+        while bytes_sent < len(bytes_to_send):
+            bytes_sent_this_time = self.channel.send(
+                bytes_to_send[bytes_sent:]
+            )
             if bytes_sent_this_time == 0:
                 raise exceptions.ConnectionError(context='Channel is closed')
             bytes_sent += bytes_sent_this_time
@@ -253,6 +259,7 @@ class SSHChannel(channel.Channel):
                 # If we're still here, we have new data to process.
                 received_data, new_lines = self._process_data(
                     new_data, received_data, next_line_start)
+
                 output, match = self._match_lines(
                     received_data, next_line_start, new_lines, match_res)
 
@@ -271,14 +278,14 @@ class SSHChannel(channel.Channel):
         """
         Process the new data and return updated received_data and new lines.
 
-        :param new_data: The newly read data
-        :param received_data: All data received before new_data
+        :param bytes new_data: The newly read data in bytes
+        :param str received_data: All data received before new_data, str
         :param next_line_start: Where to start splitting off the new lines.
 
         :return: A tuple of the updated received_data followed by the list
             of new lines.
         """
-        received_data += new_data
+        received_data += new_data.decode()
 
         # The CLI does some odd things, sending multiple \r's or just a
         # \r, sometimes \r\r\n. To make this look like typical input, all

@@ -106,15 +106,15 @@ class Channel(object, metaclass=abc.ABCMeta):
 
         # Eat consecutive \r's
 
-        new_data = re.sub(r'\r+', r'\r', data)
+        new_data = re.sub('\r+', '\r', data)
 
         # Convert \r\n to \n
 
-        new_data = re.sub(r'\r\n', r'\n', new_data)
+        new_data = re.sub('\r\n', '\n', new_data)
 
         # Convert \n\r to \n, unless the \r is the end of the line
 
-        new_data = re.sub(r'\n\r(?!$|\r|\n)', r'\n', new_data)
+        new_data = re.sub('\n\r(?!$|\r|\n)', '\n', new_data)
 
         return new_data
 

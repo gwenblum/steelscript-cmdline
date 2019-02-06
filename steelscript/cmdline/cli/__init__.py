@@ -11,10 +11,10 @@ from steelscript.cmdline import exceptions
 from steelscript.common.connection import test_tcp_conn
 
 # Control-u clears any entered text.  Neat.
-DELETE_LINE = b'\x15'
+DELETE_LINE = '\x15'
 
 # Command terminator
-ENTER_LINE = b'\r'
+ENTER_LINE = '\r'
 
 # Local qemu (KVM) hypervisor.
 DEFAULT_MACHINE_MANAGER_URI = 'qemu:///system'
