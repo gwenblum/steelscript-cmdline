@@ -35,7 +35,7 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-test = ['pytest', 'testfixtures', 'mock']
+test = ['pytest', 'testfixtures']
 doc = ['sphinx']
 
 setup(
@@ -73,8 +73,8 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         'Intended Audience :: Information Technology',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: System :: Networking',
     ],
 
