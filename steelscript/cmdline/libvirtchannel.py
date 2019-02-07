@@ -17,20 +17,20 @@ except:
 from steelscript.cmdline import exceptions, channel
 
 # Control-u clears any entered text.  Neat.
-DELETE_LINE = b'\x15'
+DELETE_LINE = '\x15'
 
 # Disconnect a session - Unix EOF.
-DISCONNECT_SESSION = b'\x04'
+DISCONNECT_SESSION = '\x04'
 
 # Command terminator
-ENTER_LINE = r'\r'
+ENTER_LINE = '\r'
 
-PROMPT_PREFIX = r'(^|\n|\r)'
-NAME_PREFIX = r'%s([-a-zA-Z0-9_.]* )?' % PROMPT_PREFIX
-LOGIN_PROMPT = r'%s(L|l)ogin: ' % NAME_PREFIX
+PROMPT_PREFIX = '(^|\n|\r)'
+NAME_PREFIX = '%s([-a-zA-Z0-9_.]* )?' % PROMPT_PREFIX
+LOGIN_PROMPT = '%s(L|l)ogin: ' % NAME_PREFIX
 # bsd password prompt does not have a trailing space.
-PASSWORD_PROMPT = r'%s(P|p)assword:\s*' % NAME_PREFIX
-ROOT_PROMPT = r'%s# ' % NAME_PREFIX
+PASSWORD_PROMPT = '%s(P|p)assword:\s*' % NAME_PREFIX
+ROOT_PROMPT = '%s# ' % NAME_PREFIX
 
 DEFAULT_EXPECT_TIMEOUT = 300
 
@@ -139,7 +139,7 @@ class LibVirtChannel(channel.Channel):
 
         logging.debug("Send an empty line to refresh the prompt.")
         # Clear the input buffer
-        self.send(b'%s%s' % (DELETE_LINE, ENTER_LINE))
+        self.send('%s%s' % (DELETE_LINE, ENTER_LINE))
         (output, match) = self.expect(prompt_list, timeout=timeout)
 
         # If we did not get a username or password prompt, we are logged in
@@ -210,7 +210,7 @@ class LibVirtChannel(channel.Channel):
         """
         Sends text to the channel immediately.  Does not wait for any response.
 
-        :param text_to_send: Text to send, including command terminator(s)
+        :param str text_to_send: Text to send, including command terminator(s)
                              when applicable.
         """
         # There is also a sendAll that works like recvAll, but while
@@ -274,5 +274,5 @@ class LibVirtChannel(channel.Channel):
                 # Consoles will send either an 8 bit codec UTF-8
                 # Not 7 bit ASCII.  Use UTF-8 as that includes ISO-8859-1
                 # which should work for anything we have.
-                logline = data.decode('utf8', 'ignore').strip('\r\n')
+                logline = data.strip('\r\n')
                 logging.debug('> ' + logline)
