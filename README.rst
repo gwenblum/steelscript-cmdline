@@ -13,7 +13,7 @@ For a complete guide to installation, see:
 License
 =======
 
-Copyright (c) 2014 Riverbed Technology, Inc.
+Copyright (c) 2019 Riverbed Technology, Inc.
 
 SteelScript-CmdLine is licensed under the terms and conditions of the MIT
 License accompanying the software ("License").  SteelScript-CmdLine is

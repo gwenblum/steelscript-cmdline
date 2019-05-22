@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # complexity documentation build configuration file, created by
 # sphinx-quickstart on Tue Jul  9 22:26:36 2013.
@@ -66,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'SteelScript Command Line Access'
-copyright = '2014 Riverbed Technology, Inc.'
+copyright = '2019 Riverbed Technology, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
