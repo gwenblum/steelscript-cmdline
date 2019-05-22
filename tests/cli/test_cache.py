@@ -4,11 +4,8 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
-
 import pytest
-import mock
+from unittest import mock
 
 from steelscript.cmdline import cli
 

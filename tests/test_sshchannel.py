@@ -4,12 +4,10 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
 import select
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 from testfixtures import Replacer, test_time
 
 from steelscript.cmdline.sshchannel import SSHChannel
@@ -22,7 +20,7 @@ ANY_TERM = 'console'
 ANY_TERM_WIDTH = 120
 ANY_TERM_HEIGHT = 40
 ANY_TEXT_TO_SEND = 'show service\r'
-ANY_PROMPT_RE = '^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >'
+ANY_PROMPT_RE = r'^(\x1b\[[a-zA-Z0-9]+)?(?P<name>[a-zA-Z0-9_\-.:]+) >'
 ANY_NON_PROMPT_RE = '^[A-Z]+ ####'
 ANY_MATCHED_PROMPT = 'il-sh1 >'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
@@ -91,7 +89,8 @@ def test_expect_raises_if_match_res_is_None(any_ssh_channel):
 
 
 def test_receive_all_returns_data_in_buffer(any_ssh_channel):
-    any_ssh_channel.channel.in_buffer.empty.return_value = ANY_DATA_RECEIVED
+    retval = ANY_DATA_RECEIVED.encode()
+    any_ssh_channel.channel.in_buffer.empty.return_value = retval
     any_ssh_channel.channel._check_add_window.return_value = 0
     data = any_ssh_channel.receive_all()
     assert data == ANY_DATA_RECEIVED
@@ -172,7 +171,10 @@ def test_expect_timeout_if_no_matched_prompt(any_ssh_channel):
 def test_expect_return_if_prompt_matched(any_ssh_channel):
     select.select = MagicMock(name='method', return_value=([1], [], []))
     mock_return = ANY_DATA_RECEIVED + '\r\n' + ANY_MATCHED_PROMPT
-    any_ssh_channel.channel.recv.return_value = mock_return
+
+    # channel results are in bytes
+    any_ssh_channel.channel.recv.return_value = mock_return.encode()
+
     (output, matched) = any_ssh_channel.expect(ANY_PROMPT_RE)
     assert output == ANY_DATA_RECEIVED
     assert matched.re.pattern == ANY_PROMPT_RE
@@ -182,6 +184,10 @@ def test_expect_with_two_prompt_re(any_ssh_channel):
     select.select = MagicMock(name='method', return_value=([1], [], []))
     mock_return = ANY_DATA_RECEIVED + '\n' + ANY_MATCHED_PROMPT
     any_ssh_channel.channel.recv.return_value = mock_return
+
+    # channel results are in bytes
+    any_ssh_channel.channel.recv.return_value = mock_return.encode()
+
     match_re_list = [ANY_NON_PROMPT_RE, ANY_PROMPT_RE]
     (output, matched) = any_ssh_channel.expect(match_re_list)
     assert output == ANY_DATA_RECEIVED
@@ -192,7 +198,10 @@ def test_expect_returns_data_in_two_lines(any_ssh_channel):
     select.select = MagicMock(name='method', return_value=([1], [], []))
     data = ANY_DATA_RECEIVED + '\n' + ANY_DATA_RECEIVED
     mock_return = data + '\n' + ANY_MATCHED_PROMPT
-    any_ssh_channel.channel.recv.return_value = mock_return
+
+    # channel results are in bytes
+    any_ssh_channel.channel.recv.return_value = mock_return.encode()
+
     (output, matched) = any_ssh_channel.expect(ANY_PROMPT_RE)
     assert output == data
     assert matched.re.pattern == ANY_PROMPT_RE

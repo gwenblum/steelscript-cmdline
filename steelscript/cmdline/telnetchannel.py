@@ -4,10 +4,6 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-# unicode_literals is not imported because telnetlib does not work well
-# with unicode_literals
-from __future__ import (absolute_import, print_function, division)
-
 import logging
 import telnetlib
 import socket
@@ -37,11 +33,11 @@ class TelnetChannel(channel.Channel):
     :param port: telnet port, defaults to 23
     """
 
-    LOGIN_PROMPT = b'(^|\n|\r)(L|l)ogin: '
-    PASSWORD_PROMPT = b'(^|\n|\r)(P|p)assword: '
-    ENTER_LINE = b'\r'
+    LOGIN_PROMPT = r'(^|\n|\r)(L|l)ogin: '
+    PASSWORD_PROMPT = r'(^|\n|\r)(P|p)assword: '
+    ENTER_LINE = r'\r'
 
-    BASH_PROMPT = '\[\S+ \S+\]#\s*$'
+    BASH_PROMPT = r'\[\S+ \S+\]#\s*$'
 
     def __init__(self, hostname, username='root', password='', port=23,
                  **kwargs):
@@ -106,18 +102,16 @@ class TelnetChannel(channel.Channel):
         if index == 0:
             # username is required for login
             logging.debug("Sending login user ...")
-            # Encode text to ascii; telnetlib does not work well with unicode
-            # literals.
-            text_to_send = (self._user + self.ENTER_LINE).encode('ascii')
+            # We are Python3 now - everything is unicode, right?
+            text_to_send = (self._user + self.ENTER_LINE)
             self.channel.write(text_to_send)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
         if index == 1:
             # password is required for login
             logging.debug("Sending password ...")
-            # Encode text to ascii; telnetlib does not work well with unicode
-            # literals.
-            text_to_send = (self._password + self.ENTER_LINE).encode('ascii')
+            # We are Python3 now - everything is unicode, right?
+            text_to_send = (self._password + self.ENTER_LINE)
             self.channel.write(text_to_send)
             (index, match, data) = self.channel.expect(reg_with_login_prompts,
                                                        timeout)
@@ -170,10 +164,6 @@ class TelnetChannel(channel.Channel):
 
         :param text_to_send: Text to send, may be an empty string.
         """
-        # Encode text to ascii; telnetlib does not work well with unicode
-        # literals.
-        text_to_send = text_to_send.encode('ascii')
-
         logging.debug('Sending "%s"' % self.safe_line_feeds(text_to_send))
         self.channel.write(text_to_send)
 

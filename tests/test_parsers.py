@@ -1,5 +1,3 @@
-# $Id $
-#
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
@@ -141,7 +139,7 @@ appliance for your changes to take effect."
 
 IP_PORT_INPUT = "1.1.1.1:2000"
 EXPECTED_IP_PORT_INPUT =\
-    {'ip': ipaddress.ip_address(u'1.1.1.1'), 'port': '2000'}
+    {'ip': ipaddress.ip_address('1.1.1.1'), 'port': '2000'}
 
 PARSE_URL_TO_HOST_PORT_PROTOCOL_INPUT = "http://blah.com"
 EXPECTED_PARSE_URL_TO_HOST_PORT_PROTOCOL_OUTPUT =\

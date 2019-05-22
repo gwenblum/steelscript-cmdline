@@ -4,20 +4,16 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (unicode_literals, print_function, division,
-                        absolute_import)
 
 import abc
 import re
 import logging
 
 
-class Channel(object):
+class Channel(object, metaclass=abc.ABCMeta):
     """
     Abstract class to define common interface for a two communication channel.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def receive_all(self):
@@ -62,7 +58,7 @@ class Channel(object):
         return
 
     @abc.abstractmethod
-    def _verify_connected():
+    def _verify_connected(self):
         """
         Helper function that verifies the connection has been established
         and that the transport object we are using is still connected.

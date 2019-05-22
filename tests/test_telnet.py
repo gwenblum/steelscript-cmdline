@@ -4,11 +4,9 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from steelscript.cmdline.telnetchannel import SteelScriptTelnet
 

@@ -65,8 +65,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SteelScript Command Line Access'
-copyright = u'2014 Riverbed Technology, Inc.'
+project = 'SteelScript Command Line Access'
+copyright = '2014 Riverbed Technology, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -226,8 +226,8 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'steelscript.cmdline.tex',
-   u'SteelScript Command Line Access Documentation',
-   u'Riverbed Technology', 'manual'),
+   'SteelScript Command Line Access Documentation',
+   'Riverbed Technology', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -257,8 +257,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'steelscript.cmdline',
-     u'SteelScript Command Line Access Documentation',
-     [u'Riverbed Technology'], 1)
+     'SteelScript Command Line Access Documentation',
+     ['Riverbed Technology'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -271,8 +271,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [('index', 'steelscript.cmdline',
-                      u'SteelScript Command Line Access Documentation',
-                      u'Riverbed Technology', 'steelscript.cmdline',
+                      'SteelScript Command Line Access Documentation',
+                      'Riverbed Technology', 'steelscript.cmdline',
                       'One line description of project.',
                       'Miscellaneous'),
                      ]

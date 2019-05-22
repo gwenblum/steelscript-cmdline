@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
-
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import re
 import socket
@@ -32,20 +27,20 @@ class RVBD_CLI(cli.CLI):
 
     # Regexes for the different prompts.  Prompt start is hard - sometimes
     # there are ansi escape codes at the start, can't get them to shut off.
-    ANSI_PREFIX_RE = '(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?'
-    NAME_PREFIX_RE = '%s(?P<name>[a-zA-Z0-9_\-.:]+)' % ANSI_PREFIX_RE
+    ANSI_PREFIX_RE = r'(^|\n|\r)(\x1b\[[a-zA-Z0-9]+)?'
+    NAME_PREFIX_RE = r'%s(?P<name>[a-zA-Z0-9_\-.:]+)' % ANSI_PREFIX_RE
 
-    CLI_SHELL_PROMPT = '(^|\n|\r)\[\S+ \S+\]#'
+    CLI_SHELL_PROMPT = r'(^|\n|\r)\[\S+ \S+\]#'
 
     # Amnesiac mode is how the CLI appears early on during installs.
     CLI_AMNESIAC_PROMPT = '%samnesiac#' % ANSI_PREFIX_RE
-    CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ' >'
-    CLI_ENABLE_PROMPT = NAME_PREFIX_RE + ' #'
-    CLI_CONF_PROMPT = NAME_PREFIX_RE + ' \(config\) #'
-    CLI_ANY_PROMPT = NAME_PREFIX_RE + ' (>|#|\(config\) #)'
+    CLI_NORMAL_PROMPT = NAME_PREFIX_RE + r' >'
+    CLI_ENABLE_PROMPT = NAME_PREFIX_RE + r' #'
+    CLI_CONF_PROMPT = NAME_PREFIX_RE + r' \(config\) #'
+    CLI_ANY_PROMPT = NAME_PREFIX_RE + r' (>|#|\(config\) #)'
 
     # Matches the prompt used by less
-    CLI_LESS_PROMPT = '(^|\n|\r)lines \d+-\d+'
+    CLI_LESS_PROMPT = r'(^|\n|\r)lines \d+-\d+'
 
     # CLI_START_PROMPT is needed by base CLI class for the first
     # prompt expected on login to device. Either telnet or ssh.

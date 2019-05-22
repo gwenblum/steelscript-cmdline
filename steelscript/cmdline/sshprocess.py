@@ -7,8 +7,6 @@
 # Basic SSH shell, wrapped around Paramiko
 # Modified based on codes from mgmt-fwk
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
 
 import paramiko
 import logging

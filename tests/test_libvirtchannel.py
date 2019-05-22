@@ -4,12 +4,10 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (absolute_import, unicode_literals, print_function,
-                        division)
-
 import re
 import pytest
-import mock
+from unittest import mock
+
 
 import_libvirt = True
 try:
@@ -30,16 +28,17 @@ ANY_USERNAME = 'user1'
 ANY_PASSWORD = 'password1'
 ANY_TEXT_TO_SEND_UNICODE = 'show service\r'
 ANY_TEXT_TO_SEND_UTF8 = b'show service\r'
-PROMPT_PREFIX = b''
-ANY_PROMPT_RE = ['(^|\n|\r)[a-zA-Z0-9_\-.:]+ >']
+PROMPT_PREFIX = ''
+ANY_PROMPT_RE = [r'(^|\n|\r)[a-zA-Z0-9_\-.:]+ >']
 ANY_PROMPT_MATCHED = '\namnesiac >'
-ANY_DATA_CHAR = 'a'
+ANY_DATA_CHAR = b'a'
 ANY_DATA_RECEIVED = 'Optimization Service: Running'
+ANY_DATA_RECEIVED_UTF8 = ANY_DATA_RECEIVED.encode()
 ANY_TIMEOUT = 120
 
-PROMPT_LOGIN = b'\nlogin: '
-PROMPT_PASSWORD = b'\npassword: '
-PROMPT_ROOT = b'\n# '
+PROMPT_LOGIN = '\nlogin: '
+PROMPT_PASSWORD = '\npassword: '
+PROMPT_ROOT = '\n# '
 
 MATCH_LOGIN = re.search(libvirtchannel.LOGIN_PROMPT, PROMPT_LOGIN)
 MATCH_PASSWORD = re.search(libvirtchannel.PASSWORD_PROMPT, PROMPT_PASSWORD)
@@ -201,7 +200,7 @@ def test_check_console_mode_not_logged_in(any_libvirt_channel):
                                                       ANY_TIMEOUT)
 
     any_libvirt_channel.send.assert_called_with(
-        b'%s%s' % (libvirtchannel.DELETE_LINE, libvirtchannel.ENTER_LINE))
+        '%s%s' % (libvirtchannel.DELETE_LINE, libvirtchannel.ENTER_LINE))
     any_libvirt_channel.expect.assert_called_with(prompt_list,
                                                   timeout=ANY_TIMEOUT)
     assert any_libvirt_channel._console_logged_in is False
@@ -248,29 +247,37 @@ def test_start_calls_appropriate_methods(any_libvirt_channel):
 
 # Parametrize does not seem to understand additional fixture magic,
 # so unroll the fixture calls.
-@pytest.mark.parametrize('channel', [
-    login_prompt_channel(connected_channel(any_libvirt_channel())),
-    login_no_password_channel(connected_channel(any_libvirt_channel())),
-    password_prompt_channel(connected_channel(any_libvirt_channel())),
-    initial_timeout_channel(connected_channel(any_libvirt_channel())),
-    logged_in_channel(connected_channel(any_libvirt_channel())),
+@pytest.fixture(params=[
+    'login_prompt_channel',
+    'login_no_password_channel',
+    'password_prompt_channel',
+    'initial_timeout_channel',
+    'logged_in_channel',
 ])
-def test_handle_init_login(channel):
-    m = channel._handle_init_login([libvirtchannel.ROOT_PROMPT],
-                                   libvirtchannel.DEFAULT_EXPECT_TIMEOUT)
+def param_channel(request):
+    return request.getfixturevalue(request.param)
+
+
+def test_handle_init_login(param_channel):
+    m = param_channel._handle_init_login([libvirtchannel.ROOT_PROMPT],
+                                         libvirtchannel.DEFAULT_EXPECT_TIMEOUT)
     assert m.re.pattern == MATCH_ROOT.re.pattern
-    assert channel._console_logged_in is True
+    assert param_channel._console_logged_in is True
 
 
-@pytest.mark.parametrize('channel', [
-    double_timeout_channel(connected_channel(any_libvirt_channel())),
-    bad_username_channel(connected_channel(any_libvirt_channel())),
-    bad_password_channel(connected_channel(any_libvirt_channel())),
+@pytest.fixture(params=[
+    'double_timeout_channel',
+    'bad_username_channel',
+    'bad_password_channel',
 ])
-def test_init_login_raises(channel):
+def login_channel(request):
+    return request.getfixturevalue(request.param)
+
+
+def test_init_login_raises(login_channel):
     with pytest.raises(exceptions.CmdlineTimeout):
-        channel._handle_init_login([libvirtchannel.ROOT_PROMPT],
-                                   libvirtchannel.DEFAULT_EXPECT_TIMEOUT)
+        login_channel._handle_init_login([libvirtchannel.ROOT_PROMPT],
+                                         libvirtchannel.DEFAULT_EXPECT_TIMEOUT)
 
 
 def test_send_calls_appropriate_methods(connected_channel):
@@ -279,9 +286,14 @@ def test_send_calls_appropriate_methods(connected_channel):
 
 
 def test_receive_all(connected_channel):
+    # inject bytes as returned data which get decoded to string as return val
 
     def side_effect(handler, opaque):
-        for c in ANY_DATA_RECEIVED:
+        # iterating over bytes objects returns ascii integer, so split it up
+        data = ANY_DATA_RECEIVED_UTF8
+        bytes_list = [data[i:i+1]
+                      for i in range(len(data))]
+        for c in bytes_list:
             handler(None, c, opaque)
 
     connected_channel._stream.recvAll.side_effect = side_effect
@@ -317,7 +329,11 @@ def test_expect_returns_on_success(any_libvirt_channel):
     data = '%s%s' % (ANY_DATA_RECEIVED, ANY_PROMPT_MATCHED)
     data = data.encode('utf8')
 
-    any_libvirt_channel._stream.recv.side_effect = data
+    # iterating over bytes objects returns ascii integer, so split it up
+    bytes_list = [data[i:i+1]
+                  for i in range(len(data))]
+
+    any_libvirt_channel._stream.recv.side_effect = bytes_list
     m = re.search(ANY_PROMPT_RE[0], ANY_PROMPT_MATCHED)
 
     (data, matched) = any_libvirt_channel.expect(ANY_PROMPT_RE)

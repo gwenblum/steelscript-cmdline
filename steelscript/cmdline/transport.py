@@ -4,20 +4,15 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import (unicode_literals, print_function, division,
-                        absolute_import)
-
 import abc
 
 
-class Transport(object):
+class Transport(object, metaclass=abc.ABCMeta):
     """
     Abstract class to define common interfaces for a transport.
 
     A transport is used by Cli/Shell object to handle connection setup.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def connect(self):

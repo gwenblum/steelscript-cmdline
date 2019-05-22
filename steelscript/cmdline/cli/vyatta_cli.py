@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
@@ -24,8 +22,8 @@ class VyattaCLI(cli.CLI):
     # 'user vyatta' login : "vyatta@vyatta6:~$"
     # this might change later on
 
-    NAME_PREFIX_RE = '(?P<user>[a-zA-Z][a-zA-Z0-9_\-]*)'
-    NAME_PREFIX_RE += '@(?P<name>[a-zA-Z0-9_\-.]+)'
+    NAME_PREFIX_RE = r'(?P<user>[a-zA-Z][a-zA-Z0-9_\-]*)'
+    NAME_PREFIX_RE += r'@(?P<name>[a-zA-Z0-9_\-.]+)'
 
     # Vyatta prompt terminator is as follows
     # For 'root' users:
@@ -36,7 +34,7 @@ class VyattaCLI(cli.CLI):
     # * normal mode: "vyatta@vyatta6:~$ "
     # * config mode: "vyatta@vyatta6#"
 
-    CLI_NORMAL_PROMPT = NAME_PREFIX_RE + ':~[\$|#]'
+    CLI_NORMAL_PROMPT = NAME_PREFIX_RE + r':~[\$|#]'
     CLI_CONFIG_PROMPT = NAME_PREFIX_RE + '#'
     CLI_ANY_PROMPT = [CLI_NORMAL_PROMPT, CLI_CONFIG_PROMPT]
 

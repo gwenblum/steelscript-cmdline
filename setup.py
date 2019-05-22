@@ -4,7 +4,6 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-from __future__ import print_function, division
 
 import sys
 import itertools
@@ -35,7 +34,8 @@ class PyTest(TestCommand):
         errno = pytest.main("%s tests" % " ".join(self.test_args))
         sys.exit(errno)
 
-test = ['pytest', 'testfixtures', 'mock']
+
+test = ['pytest', 'testfixtures']
 doc = ['sphinx']
 
 setup(
@@ -73,8 +73,8 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         'Intended Audience :: Information Technology',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: System :: Networking',
     ],
 
@@ -86,7 +86,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         ('share/doc/steelscript/examples/cmdline', glob('examples/*')),
     ),
 
-    install_requires=['paramiko', 'scp', 'steelscript>=0.9.6', 'ipaddress'],
+    install_requires=['paramiko', 'scp', 'steelscript>=2.0a1', 'ipaddress'],
     extras_require={'test': test,
                     'doc': doc,
                     'dev': [p for p in itertools.chain(test, doc)],
