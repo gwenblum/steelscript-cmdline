@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Riverbed Technology, Inc.
+# Copyright (c) 2019 - 2024 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
@@ -19,9 +19,6 @@ except ImportError:
         'for further instructions.'
     )
 
-from gitpy_versioning import get_version
-
-
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
@@ -41,7 +38,7 @@ doc = ['sphinx']
 setup(
     name='steelscript.cmdline',
     namespace_packages=['steelscript'],
-    version=get_version(),
+    version= '24.2.1',
     author='Riverbed Technology',
     author_email='eng-github@riverbed.com',
     url='http://pythonhosted.org/steelscript',
@@ -73,8 +70,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
         'Intended Audience :: Information Technology',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.12',
         'Topic :: System :: Networking',
     ],
 
@@ -88,7 +84,7 @@ https://support.riverbed.com/apis/steelscript/install/steelhead.html#pycrypto
 
     install_requires=['paramiko',
                       'scp',
-                      'steelscript>=2.0',
+                      'steelscript>=24.2.0',
                       'ipaddress'],
     extras_require={'test': test,
                     'doc': doc,
